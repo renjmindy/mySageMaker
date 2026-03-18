@@ -1,0 +1,20 @@
+● Docker is running and ready. You're good to go — run the notebook
+  cells in order.
+                                                                      
+  A heads-up on what will happen when you hit the training/deploy     
+  cells: SageMaker local mode will pull a Docker image for the RCF    
+  algorithm on first run (e.g. 246618743249.dkr.ecr.us-west-2.amazonaw
+  s.com/sagemaker-randomcutforest:...). This requires:      
+
+  1. AWS ECR login — local mode pulls from ECR automatically using    
+  your AWS credentials, but make sure your credentials are configured:
+  aws configure list                                                  
+  2. Enough disk space — the SageMaker algorithm images can be 1–2 GB.
+   You currently have 0 images pulled, so expect a wait on first run. 
+  3. ECR auth — if the pull fails with auth errors, run:              
+  aws ecr get-login-password --region us-west-2 | docker login        
+  --username AWS --password-stdin                                     
+  246618743249.dkr.ecr.us-west-2.amazonaws.com                        
+                                                                      
+  Once the image is cached locally, subsequent runs will be much      
+  faster.
