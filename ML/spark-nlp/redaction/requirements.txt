@@ -1,0 +1,7 @@
+sagemaker>=2.0,<3.0
+pyspark>=3.3,<3.6
+spark-nlp
+ipykernel
+jupyter
+nltk
+spark-nlp-display
