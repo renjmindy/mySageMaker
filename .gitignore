@@ -1,0 +1,22 @@
+# Python/ML Bloat
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Large Data & Model Weights (The 5GB Culprits)
+*.bin
+*.pth
+*.h5
+*.model
+*.onnx
+*.weights
+*.csv
+*.zip
+*.tar.gz
+*.parquet
+
+# IDE/System Garbage
+.ipynb_checkpoints/
+.DS_Store
+.claude/
