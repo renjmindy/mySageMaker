@@ -6,7 +6,7 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
 
 ## Tasks
 
-- [ ] 1. Create project scaffold and config module
+- [x] 1. Create project scaffold and config module
   - Create `index.html` with a single `<canvas>` element and script imports
   - `game-config.json` already exists at the project root with all physics and game parameters — load it via `fetch('game-config.json')` at startup before the game loop begins
   - Create `game.js` that fetches and stores the config, then initialises all systems
@@ -14,17 +14,17 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Create `vitest.config.js` (or equivalent) to configure the test runner
   - _Requirements: 3.2, 3.5, 3.6, 3.9, 4.2, 4.7, 8.5, 10.5_
 
-- [ ] 2. Implement localStorage high score module
+- [-] 2. Implement localStorage high score module
   - Create `readHighScore()` and `writeHighScore(score)` functions in `game.js`
   - `readHighScore` reads `HS_STORAGE_KEY`, parses as integer, returns 0 for missing/corrupt values and overwrites corrupt entries with `'0'`
   - Wrap all `localStorage` access in try/catch for private-browsing safety
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ]* 2.1 Write property test for high score persistence (P18)
+  - [-] 2.1 Write property test for high score persistence (P18)
     - **Property 18: High score is persisted to localStorage when beaten**
     - **Validates: Requirements 8.1**
 
-  - [ ]* 2.2 Write property test for corrupt/missing localStorage (P19)
+  - [ ] 2.2 Write property test for corrupt/missing localStorage (P19)
     - **Property 19: Corrupt or missing localStorage value defaults to 0**
     - **Validates: Requirements 8.3, 8.4**
 
@@ -36,7 +36,7 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Initialise `highScore` from `readHighScore()` on load
   - _Requirements: 1.1, 1.5, 2.2, 4.7, 4.8, 5.4, 6.1, 6.5, 7.5, 7.6, 7.7_
 
-  - [ ]* 3.1 Write unit tests for state transitions
+  - [ ] 3.1 Write unit tests for state transitions
     - Test MENU → PLAYING on `startGame()`
     - Test `startGame()` resets score to 0 and retains highScore
     - Test `restartGame()` resets Ghosty position to canvas centre and clears pipes
@@ -49,23 +49,23 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Implement `getInterpolatedY(ghosty, alpha)`: returns `prevY + (y - prevY) * alpha`
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.7_
 
-  - [ ]* 4.1 Write property test for physics step (P1)
+  - [ ] 4.1 Write property test for physics step (P1)
     - **Property 1: Physics step integrates gravity and position correctly**
     - **Validates: Requirements 2.1, 2.3, 2.7**
 
-  - [ ]* 4.2 Write property test for flap velocity (P2)
+  - [ ] 4.2 Write property test for flap velocity (P2)
     - **Property 2: Flap always sets velocity to Flap_Velocity**
     - **Validates: Requirements 2.2**
 
-  - [ ]* 4.3 Write property test for terminal velocity (P3)
+  - [ ] 4.3 Write property test for terminal velocity (P3)
     - **Property 3: Terminal velocity is never exceeded**
     - **Validates: Requirements 2.4**
 
-  - [ ]* 4.4 Write property test for interpolation (P4)
+  - [ ] 4.4 Write property test for interpolation (P4)
     - **Property 4: Interpolated render position is a blend of previous and current**
     - **Validates: Requirements 2.5**
 
-  - [ ]* 4.5 Write property test for flap ignored when paused (P17)
+  - [ ] 4.5 Write property test for flap ignored when paused (P17)
     - **Property 17: Flap input is ignored while paused**
     - **Validates: Requirements 6.6**
 
@@ -77,15 +77,15 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Derive `topRect` and `bottomRect` from each `PipePair` on demand
   - _Requirements: 3.1, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-  - [ ]* 5.1 Write property test for pipe scrolling (P5)
+  - [ ] 5.1 Write property test for pipe scrolling (P5)
     - **Property 5: Pipes scroll left by exactly Pipe_Speed each frame**
     - **Validates: Requirements 3.1**
 
-  - [ ]* 5.2 Write property test for gap size (P6)
+  - [ ] 5.2 Write property test for gap size (P6)
     - **Property 6: Generated pipe gap is exactly Gap_Size**
     - **Validates: Requirements 3.7**
 
-  - [ ]* 5.3 Write property test for gap safe zone (P7)
+  - [ ] 5.3 Write property test for gap safe zone (P7)
     - **Property 7: Generated pipe gap centre is within Safe_Zone**
     - **Validates: Requirements 3.8**
 
@@ -96,19 +96,19 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - `triggerCollision` plays `game_over.wav`, starts `collisionAnim`, updates high score if beaten, writes to localStorage
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.8, 4.9, 4.12, 4.13_
 
-  - [ ]* 6.1 Write property test for circular hitbox derivation (P9)
+  - [ ] 6.1 Write property test for circular hitbox derivation (P9)
     - **Property 9: Ghosty circular hitbox is correctly derived from sprite bounds**
     - **Validates: Requirements 4.1, 4.2**
 
-  - [ ]* 6.2 Write property test for collision detection (P10)
+  - [ ] 6.2 Write property test for collision detection (P10)
     - **Property 10: Collision is detected for all boundary and pipe overlaps**
     - **Validates: Requirements 4.3, 4.4, 4.5, 4.6**
 
-  - [ ]* 6.3 Write property test for invincibility guard (P11)
+  - [ ] 6.3 Write property test for invincibility guard (P11)
     - **Property 11: Invincibility window prevents collision detection**
     - **Validates: Requirements 4.6, 4.8**
 
-  - [ ]* 6.4 Write property test for high score update on collision (P12)
+  - [ ] 6.4 Write property test for high score update on collision (P12)
     - **Property 12: High score is updated when current score exceeds it**
     - **Validates: Requirements 4.13**
 
@@ -120,11 +120,11 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Speed increment: `state.pipeSpeed = min(pipeSpeed + SPEED_INCREMENT, MAX_PIPE_SPEED)` when `score % SPEED_MILESTONE === 0`
   - _Requirements: 3.9, 3.10, 3.11, 5.1, 5.2, 5.4_
 
-  - [ ]* 8.1 Write property test for score increment (P13)
+  - [ ] 8.1 Write property test for score increment (P13)
     - **Property 13: Scoring increments by exactly 1 per pipe passed**
     - **Validates: Requirements 5.1**
 
-  - [ ]* 8.2 Write property test for speed milestone (P8)
+  - [ ] 8.2 Write property test for speed milestone (P8)
     - **Property 8: Pipe speed increases at score milestones and is capped**
     - **Validates: Requirements 3.10, 3.11**
 
@@ -135,11 +135,11 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Implement `updateScorePopups(state, now)`: releases expired popups back to pool
   - _Requirements: 9.7, 9.8, 9.9_
 
-  - [ ]* 9.1 Write property test for particle lifecycle (P21)
+  - [ ] 9.1 Write property test for particle lifecycle (P21)
     - **Property 21: Particle lifecycle — emission and expiry**
     - **Validates: Requirements 9.7, 9.8**
 
-  - [ ]* 9.2 Write property test for score popup lifecycle (P22)
+  - [ ] 9.2 Write property test for score popup lifecycle (P22)
     - **Property 22: Score popup is created on score increment and expires after duration**
     - **Validates: Requirements 9.9**
 
@@ -149,23 +149,23 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Layer 0 (far): speed `0.3`; Layer 1 (near): speed `0.7`
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-  - [ ]* 10.1 Write property test for cloud layer speeds differ (P23)
+  - [ ] 10.1 Write property test for cloud layer speeds differ (P23)
     - **Property 23: Cloud layers scroll at distinct speeds**
     - **Validates: Requirements 11.2**
 
-  - [ ]* 10.2 Write property test for cloud opacity (P24)
+  - [ ] 10.2 Write property test for cloud opacity (P24)
     - **Property 24: All clouds have opacity strictly less than 1.0**
     - **Validates: Requirements 11.3**
 
-  - [ ]* 10.3 Write property test for cloud wrap (P25)
+  - [ ] 10.3 Write property test for cloud wrap (P25)
     - **Property 25: Clouds wrap from left edge to right edge**
     - **Validates: Requirements 11.4**
 
-  - [ ]* 10.4 Write property test for clouds scroll while paused (P16)
+  - [ ] 10.4 Write property test for clouds scroll while paused (P16)
     - **Property 16: Clouds continue scrolling while paused**
     - **Validates: Requirements 6.3, 11.6**
 
-  - [ ]* 10.5 Write property test for physics halts when paused (P15)
+  - [ ] 10.5 Write property test for physics halts when paused (P15)
     - **Property 15: Pipe movement and Ghosty physics halt while paused**
     - **Validates: Requirements 6.4**
 
@@ -177,7 +177,7 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Wire audio calls into `flap()`, `triggerCollision()`, `checkScoring()`, and state transitions
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.6, 10.7, 10.8, 10.9, 10.10, 10.11_
 
-  - [ ]* 11.1 Write unit tests for audio manager silent fail
+  - [ ] 11.1 Write unit tests for audio manager silent fail
     - Test that `playSound` with a failed audio element does not throw
     - Test that missing background music does not prevent game from running
     - _Requirements: 10.2, 10.7_
@@ -194,11 +194,11 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Fallback: render white rectangle if `ghosty.png` fails to load
   - _Requirements: 1.2, 1.4, 4.9, 4.10, 4.11, 5.2, 5.3, 6.2, 7.1, 7.2, 7.3, 7.4, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9_
 
-  - [ ]* 12.1 Write property test for sprite rotation direction (P20)
+  - [ ] 12.1 Write property test for sprite rotation direction (P20)
     - **Property 20: Ghosty sprite rotation reflects velocity direction**
     - **Validates: Requirements 9.5**
 
-  - [ ]* 12.2 Write property test for score bar across all states (P14)
+  - [ ] 12.2 Write property test for score bar across all states (P14)
     - **Property 14: Score bar displays high score across all game states**
     - **Validates: Requirements 5.3**
 
@@ -210,7 +210,7 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Handle canvas resize: update canvas dimensions and rescale all positional values proportionally
   - _Requirements: 1.3, 1.5, 2.6, 6.1, 6.3, 6.4, 6.5, 6.6, 12.1, 12.2, 12.3_
 
-  - [ ]* 13.1 Write unit tests for input handler routing
+  - [ ] 13.1 Write unit tests for input handler routing
     - Test that Space/tap in MENU calls `startGame()`
     - Test that Space/tap in PAUSED does not call `flap()`
     - Test that Escape/P toggles PLAYING ↔ PAUSED
