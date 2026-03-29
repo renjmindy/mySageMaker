@@ -1,0 +1,31 @@
+{
+  "physics": {
+    "gravity": 800,
+    "jumpVelocity": -300,
+    "terminalVelocity": 600
+  },
+  "pipes": {
+    "wallSpeed": 120,
+    "gapSize": 140,
+    "wallSpacing": 350,
+    "gapMargin": 60,
+    "speedIncrement": 20,
+    "speedMilestone": 5,
+    "maxWallSpeed": 300
+  },
+  "collision": {
+    "hitboxInset": 8,
+    "invincibilityMs": 1500
+  },
+  "visual": {
+    "particleDuration": 500,
+    "scorePopupDuration": 700,
+    "collisionAnimMs": 500
+  },
+  "audio": {
+    "bgMusicPath": "assets/background.mp3"
+  },
+  "storage": {
+    "highScoreKey": "flappyKiroHighScore"
+  }
+}

@@ -73,40 +73,52 @@ stateDiagram-v2
 
 ## Components and Interfaces
 
-### config.js — Constants Module
+### game-config.json — Constants Module
 
-All numerical values and asset paths live in a single dedicated file. Game logic imports from `CONFIG` — no magic numbers anywhere else. To tune the game feel, only `config.js` ever needs to change.
+All numerical values and asset paths live in `game-config.json` at the project root. The game loads this file at startup and uses it as the single source of truth. To tune the game feel, only `game-config.json` ever needs to change — no code edits required.
 
+Physics values use **time-based units (px/s or px/s²)** so behaviour is consistent at any frame rate. The game loop converts to per-frame deltas using `dt` (seconds elapsed since last frame).
+
+```json
+{
+  "physics": {
+    "gravity": 800,
+    "jumpVelocity": -300,
+    "terminalVelocity": 600
+  },
+  "pipes": {
+    "wallSpeed": 120,
+    "gapSize": 140,
+    "wallSpacing": 350,
+    "gapMargin": 60,
+    "speedIncrement": 20,
+    "speedMilestone": 5,
+    "maxWallSpeed": 300
+  },
+  "collision": {
+    "hitboxInset": 8,
+    "invincibilityMs": 1500
+  },
+  "visual": {
+    "particleDuration": 500,
+    "scorePopupDuration": 700,
+    "collisionAnimMs": 500
+  },
+  "audio": {
+    "bgMusicPath": "assets/background.mp3"
+  },
+  "storage": {
+    "highScoreKey": "flappyKiroHighScore"
+  }
+}
+```
+
+The game loop applies time-based physics as:
 ```js
-// config.js
-export const CONFIG = {
-  // Physics
-  GRAVITY:                0.5,    // px/frame²
-  FLAP_VELOCITY:         -9,      // px/frame (upward)
-  TERMINAL_VELOCITY:      12,     // px/frame (downward max)
-
-  // Pipes
-  BASE_PIPE_SPEED:        3,      // px/frame
-  SPEED_INCREMENT:        0.5,    // px/frame added per milestone
-  SPEED_MILESTONE:        5,      // score interval for speed increase
-  MAX_PIPE_SPEED:         10,     // px/frame cap
-  PIPE_SPACING:           280,    // px between pipe pair spawns
-  GAP_SIZE:               160,    // px vertical gap height
-  GAP_MARGIN:             60,     // px safe zone margin top/bottom
-
-  // Collision
-  HITBOX_INSET:           8,      // px inset on each side of sprite
-  INVINCIBILITY_MS:       1500,   // ms grace period at session start
-
-  // Visual / timing
-  PARTICLE_DURATION:      500,    // ms particle lifetime (≤600)
-  SCORE_POPUP_DURATION:   700,    // ms popup lifetime (≤800)
-  COLLISION_ANIM_MS:      500,    // ms total collision animation
-
-  // Storage / assets
-  HS_STORAGE_KEY:   'flappyKiroHighScore',
-  BG_MUSIC_PATH:    'assets/background.mp3',
-};
+// dt = seconds since last frame (capped at 0.05 to prevent spiral-of-death)
+ghosty.vy = Math.min(ghosty.vy + cfg.physics.gravity * dt, cfg.physics.terminalVelocity);
+ghosty.y  += ghosty.vy * dt;
+pipe.x    -= cfg.pipes.wallSpeed * dt;
 ```
 
 ### Game State Object
