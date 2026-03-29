@@ -28,9 +28,9 @@ The player controls Ghosty, a ghost sprite, navigating through an infinite strea
 
 ## Architecture
 
-The game is structured as a single module with a clear separation between:
+The game is structured across a small set of files with a clear separation between:
 
-1. **Constants** — all tunable values defined at the top as named constants
+1. **`config.js`** — all tunable numerical values and asset paths in one dedicated file, imported by all other modules
 2. **State** — a single mutable game state object
 3. **Systems** — pure-ish functions that update state (physics, pipes, collision, scoring, particles)
 4. **Renderer** — reads state and draws to canvas each frame
@@ -73,28 +73,40 @@ stateDiagram-v2
 
 ## Components and Interfaces
 
-### Constants Module
+### config.js — Constants Module
 
-All magic numbers are named constants defined at the top of the file:
+All numerical values and asset paths live in a single dedicated file. Game logic imports from `CONFIG` — no magic numbers anywhere else. To tune the game feel, only `config.js` ever needs to change.
 
 ```js
-const GRAVITY            = 0.5;       // px/frame²
-const FLAP_VELOCITY      = -9;        // px/frame (upward)
-const TERMINAL_VELOCITY  = 12;        // px/frame (downward max)
-const BASE_PIPE_SPEED    = 3;         // px/frame
-const SPEED_INCREMENT    = 0.5;       // px/frame per milestone
-const SPEED_MILESTONE    = 5;         // score interval for speed increase
-const MAX_PIPE_SPEED     = 10;        // px/frame cap
-const PIPE_SPACING       = 280;       // px between pipe pair spawns
-const GAP_SIZE           = 160;       // px vertical gap
-const GAP_MARGIN         = 60;        // px safe zone margin top/bottom
-const HITBOX_INSET       = 8;         // px inset on each side
-const INVINCIBILITY_MS   = 1500;      // ms grace period at session start
-const PARTICLE_DURATION  = 500;       // ms particle lifetime (≤600)
-const SCORE_POPUP_DURATION = 700;     // ms popup lifetime (≤800)
-const COLLISION_ANIM_MS  = 500;       // ms total collision animation
-const HS_STORAGE_KEY     = 'flappyKiroHighScore';
-const BG_MUSIC_PATH      = 'assets/background.mp3';
+// config.js
+export const CONFIG = {
+  // Physics
+  GRAVITY:                0.5,    // px/frame²
+  FLAP_VELOCITY:         -9,      // px/frame (upward)
+  TERMINAL_VELOCITY:      12,     // px/frame (downward max)
+
+  // Pipes
+  BASE_PIPE_SPEED:        3,      // px/frame
+  SPEED_INCREMENT:        0.5,    // px/frame added per milestone
+  SPEED_MILESTONE:        5,      // score interval for speed increase
+  MAX_PIPE_SPEED:         10,     // px/frame cap
+  PIPE_SPACING:           280,    // px between pipe pair spawns
+  GAP_SIZE:               160,    // px vertical gap height
+  GAP_MARGIN:             60,     // px safe zone margin top/bottom
+
+  // Collision
+  HITBOX_INSET:           8,      // px inset on each side of sprite
+  INVINCIBILITY_MS:       1500,   // ms grace period at session start
+
+  // Visual / timing
+  PARTICLE_DURATION:      500,    // ms particle lifetime (≤600)
+  SCORE_POPUP_DURATION:   700,    // ms popup lifetime (≤800)
+  COLLISION_ANIM_MS:      500,    // ms total collision animation
+
+  // Storage / assets
+  HS_STORAGE_KEY:   'flappyKiroHighScore',
+  BG_MUSIC_PATH:    'assets/background.mp3',
+};
 ```
 
 ### Game State Object
@@ -148,16 +160,37 @@ spawnPipe():
 
 ### Collision Detector
 
+Ghosty uses a **circular hitbox** (feels fairer for a round ghost sprite). Pipes use **rectangular bounds**. Ground and ceiling use simple y-threshold checks.
+
 ```
+getCircleHitbox(ghosty, spriteW, spriteH):
+  cx = ghosty.x + spriteW / 2
+  cy = ghosty.y + spriteH / 2
+  r  = (min(spriteW, spriteH) / 2) - HITBOX_INSET
+  return { cx, cy, r }
+
+circleOverlapsRect(cx, cy, r, rect):
+  // clamp circle centre to nearest point on rect
+  nearestX = clamp(cx, rect.x, rect.x + rect.w)
+  nearestY = clamp(cy, rect.y, rect.y + rect.h)
+  dx = cx - nearestX
+  dy = cy - nearestY
+  return (dx*dx + dy*dy) <= r*r
+
 checkCollisions(state, now):
   if now < state.invincibleUntil: return
-  hitbox = getHitbox(state.ghosty)
+  { cx, cy, r } = getCircleHitbox(state.ghosty, SPRITE_W, SPRITE_H)
+
+  // Wall collision — circle vs pipe rectangles
   for each pipe in state.pipes:
-    if overlaps(hitbox, pipe.topRect) or overlaps(hitbox, pipe.bottomRect):
-      triggerCollision(state)
-      return
-  if hitbox.bottom >= canvas.height - SCORE_BAR_H: triggerCollision(state)
-  if hitbox.top <= 0: triggerCollision(state)
+    if circleOverlapsRect(cx, cy, r, pipe.topRect): triggerCollision(state); return
+    if circleOverlapsRect(cx, cy, r, pipe.bottomRect): triggerCollision(state); return
+
+  // Ground collision
+  if cy + r >= canvas.height - SCORE_BAR_H: triggerCollision(state); return
+
+  // Ceiling collision
+  if cy - r <= 0: triggerCollision(state)
 ```
 
 ### Scorer
@@ -385,15 +418,15 @@ Read logic:
 
 **Validates: Requirements 3.10, 3.11**
 
-### Property 9: Hitbox is correctly inset from sprite bounds
+### Property 9: Ghosty circular hitbox is correctly derived from sprite bounds
 
-*For any* Ghosty position `(x, y)` with sprite dimensions `(w, h)`, the computed hitbox should have `left = x + HITBOX_INSET`, `top = y + HITBOX_INSET`, `width = w - 2*HITBOX_INSET`, `height = h - 2*HITBOX_INSET`.
+*For any* Ghosty position `(x, y)` with sprite dimensions `(w, h)`, the computed circle hitbox should have centre `cx = x + w/2`, `cy = y + h/2`, and radius `r = min(w, h)/2 - HITBOX_INSET`.
 
-**Validates: Requirements 4.1**
+**Validates: Requirements 4.1, 4.2**
 
 ### Property 10: Collision is detected for all boundary and pipe overlaps
 
-*For any* Ghosty hitbox position that overlaps a pipe rectangle, reaches the bottom boundary, or reaches the top boundary — and the invincibility window is not active — a collision should be triggered. Conversely, when the hitbox does not overlap any obstacle and is within bounds, no collision should be triggered.
+*For any* Ghosty circle hitbox `(cx, cy, r)` that overlaps a pipe rectangle (circle-AABB test), or where `cy + r >= ground` or `cy - r <= 0` — and the invincibility window is not active — a collision should be triggered. Conversely, when the circle does not overlap any obstacle and is within bounds, no collision should be triggered.
 
 **Validates: Requirements 4.3, 4.4, 4.5, 4.6**
 
@@ -486,6 +519,86 @@ Read logic:
 *For any* cloud whose x-position has moved past the left edge of the canvas (x + cloud.width < 0), after the next cloud update step the cloud should be repositioned to the right edge of the canvas.
 
 **Validates: Requirements 11.4**
+
+---
+
+## Performance Optimizations
+
+### Target: 60 FPS
+
+The game loop uses `requestAnimationFrame` which syncs to the display refresh rate. To sustain 60 FPS:
+
+- All per-frame work must complete within **~16ms**
+- No allocations in the hot path (game loop, physics, collision, rendering)
+- Canvas state changes (`save`/`restore`, `globalAlpha`, transforms) are minimised and batched
+
+### Object Pooling
+
+Creating and garbage-collecting objects every frame causes GC pauses that break frame timing. All short-lived objects use **pre-allocated pools** with a fixed maximum size.
+
+```js
+// Pool pattern used for Particles and ScorePopups
+class Pool {
+  constructor(maxSize, factory) {
+    this._pool = Array.from({ length: maxSize }, factory);
+    this._active = [];
+  }
+  acquire() {
+    return this._pool.length ? this._pool.pop() : null; // drop if pool exhausted
+  }
+  release(obj) {
+    this._active.splice(this._active.indexOf(obj), 1);
+    this._pool.push(obj);
+  }
+}
+```
+
+| Pool | Max size | Rationale |
+|---|---|---|
+| `ParticlePool` | 60 | ~1 particle/frame × 500ms lifetime = max ~30 active; 60 gives headroom |
+| `ScorePopupPool` | 8 | Score events are infrequent; 8 is more than sufficient |
+| `PipePairPool` | 6 | At most 4–5 pipes visible at once; pool avoids alloc on recycle |
+
+Pipes are recycled rather than destroyed: when a `PipePair` exits the left edge it is reset and returned to the pool, then re-acquired when a new pair is needed.
+
+### Sprite Batching
+
+The Canvas 2D API has no native sprite batching, but draw call overhead is minimised by:
+
+- Drawing all pipes in a single loop without changing fill style between same-coloured segments
+- Setting `globalAlpha` once per cloud layer rather than per cloud where opacity is uniform within a layer
+- Caching the sketchy background to an **offscreen canvas** at init time and blitting it each frame with a single `drawImage` call instead of re-drawing strokes
+
+```js
+// Background pre-render (done once at init)
+const bgCanvas = document.createElement('canvas');
+const bgCtx = bgCanvas.getContext('2d');
+drawSketchyBackground(bgCtx, width, height);
+
+// Each frame — single blit
+ctx.drawImage(bgCanvas, 0, 0);
+```
+
+### Memory Management
+
+- Particle and popup arrays are filtered in-place using index-based iteration (no `filter()` which allocates a new array each frame)
+- Cloud arrays are fixed-size at init; no clouds are ever added or removed, only repositioned
+- `PipePair` objects are pooled and mutated in place; no new objects are created during gameplay
+- String concatenation for score display uses a pre-allocated template; the score bar text is only re-rendered when the score value changes (dirty flag)
+
+### Frame Budget Breakdown (target 16ms)
+
+| System | Budget |
+|---|---|
+| Physics + collision | ~1ms |
+| Pipe + cloud update | ~1ms |
+| Particle + popup update | ~1ms |
+| Background blit | ~1ms |
+| Pipe rendering | ~2ms |
+| Ghosty sprite draw | ~1ms |
+| Particle trail render | ~3ms |
+| UI / overlays | ~1ms |
+| **Total** | **~11ms** (5ms headroom) |
 
 ---
 
@@ -594,8 +707,8 @@ Each property test must:
 | P6: Gap size exact | `fc.integer()` for canvas height | `fc.integer({ min: 400, max: 1200 })` |
 | P7: Gap in safe zone | `fc.integer()` for canvas height | `fc.integer({ min: 400, max: 1200 })` |
 | P8: Speed milestone | `fc.nat()` for score | `fc.nat({ max: 200 })` |
-| P9: Hitbox inset | `fc.float()` for x, y | `fc.record({ x: fc.float(), y: fc.float() })` |
-| P10: Collision detection | `fc.record()` for ghosty/pipe positions | Composite arbitraries |
+| P9: Circular hitbox derivation | `fc.float()` for x, y, w, h | `fc.record({ x: fc.float(), y: fc.float(), w: fc.float({ min: 20 }), h: fc.float({ min: 20 }) })` |
+| P10: Collision detection (circle vs AABB + bounds) | `fc.record()` for ghosty/pipe positions | Composite arbitraries for circle centre, radius, rect |
 | P11: Invincibility guard | `fc.integer()` for timestamp offset | `fc.integer({ min: 0, max: INVINCIBILITY_MS - 1 })` |
 | P12: High score update | `fc.nat()` for score and highScore | `fc.tuple(fc.nat(), fc.nat())` |
 | P13: Score increment | Pipe position relative to ghosty | `fc.record()` for pipe/ghosty x |
@@ -616,7 +729,9 @@ Each property test must:
 
 ```js
 import * as fc from 'fast-check';
-import { updatePhysics, GRAVITY, TERMINAL_VELOCITY } from '../game.js';
+import { updatePhysics } from '../game.js';
+import { CONFIG } from '../config.js';
+const { GRAVITY, TERMINAL_VELOCITY } = CONFIG;
 
 test('P1: physics step integrates gravity and clamps terminal velocity', () => {
   // Feature: flappy-kiro, Property 1: Physics step integrates gravity and position correctly
