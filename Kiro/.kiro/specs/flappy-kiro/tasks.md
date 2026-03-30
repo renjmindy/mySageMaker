@@ -14,7 +14,7 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Create `vitest.config.js` (or equivalent) to configure the test runner
   - _Requirements: 3.2, 3.5, 3.6, 3.9, 4.2, 4.7, 8.5, 10.5_
 
-- [-] 2. Implement localStorage high score module
+- [ ] 2. Implement localStorage high score module
   - Create `readHighScore()` and `writeHighScore(score)` functions in `game.js`
   - `readHighScore` reads `HS_STORAGE_KEY`, parses as integer, returns 0 for missing/corrupt values and overwrites corrupt entries with `'0'`
   - Wrap all `localStorage` access in try/catch for private-browsing safety
