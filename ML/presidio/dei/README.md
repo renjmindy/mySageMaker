@@ -2,7 +2,7 @@
 
 A PySpark-based repository for detecting and anonymizing Personally Identifiable Information (PII) using Microsoft Presidio, Faker, and Microsoft Fabric.
 
-![FabricPIIAnonymization_Implementation](/images/FabricPIIAnonymization_Implementation.png)
+![FabricPIIAnonymization_Implementation](FabricPIIAnonymization_Implementation.png)
 
 # 🚀 Features
 
@@ -44,31 +44,31 @@ This notebook contains function designed to process DataFrames containing column
 1. **Fabric workspace** with sufficient permissions to create and manage custom environments.
     1. Create a new Fabric lakehouse or use existing lakehouse within Fabric. Refer [this](https://learn.microsoft.com/en-us/fabric/data-engineering/tutorial-build-lakehouse#create-a-lakehouse) for more details.
     1. Create a folder "data" and subfolder "customer-profile-sample-data" in lakehouse. Download the sample data file from "customer-profile-sample-data" folder from [this](/data/customer-profile-sample-data/) location and upload in the Lakehouse subfolder.<br>
-    ![Customer-profile-sample-data](/images/customer-profile-sample-data.png)
+    ![Customer-profile-sample-data](customer-profile-sample-data.png)
 1. **Configure Spark Pool** Make sure to create (or select) a valid Spark pool that you can attach to your Fabric environment.
 1. **Create a New Environment**
     1. In your Fabric workspace, go to "Workspace settings", "Data Engineering/Science","Spark settings","Environment" tab and select "New Environment".
-    ![workspace-spark-settings](images/workspace-spark-settings.png)
+    ![workspace-spark-settings](workspace-spark-settings.png)
     1. Provide a name (e.g., presidio-env)
 1. **Add Dependencies**
     1. Under Public Library, add the below essential libraries:
     1. presidio-analyzer
     1. presidio-anonymizer
     1. spacy
-    ![public-libraries](images/public-libraries.png)
+    ![public-libraries](public-libraries.png)
         ```
         When using Microsoft Presidio with spaCy, you can choose between different spaCy model sizes such as en_core_web_md (medium, typically under 300MB) and en_core_web_lg (large, usually over 800MB).
         Medium (en_core_web_md): Contains word vectors, but these are smaller and less comprehensive than those in the large model. This model is designed to balance accuracy and resource usage.
         Large (en_core_web_lg) (Recommended): Includes much larger word vectors, which are used as features during prediction. This generally results in slightly better performance, especially for tasks that benefit from richer semantic information, but at the cost of increased memory and disk usage.
         ```
     1. For medium SpaCy models (like en_core_web_md < 300MB), you can include them directly in this environment.
-    ![custom-lib-en-core-web-md](images/custom-lib-en-core-web-md.png)
+    ![custom-lib-en-core-web-md](custom-lib-en-core-web-md.png)
     1. Upload a Large SpaCy Model
     If you want to use en_core_web_lg (which typically exceeds 300MB): 
         1. Create a folder "presidio" and within that, create a folder "models". Installing the large model from the lakehouse as it exceeds the size limit for custom libraries in the Fabric environment. Upload the .whl file to your Lakehouse (or any location accessible by Spark). The spaCy model can be downloaded from [here](https://spacy.io/models/en#en_core_web_lg).
         2. You will install it within the notebook rather than from this environment.
         This approach is necessary because the environment setup UI may restrict the size of packages you can add directly.
-        ![alt text](/images/en-core-web-lg-model.png)
+        ![alt text](en-core-web-lg-model.png)
     1. Review Save & Publish
     Confirm your chosen libraries appear under the Custom Library or Public Library tabs.
     Click "Save" to finalize your environment setup.
