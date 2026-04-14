@@ -14,21 +14,21 @@ Implement Flappy Kiro as a vanilla JS browser game using HTML5 Canvas. The imple
   - Create `vitest.config.js` (or equivalent) to configure the test runner
   - _Requirements: 3.2, 3.5, 3.6, 3.9, 4.2, 4.7, 8.5, 10.5_
 
-- [ ] 2. Implement localStorage high score module
+- [~] 2. Implement localStorage high score module
   - Create `readHighScore()` and `writeHighScore(score)` functions in `game.js`
   - `readHighScore` reads `HS_STORAGE_KEY`, parses as integer, returns 0 for missing/corrupt values and overwrites corrupt entries with `'0'`
   - Wrap all `localStorage` access in try/catch for private-browsing safety
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [-] 2.1 Write property test for high score persistence (P18)
+  - [~] 2.1 Write property test for high score persistence (P18)
     - **Property 18: High score is persisted to localStorage when beaten**
     - **Validates: Requirements 8.1**
 
-  - [ ] 2.2 Write property test for corrupt/missing localStorage (P19)
+  - [~] 2.2 Write property test for corrupt/missing localStorage (P19)
     - **Property 19: Corrupt or missing localStorage value defaults to 0**
     - **Validates: Requirements 8.3, 8.4**
 
-- [ ] 3. Implement game state object and state machine transitions
+- [~] 3. Implement game state object and state machine transitions
   - Define the `state` object with all fields: `gameState`, `score`, `highScore`, `ghosty`, `pipes`, `particles`, `scorePopups`, `clouds`, `invincibleUntil`, `collisionAnim`, `pipeSpeed`, `lastTimestamp`, `newBest`
   - Implement `startGame()`: sets `gameState` to PLAYING, resets score to 0, sets `pipeSpeed` to `BASE_PIPE_SPEED`, activates invincibility window, clears pipes, positions Ghosty at canvas centre
   - Implement `restartGame()`: same as `startGame()` but called from GAME_OVER state
