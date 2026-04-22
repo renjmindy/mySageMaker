@@ -527,6 +527,7 @@ demo.launch(
     server_name="0.0.0.0" if not _on_hf_spaces else None,
     server_port=int(os.getenv("GRADIO_PORT", 7860)) if not _on_hf_spaces else None,
     share=os.getenv("GRADIO_SHARE", "false").lower() == "true",
+    ssr_mode=False,
         theme=gr.themes.Soft(),
         js="""
         function() {
