@@ -368,50 +368,6 @@ def load_sample(sample_name: str) -> str:
 # Build Gradio interface
 with gr.Blocks(
     title="Medical PII De-identification",
-    theme=gr.themes.Soft(),
-    js="""
-    function() {
-        const observer = new MutationObserver(function() {
-            document.querySelectorAll(
-                'button[aria-label*="dark"], button[aria-label*="light"], button[aria-label*="Dark"], button[aria-label*="Light"], .theme-toggle, input[type="checkbox"].theme, label[for*="theme"]'
-            ).forEach(el => el.closest('label, div, span') ? el.closest('label, div, span').remove() : el.remove());
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-    """,
-    css="""
-    .container { max-width: 1200px; margin: auto; }
-    .highlight mark { cursor: help; }
-    .gradio-container, .gradio-container * { font-family: Arial, Helvetica, sans-serif !important; }
-    .theme-toggle, .dark-mode-toggle, [class*="theme"], [id*="theme"], button[aria-label*="dark"], button[aria-label*="light"], button[aria-label*="Dark"], button[aria-label*="Light"] { display: none !important; }
-    :root {
-        --background-fill-primary: #000000 !important;
-        --background-fill-secondary: #000000 !important;
-        --body-background-fill: #000000 !important;
-        --panel-background-fill: #000000 !important;
-        --block-background-fill: #000000 !important;
-        --input-background-fill: #000000 !important;
-        --color-background-primary: #000000 !important;
-    }
-    body, html { background-color: #000000 !important; }
-    .gradio-container { background-color: #000000 !important; color: white !important; font-size: 800% !important; }
-    .gradio-container * { color: white !important; }
-    .tab-nav, .tab-nav *, div[role="tablist"], div[role="tablist"] * { background-color: #000000 !important; }
-    .tab-nav button, div[role="tab"], button[role="tab"] { background-color: #000000 !important; color: white !important; border-color: #ccc !important; }
-    .tabitem { background-color: #000000 !important; color: white !important; }
-    input[type="range"]::-webkit-slider-thumb { background-color: #000000 !important; }
-    input[type="range"]::-moz-range-thumb { background-color: #000000 !important; }
-    input[type="range"]::-webkit-slider-runnable-track { background-color: #000000 !important; }
-    input[type="range"]::-moz-range-track { background-color: #000000 !important; }
-    .block { background-color: #000000 !important; }
-    label { background-color: #000000 !important; }
-    textarea, input[type="text"], input[type="number"], .codemirror-wrapper, .cm-editor, .cm-scroller, pre { background-color: #000000 !important; }
-    .prose, .markdown, .output-markdown { background-color: #000000 !important; }
-    .wrap { background-color: #000000 !important; }
-    .scroll-hide { background-color: #000000 !important; }
-    select, .select, .dropdown, ul.options, ul.options li, .option { background-color: #000000 !important; }
-    .svelte-select, .svelte-select .value-container, .svelte-select .listContainer, .svelte-select .item { background-color: #000000 !important; }
-    """
 ) as demo:
     gr.Markdown("""
     # Medical PII De-identification Demo
@@ -569,5 +525,49 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=int(os.getenv("GRADIO_PORT", 7860)),
-        share=os.getenv("GRADIO_SHARE", "false").lower() == "true"
+        share=os.getenv("GRADIO_SHARE", "false").lower() == "true",
+        theme=gr.themes.Soft(),
+        js="""
+        function() {
+            const observer = new MutationObserver(function() {
+                document.querySelectorAll(
+                    'button[aria-label*="dark"], button[aria-label*="light"], button[aria-label*="Dark"], button[aria-label*="Light"], .theme-toggle, input[type="checkbox"].theme, label[for*="theme"]'
+                ).forEach(el => el.closest('label, div, span') ? el.closest('label, div, span').remove() : el.remove());
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+        """,
+        css="""
+        .container { max-width: 1200px; margin: auto; }
+        .highlight mark { cursor: help; }
+        .gradio-container, .gradio-container * { font-family: Arial, Helvetica, sans-serif !important; }
+        .theme-toggle, .dark-mode-toggle, [class*="theme"], [id*="theme"], button[aria-label*="dark"], button[aria-label*="light"], button[aria-label*="Dark"], button[aria-label*="Light"] { display: none !important; }
+        :root {
+            --background-fill-primary: #000000 !important;
+            --background-fill-secondary: #000000 !important;
+            --body-background-fill: #000000 !important;
+            --panel-background-fill: #000000 !important;
+            --block-background-fill: #000000 !important;
+            --input-background-fill: #000000 !important;
+            --color-background-primary: #000000 !important;
+        }
+        body, html { background-color: #000000 !important; }
+        .gradio-container { background-color: #000000 !important; color: white !important; font-size: 800% !important; }
+        .gradio-container * { color: white !important; }
+        .tab-nav, .tab-nav *, div[role="tablist"], div[role="tablist"] * { background-color: #000000 !important; }
+        .tab-nav button, div[role="tab"], button[role="tab"] { background-color: #000000 !important; color: white !important; border-color: #ccc !important; }
+        .tabitem { background-color: #000000 !important; color: white !important; }
+        input[type="range"]::-webkit-slider-thumb { background-color: #000000 !important; }
+        input[type="range"]::-moz-range-thumb { background-color: #000000 !important; }
+        input[type="range"]::-webkit-slider-runnable-track { background-color: #000000 !important; }
+        input[type="range"]::-moz-range-track { background-color: #000000 !important; }
+        .block { background-color: #000000 !important; }
+        label { background-color: #000000 !important; }
+        textarea, input[type="text"], input[type="number"], .codemirror-wrapper, .cm-editor, .cm-scroller, pre { background-color: #000000 !important; }
+        .prose, .markdown, .output-markdown { background-color: #000000 !important; }
+        .wrap { background-color: #000000 !important; }
+        .scroll-hide { background-color: #000000 !important; }
+        select, .select, .dropdown, ul.options, ul.options li, .option { background-color: #000000 !important; }
+        .svelte-select, .svelte-select .value-container, .svelte-select .listContainer, .svelte-select .item { background-color: #000000 !important; }
+        """
     )
