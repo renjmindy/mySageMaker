@@ -1,0 +1,106 @@
+========================================
+SAMPLE PATIENT FEEDBACK FOR TESTING
+========================================
+
+These samples contain synthetic (fake) PII for testing the de-identification system.
+All names, dates, SSNs, and other identifiers are fictional.
+
+========================================
+PATIENT 1
+========================================
+Dr Priya Patel in the respiratory clinic was absolutely wonderful. She took time to explain my COPD management plan and made sure I understood every step. The nurse on reception, Karen Thompson, was also very welcoming.
+
+========================================
+PATIENT 2
+========================================
+The parking at 45 Albert Street is very limited. I had to walk from the Westfield car park which is difficult at my age.
+
+========================================
+PATIENT 3
+========================================
+I had my appointment on 15 January 2026 at 2pm and wasn't seen until after 3:15pm. Dr James Richardson seemed rushed and didn't listen to my concerns about the medication side effects. I called the clinic at 07 3456 7890 twice before my appointment to ask about preparation and nobody answered. My wife Angela Chen had a much better experience at the Chermside Day Surgery last month.
+
+========================================
+PATIENT 4
+========================================
+The physiotherapist Michael was great. He gave me a detailed home exercise program after my knee surgery and followed up via email at susan.obrien82@gmail.com to check on my progress. Very impressed with that level of care.
+
+========================================
+PATIENT 5
+========================================
+The online booking system could be easier to use. I ended up calling reception to book because I couldn't figure out the Zedoc portal. I was referred by Dr Nguyen at the Ipswich Hospital and the transition was smooth.
+
+========================================
+PATIENT 6
+========================================
+Nurse Rebecca Taylor in the diabetes clinic was exceptional. She spent over 40 minutes with me going through my HbA1c results and adjusting my insulin plan. She also coordinated with my GP Dr Samantha Lee at the Toowoomba Medical Practice to ensure consistent care.
+
+========================================
+PATIENT 7
+========================================
+Dr Patel is always thorough and patient. She remembers details from previous visits which makes me feel valued.
+
+========================================
+PATIENT 8
+========================================
+I'm 81 years old and find the forms quite difficult to fill in. My daughter Sarah Fitzpatrick usually helps me but she wasn't available this time. Could you offer some assistance at the front desk for elderly patients? Also my Medicare number is 2345 67890 1 and I think there was a billing error on my last visit on 28 January 2026.
+
+========================================
+PATIENT 9
+========================================
+The midwifery team, especially Lisa and Jenny, were amazing throughout my pregnancy. They made me feel safe and supported. The antenatal classes at the centre on George Street were also excellent.
+
+========================================
+PATIENT 10
+========================================
+It would be nice to have later appointment slots. As a working mum I find it hard to attend before 4pm. My employer at Bright Horizons Childcare is not always flexible with time off. I recommended this clinic to my sister-in-law Patricia Nakamura who is expecting in July.
+
+========================================
+PATIENT 11
+========================================
+The new blood collection nurse, Daniel Kim, was very skilled. Best blood draw I've had - barely felt it. He mentioned he previously worked at the Royal Brisbane and Women's Hospital.
+
+========================================
+PATIENT 12
+========================================
+The results portal is confusing. I had to call Dr Richardson's office at 07 3456 7891 to get my pathology explained because I couldn't understand the online report.
+
+========================================
+PATIENT 13
+========================================
+Dr Patel and Nurse Rebecca were both excellent. They were respectful of my cultural needs and ensured a female practitioner was available for my examination. This was very important to me.
+
+========================================
+PATIENT 14
+========================================
+The interpreter service was not available on 4 March 2026 when my mother attended. She speaks Arabic and struggled to communicate her symptoms. Please ensure interpreters are booked in advance. My mother Zahra Al-Rashid (patient ID PAT-91603) would like to provide feedback separately. Can someone contact her at fatima.alrashid@outlook.com to arrange an Arabic-language survey?
+
+========================================
+PATIENT 15
+========================================
+Outstanding mental health support from psychologist Dr Amanda Clarke. She helped me develop coping strategies after my workplace incident at BHP Mitsubishi Alliance in Mount Isa last year. The telehealth option made it possible to continue sessions when I was FIFO.
+
+========================================
+PATIENT 16
+========================================
+The mental health waiting list is too long. I was referred on 15 November 2025 and didn't get my first appointment until 8 January 2026. That's nearly 8 weeks.
+
+========================================
+PATIENT 17
+========================================
+The wound care nurse Jacinta was thorough and gentle. She explained the healing process for my post-surgical wound clearly and gave me written instructions to take home.
+
+========================================
+PATIENT 18
+========================================
+I received a reminder SMS from Zedoc to complete this survey but the link didn't work on my Samsung phone. I had to use my husband David Tran's iPhone instead. The SMS came from number 0437 123 456. I was transferred from Logan Hospital after my surgery there on 2 March 2026. The handover between hospitals could have been smoother - my medication list wasn't updated correctly.
+
+========================================
+PATIENT 19
+========================================
+I received a reminder SMS from Zedoc to complete this survey but the link didn't work on my Samsung phone. I had to use my husband David Tran's iPhone instead. The SMS came from number 0437 123 456. I was transferred from Logan Hospital after my surgery there on 2 March 2026. The handover between hospitals could have been smoother - my medication list wasn't updated correctly.
+
+========================================
+PATIENT 20
+========================================
+The car park needs more disabled bays. I have a temporary mobility permit after my cardiac rehab and struggled to find a spot on 20 March 2026. My cardiologist at the Prince Charles Hospital, Dr Andrew Walsh, also coordinates with Dr Richardson here which gives me great confidence in my care plan.
