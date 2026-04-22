@@ -90,11 +90,17 @@ class DeidentifyResponse(BaseModel):
     entity_count: int = Field(..., description="Total number of entities replaced")
 
 
+class PatientRecord(BaseModel):
+    """A single patient record for batch processing."""
+    patient_id: str
+    text: str
+
+
 class BatchRequest(BaseModel):
     """Request body for batch processing."""
-    texts: List[str] = Field(
+    data: List[PatientRecord] = Field(
         ...,
-        description="List of texts to process",
+        description="List of patient records to process",
         min_length=1,
         max_length=100
     )
@@ -111,7 +117,8 @@ class BatchRequest(BaseModel):
 
 
 class BatchResult(BaseModel):
-    """Result for a single text in batch processing."""
+    """Result for a single record in batch processing."""
+    patient_id: str
     original_text: str
     deidentified_text: str
     entity_count: int

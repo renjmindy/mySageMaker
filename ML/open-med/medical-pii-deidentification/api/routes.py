@@ -20,7 +20,7 @@ from .schemas import (
     DeidentifyRequest, DeidentifyResponse,
     BatchRequest, BatchResponse, BatchResult,
     HealthResponse, EntitiesResponse, EntityTypeInfo,
-    ErrorResponse, ReplacementStrategyEnum
+    ErrorResponse, ReplacementStrategyEnum, PatientRecord
 )
 
 logger = logging.getLogger(__name__)
@@ -183,17 +183,19 @@ async def batch_deidentify(
         detector.confidence_threshold = request.confidence_threshold
         deidentifier = Deidentifier(detector=detector, strategy=strategy)
 
-        # Process all texts
-        results = deidentifier.deidentify_batch(request.texts)
+        # Process all records
+        texts = [record.text for record in request.data]
+        results = deidentifier.deidentify_batch(texts)
 
-        # Build response
+        # Build response preserving patient_id
         batch_results = [
             BatchResult(
+                patient_id=request.data[i].patient_id,
                 original_text=r.original_text,
                 deidentified_text=r.deidentified_text,
                 entity_count=r.entity_count
             )
-            for r in results
+            for i, r in enumerate(results)
         ]
 
         total_entities = sum(r.entity_count for r in results)
@@ -201,7 +203,7 @@ async def batch_deidentify(
         return BatchResponse(
             results=batch_results,
             total_entities=total_entities,
-            documents_processed=len(request.texts)
+            documents_processed=len(request.data)
         )
 
     except Exception as e:
