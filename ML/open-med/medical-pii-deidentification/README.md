@@ -1,3 +1,14 @@
+---
+title: Medical PII De-identification
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: "6.13.0"
+app_file: ui/app.py
+pinned: false
+---
+
 # Medical PII Removal - Easy Implementation
 
 **Use OpenMed's cutting-edge PII models (released on Jan 13) with just a few clicks.**
