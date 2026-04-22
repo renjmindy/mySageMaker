@@ -5,12 +5,13 @@ Description: Medical PII De-identification API - AWS Lambda Deployment
 Globals:
   Function:
     Timeout: 60
-    MemorySize: 1024
-    Runtime: python3.11
+    MemorySize: 3008
     Environment:
       Variables:
-        PRELOAD_MODEL: "true"
+        PRELOAD_MODEL: "false"
         PII_MODEL: "OpenMed/OpenMed-PII-SuperClinical-Small-44M-v1"
+        TRANSFORMERS_CACHE: /tmp/hf_cache
+        HF_HOME: /tmp/hf_cache
 
 Parameters:
   Stage:
@@ -27,8 +28,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub medical-pii-removal-${Stage}
-      CodeUri: ../../
-      Handler: lambda_handler.handler
+      PackageType: Image
+      ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/medical-pii-removal:latest
       Description: HIPAA-compliant PII detection and de-identification API
       Architectures:
         - x86_64
