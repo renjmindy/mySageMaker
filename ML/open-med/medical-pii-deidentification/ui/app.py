@@ -521,11 +521,12 @@ with gr.Blocks(
 
 
 # Launch configuration
-if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=int(os.getenv("GRADIO_PORT", 7860)),
-        share=os.getenv("GRADIO_SHARE", "false").lower() == "true",
+_on_hf_spaces = os.getenv("SPACE_ID") is not None
+
+demo.launch(
+    server_name="0.0.0.0" if not _on_hf_spaces else None,
+    server_port=int(os.getenv("GRADIO_PORT", 7860)) if not _on_hf_spaces else None,
+    share=os.getenv("GRADIO_SHARE", "false").lower() == "true",
         theme=gr.themes.Soft(),
         js="""
         function() {
