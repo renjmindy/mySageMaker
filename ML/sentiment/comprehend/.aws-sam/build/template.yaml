@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'PII Detection, Redaction & Sentiment Analysis API. Single Lambda container
+  image backed by Amazon Comprehend.
+
+  '
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues:
+    - dev
+    - staging
+    - prod
+    Description: Deployment stage
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+Resources:
+  AnalyzeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: pii-detection-api-${Stage}
+      PackageType: Image
+      Description: 'Unified endpoint: detects & redacts PII entities and runs batch
+        sentiment analysis in one call using Amazon Comprehend.
+
+        '
+      Architectures:
+      - x86_64
+      Events:
+        AnalyzePost:
+          Type: Api
+          Properties:
+            Path: /analyze
+            Method: POST
+            RestApiId:
+              Ref: AnalyzeApi
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - comprehend:DetectPiiEntities
+          - comprehend:BatchDetectSentiment
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Resource:
+            Fn::Sub: 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group: /aws/lambda/pii-detection-api-${Stage}:*'
+      ImageUri: analyzefunction:latest
+    Metadata:
+      DockerContext: /home/cjen/mySageMaker/ML/sentiment/comprehend
+      DockerTag: latest
+      Dockerfile: Dockerfile
+      SamResourceId: AnalyzeFunction
+  AnalyzeApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:
+        Fn::Sub: pii-detection-api-${Stage}
+      StageName:
+        Ref: Stage
+      Description: Unified PII detection and sentiment analysis REST API
+      Cors:
+        AllowMethods: '''POST,OPTIONS'''
+        AllowHeaders: '''Content-Type'''
+        AllowOrigin: '''*'''
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/lambda/pii-detection-api-${Stage}
+      RetentionInDays: 14
+Outputs:
+  ApiEndpoint:
+    Description: Invoke URL for the /analyze endpoint
+    Value:
+      Fn::Sub: https://${AnalyzeApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/analyze
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - AnalyzeFunction
+      - Arn
+  FunctionName:
+    Description: Lambda Function Name
+    Value:
+      Ref: AnalyzeFunction
+  ApiId:
+    Description: API Gateway REST API ID
+    Value:
+      Ref: AnalyzeApi
