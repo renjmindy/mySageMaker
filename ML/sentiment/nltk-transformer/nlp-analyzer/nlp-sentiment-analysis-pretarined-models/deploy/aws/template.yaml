@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: NLP Sentiment Analysis API - AWS Lambda Deployment
+
+Globals:
+  Function:
+    Timeout: 180            # 3 min — first invocation loads model weights from image
+    MemorySize: 4096        # 4 GB — largest model (BART MNLI) needs ~2 GB headroom
+    Environment:
+      Variables:
+        NLTK_DATA:           /var/task/nltk_data
+        HF_HOME:             /var/task/.cache/huggingface
+        TRANSFORMERS_CACHE:  /var/task/.cache/huggingface
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+
+  SentimentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:   !Sub nlp-sentiment-${Stage}
+      PackageType:    Image
+      ImageUri:       !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/nlp-sentiment:latest
+      Description:    NLP Sentiment Analysis — 7 Transformer models via FastAPI
+      Architectures:  [x86_64]
+      EphemeralStorage:
+        Size: 2048
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path:      /{proxy+}
+            Method:    ANY
+            RestApiId: !Ref SentimentApi
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+
+  SentimentApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:        !Sub nlp-sentiment-api-${Stage}
+      StageName:   !Ref Stage
+      Description: NLP Sentiment Analysis REST API
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+        AllowOrigin:  "'*'"
+
+  SentimentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:    !Sub /aws/lambda/nlp-sentiment-${Stage}
+      RetentionInDays: 7
+
+  # ── Keep-warm: ping Lambda every 5 minutes to prevent cold starts ────────────
+  WarmupRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:               !Sub nlp-sentiment-warmup-${Stage}
+      Description:        Keeps the Lambda container warm to avoid cold-start timeouts
+      ScheduleExpression: rate(5 minutes)
+      State:              ENABLED
+      Targets:
+        - Id:    WarmupTarget
+          Arn:   !GetAtt SentimentFunction.Arn
+          Input: '{"httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"default\"}","queryStringParameters":null}'
+
+  WarmupPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SentimentFunction
+      Action:       lambda:InvokeFunction
+      Principal:    events.amazonaws.com
+      SourceArn:    !GetAtt WarmupRule.Arn
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${SentimentApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt SentimentFunction.Arn
+
+  FunctionName:
+    Description: Lambda Function Name
+    Value: !Ref SentimentFunction
