@@ -1,0 +1,63 @@
+# Google Cloud Build configuration — NLP Sentiment Analysis
+# Builds the Docker image and deploys to Cloud Run
+
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nlp-sentiment:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/nlp-sentiment:latest'
+      - '.'
+    timeout: '2400s'
+
+  # Push commit-tagged image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/nlp-sentiment:$SHORT_SHA']
+
+  # Push latest tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/nlp-sentiment:latest']
+
+  # Deploy API to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'nlp-sentiment'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/nlp-sentiment:$SHORT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '120s'
+      - '--concurrency'
+      - '5'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '5'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'MODE=api,PORT=8000'
+
+substitutions:
+  _REGION: us-central1
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '2700s'
+
+images:
+  - 'gcr.io/$PROJECT_ID/nlp-sentiment:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/nlp-sentiment:latest'
