@@ -21,4 +21,11 @@ COPY src/ ./src/
 COPY api/ ./api/
 COPY lambda_handler.py .
 
+# Pre-download model weights into the image so cold starts need no network I/O
+ENV HF_HOME=/var/task/hf_cache
+RUN python3 -c "\
+from transformers import AutoTokenizer, AutoModelForTokenClassification; \
+AutoTokenizer.from_pretrained('OpenMed/OpenMed-PII-SuperClinical-Small-44M-v1'); \
+AutoModelForTokenClassification.from_pretrained('OpenMed/OpenMed-PII-SuperClinical-Small-44M-v1')"
+
 CMD ["lambda_handler.handler"]

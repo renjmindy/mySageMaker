@@ -94,11 +94,15 @@ uvicorn api.main:app
 
 ---
 
-## Deploy to Cloud (Free Tier)
+## Deploy to Cloud
 
 ### AWS Lambda
 ```bash
+# Default region (us-east-1)
 ./deploy/aws/deploy.sh
+
+# Specific region
+STACK_NAME=medical-pii-removal-ap-southeast-2 AWS_REGION=ap-southeast-2 ./deploy/aws/deploy.sh
 ```
 
 ### Google Cloud Run
@@ -111,7 +115,7 @@ uvicorn api.main:app
 ./deploy/azure/deploy.sh
 ```
 
-All free-tier eligible. One command each.
+See [AWS deployment guide](deploy/aws/README.md) for multi-region setup, API keys, and production configuration.
 
 ---
 
@@ -235,7 +239,7 @@ medical-pii-deidentification/
 | Model Size | 44M params |
 | Memory | ~500 MB |
 | Speed | 50-200ms/doc |
-| Cold Start | 10-15 sec |
+| Cold Start | ~0ms (Provisioned Concurrency) |
 | Accuracy | 94%+ F1 |
 
 ---

@@ -10,14 +10,6 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 import logging
 
-from transformers import (
-    AutoTokenizer,
-    AutoModelForTokenClassification,
-    pipeline,
-    Pipeline
-)
-import torch
-
 from .entities import EntityType, map_model_label, get_replacement_text
 
 logger = logging.getLogger(__name__)
@@ -83,12 +75,13 @@ class PIIDetector:
         self.confidence_threshold = confidence_threshold
         self.device = device or self._detect_device()
 
-        self._pipeline: Optional[Pipeline] = None
+        self._pipeline: Optional[Any] = None
         self._tokenizer = None
         self._model = None
 
     def _detect_device(self) -> str:
         """Detect the best available device."""
+        import torch
         if torch.cuda.is_available():
             return "cuda"
         elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -100,6 +93,13 @@ class PIIDetector:
         if self._pipeline is not None:
             return
 
+        import torch
+        from transformers import (
+            AutoTokenizer,
+            AutoModelForTokenClassification,
+            pipeline,
+        )
+
         logger.info(f"Loading model: {self.model_name} on {self.device}")
 
         self._tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -110,7 +110,7 @@ class PIIDetector:
             model=self._model,
             tokenizer=self._tokenizer,
             device=0 if self.device == "cuda" else -1 if self.device == "cpu" else self.device,
-            aggregation_strategy="simple"  # Merge B-/I- tokens
+            aggregation_strategy="simple"
         )
 
         logger.info("Model loaded successfully")
