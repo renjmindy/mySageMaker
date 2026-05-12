@@ -116,8 +116,24 @@ API_ENDPOINT=$(aws cloudformation describe-stacks \
     --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint`].OutputValue' \
     --output text)
 
+API_KEY_ID=$(aws cloudformation describe-stacks \
+    --stack-name "${STACK_NAME}-${STAGE}" \
+    --region "$REGION" \
+    --query 'Stacks[0].Outputs[?OutputKey==`ApiKeyId`].OutputValue' \
+    --output text)
+
+API_KEY_VALUE=$(aws apigateway get-api-key \
+    --api-key "$API_KEY_ID" \
+    --include-value \
+    --region "$REGION" \
+    --query 'value' \
+    --output text)
+
 echo -e "\n${GREEN}API Endpoint:${NC} ${API_ENDPOINT}"
+echo -e "${GREEN}API Key ID:${NC}   ${API_KEY_ID}"
+echo -e "${GREEN}API Key:${NC}      ${API_KEY_VALUE}"
 echo -e "\n${YELLOW}Test:${NC}"
 echo "curl -X POST '${API_ENDPOINT}/api/v1/detect' \\"
 echo "  -H 'Content-Type: application/json' \\"
+echo "  -H 'x-api-key: ${API_KEY_VALUE}' \\"
 echo "  -d '{\"text\": \"Patient John Smith SSN 123-45-6789\"}'"

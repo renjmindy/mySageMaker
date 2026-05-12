@@ -10,8 +10,10 @@ Globals:
       Variables:
         PRELOAD_MODEL: "false"
         PII_MODEL: "OpenMed/OpenMed-PII-SuperClinical-Small-44M-v1"
-        TRANSFORMERS_CACHE: /tmp/hf_cache
-        HF_HOME: /tmp/hf_cache
+        TRANSFORMERS_CACHE: /var/task/hf_cache/hub
+        HF_HOME: /var/task/hf_cache
+        HF_HUB_OFFLINE: "1"
+        TRANSFORMERS_OFFLINE: "1"
 
 Parameters:
   Stage:
@@ -31,6 +33,9 @@ Resources:
       PackageType: Image
       ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/medical-pii-removal:latest
       Description: HIPAA-compliant PII detection and de-identification API
+      AutoPublishAlias: live
+      ProvisionedConcurrencyConfig:
+        ProvisionedConcurrentExecutions: 1
       Architectures:
         - x86_64
       EphemeralStorage:
@@ -42,6 +47,8 @@ Resources:
             Path: /{proxy+}
             Method: ANY
             RestApiId: !Ref PIIApi
+            Auth:
+              ApiKeyRequired: true
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -64,6 +71,40 @@ Resources:
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
         AllowOrigin: "'*'"
 
+  # API Key
+  PIIApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn: PIIApiStage
+    Properties:
+      Name: !Sub medical-pii-api-key-${Stage}
+      Description: !Sub API Key for Medical PII De-identification - ${Stage}
+      Enabled: true
+
+  # Usage Plan
+  PIIUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn: PIIApiStage
+    Properties:
+      UsagePlanName: !Sub medical-pii-usage-plan-${Stage}
+      Description: !Sub Usage plan for Medical PII De-identification API - ${Stage}
+      ApiStages:
+        - ApiId: !Ref PIIApi
+          Stage: !Ref Stage
+      Throttle:
+        RateLimit: 10
+        BurstLimit: 20
+      Quota:
+        Limit: 1000
+        Period: MONTH
+
+  # Link API Key to Usage Plan
+  PIIUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref PIIApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref PIIUsagePlan
+
   # CloudWatch Log Group (with retention)
   PIIFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -83,3 +124,11 @@ Outputs:
   FunctionName:
     Description: Lambda Function Name
     Value: !Ref PIIDeidentificationFunction
+
+  ApiKeyId:
+    Description: API Key ID
+    Value: !Ref PIIApiKey
+
+  UsagePlanId:
+    Description: Usage Plan ID
+    Value: !Ref PIIUsagePlan
