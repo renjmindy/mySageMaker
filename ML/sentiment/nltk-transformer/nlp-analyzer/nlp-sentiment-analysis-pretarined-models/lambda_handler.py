@@ -11,4 +11,13 @@ try:
 except Exception:
     pass
 
-handler = Mangum(app, lifespan="off")
+_mangum = Mangum(app, lifespan="off")
+
+
+def handler(event, context):
+    # Warmup / scheduled events that arrive without requestContext or httpMethod
+    # (e.g. a direct EventBridge invocation whose Input omits those keys) must
+    # not reach Mangum — it cannot infer a handler and will raise RuntimeError.
+    if "httpMethod" not in event and "requestContext" not in event:
+        return {"statusCode": 200, "body": "warm"}
+    return _mangum(event, context)
