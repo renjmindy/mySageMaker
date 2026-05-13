@@ -116,9 +116,27 @@ API_ENDPOINT=$(aws cloudformation describe-stacks \
     --output text)
 
 echo -e "\n${GREEN}API Endpoint:${NC} ${API_ENDPOINT}"
+
+# ── Retrieve the generated API key value ─────────────────────────────────────
+echo -e "\n${YELLOW}Retrieving API key...${NC}"
+API_KEY_VALUE=$(aws apigateway get-api-keys \
+    --region "$REGION" \
+    --include-values \
+    --query "items[?contains(name,'nlp-sentiment')].value | [0]" \
+    --output text 2>/dev/null || echo "")
+
+if [ -n "$API_KEY_VALUE" ] && [ "$API_KEY_VALUE" != "None" ]; then
+    echo -e "${GREEN}API Key:${NC} ${API_KEY_VALUE}"
+else
+    echo -e "${YELLOW}Could not auto-retrieve key. Run manually:${NC}"
+    echo "aws apigateway get-api-keys --region ${REGION} --include-values --query \"items[?contains(name,'nlp-sentiment')].{name:name,value:value}\" --output table"
+    API_KEY_VALUE="<your-api-key>"
+fi
+
 echo -e "\n${YELLOW}Quick test:${NC}"
-echo "curl '${API_ENDPOINT}/api/v1/health'"
+echo "curl -H 'X-Api-Key: ${API_KEY_VALUE}' '${API_ENDPOINT}/api/v1/health'"
 echo ""
 echo "curl -X POST '${API_ENDPOINT}/api/v1/analyze' \\"
 echo "  -H 'Content-Type: application/json' \\"
+echo "  -H 'X-Api-Key: ${API_KEY_VALUE}' \\"
 echo "  -d '{\"text\": \"This product is absolutely amazing I love everything about it\", \"model_type\": \"default\"}'"

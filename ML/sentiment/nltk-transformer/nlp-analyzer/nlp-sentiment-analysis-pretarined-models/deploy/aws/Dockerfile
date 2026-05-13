@@ -4,7 +4,7 @@
 # Build:  docker build --platform linux/amd64 -f deploy/aws/Dockerfile -t nlp-sentiment-lambda .
 # Test:   docker run -p 9000:8080 nlp-sentiment-lambda
 #         curl -X POST http://localhost:9000/2015-03-31/functions/function/invocations \
-#              -d '{"httpMethod":"GET","path":"/api/v1/health","headers":{},"body":null}'
+#              -d '{"httpMethod":"GET","path":"/api/v1/health","resource":"/{proxy+}","headers":{},"multiValueHeaders":{},"queryStringParameters":null,"multiValueQueryStringParameters":null,"pathParameters":{"proxy":"api/v1/health"},"stageVariables":null,"requestContext":{"resourcePath":"/{proxy+}","httpMethod":"GET","stage":"local","requestId":"test"},"body":null,"isBase64Encoded":false}'
 
 FROM public.ecr.aws/lambda/python:3.12
 
