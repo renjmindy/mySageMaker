@@ -8,9 +8,11 @@ Globals:
     MemorySize: 4096        # 4 GB — largest model (BART MNLI) needs ~2 GB headroom
     Environment:
       Variables:
-        NLTK_DATA:           /var/task/nltk_data
-        HF_HOME:             /var/task/.cache/huggingface
-        TRANSFORMERS_CACHE:  /var/task/.cache/huggingface
+        NLTK_DATA:              /var/task/nltk_data
+        HF_HOME:                /var/task/.cache/huggingface
+        TRANSFORMERS_CACHE:     /var/task/.cache/huggingface
+        OPENMED_PII_BASE_URL:   !Ref OpenMedPiiBaseUrl
+        OPENMED_PII_API_KEY:    !Ref OpenMedPiiApiKey
 
 Parameters:
   Stage:
@@ -20,6 +22,17 @@ Parameters:
       - dev
       - staging
       - prod
+
+  OpenMedPiiBaseUrl:
+    Type: String
+    Default: https://i6di6fkeqi.execute-api.ap-southeast-2.amazonaws.com/prod
+    Description: Base URL of the OpenMed PII de-identification API
+
+  OpenMedPiiApiKey:
+    Type: String
+    Default: t1Ej9UB6ZU1VUFKUURAky7fK4ux9pFwa3Db7s4u4
+    NoEcho: true
+    Description: x-api-key for the OpenMed PII de-identification API
 
 Resources:
 

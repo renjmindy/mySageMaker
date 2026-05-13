@@ -7,6 +7,8 @@ STACK_NAME="${STACK_NAME:-nlp-sentiment}"
 REGION="${AWS_REGION:-us-east-1}"
 STAGE="${STAGE:-prod}"
 IMAGE_NAME="nlp-sentiment"
+OPENMED_PII_BASE_URL="${OPENMED_PII_BASE_URL:-https://i6di6fkeqi.execute-api.ap-southeast-2.amazonaws.com/prod}"
+OPENMED_PII_API_KEY="${OPENMED_PII_API_KEY:-t1Ej9UB6ZU1VUFKUURAky7fK4ux9pFwa3Db7s4u4}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -47,7 +49,21 @@ if [ ! -f lambda_handler.py ]; then
 from mangum import Mangum
 from api.main import app
 
-handler = Mangum(app, lifespan="off")
+_mangum = Mangum(app, lifespan="off")
+
+
+def handler(event, context):
+    is_http = (
+        "httpMethod" in event
+        or event.get("version") in ("1.0", "2.0")
+        or bool(event.get("requestContext", {}).get("elb"))
+    )
+    if not is_http:
+        return {"statusCode": 200, "body": "warm"}
+    try:
+        return _mangum(event, context)
+    except RuntimeError:
+        return {"statusCode": 200, "body": "warm"}
 EOF
 fi
 
@@ -99,7 +115,10 @@ sam deploy \
     --stack-name "${STACK_NAME}-${STAGE}" \
     --region "$REGION" \
     --capabilities CAPABILITY_IAM \
-    --parameter-overrides Stage="$STAGE" \
+    --parameter-overrides \
+        Stage="$STAGE" \
+        OpenMedPiiBaseUrl="$OPENMED_PII_BASE_URL" \
+        OpenMedPiiApiKey="$OPENMED_PII_API_KEY" \
     --image-repository "${ECR_URI}" \
     --no-confirm-changeset \
     --no-fail-on-empty-changeset
