@@ -47,7 +47,13 @@ Resources:
       EphemeralStorage:
         Size: 2048
       Events:
-        ApiEvent:
+        ApiRoot:
+          Type: Api
+          Properties:
+            Path:      /
+            Method:    ANY
+            RestApiId: !Ref SentimentApi
+        ApiProxy:
           Type: Api
           Properties:
             Path:      /{proxy+}
@@ -69,9 +75,20 @@ Resources:
       Name:        !Sub nlp-sentiment-api-${Stage}
       StageName:   !Ref Stage
       Description: NLP Sentiment Analysis REST API
+      Auth:
+        ApiKeyRequired: true        # All routes require X-Api-Key header
+        UsagePlan:
+          CreateUsagePlan: PER_API  # SAM creates ApiKey + UsagePlan + UsagePlanKey
+          Description:    !Sub "NLP Sentiment API — 50 rps / 10 000 req/day (${Stage})"
+          Quota:
+            Limit:  10000
+            Period: DAY
+          Throttle:
+            RateLimit:  50
+            BurstLimit: 100
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin:  "'*'"
 
   SentimentLogGroup:
@@ -103,8 +120,17 @@ Resources:
 
 Outputs:
   ApiEndpoint:
-    Description: API Gateway endpoint URL
+    Description: API Gateway endpoint URL (include X-Api-Key header on every request)
     Value: !Sub https://${SentimentApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+
+  RetrieveApiKeyCommand:
+    Description: Run after deploy to get the plaintext API key value
+    Value: !Sub >-
+      aws apigateway get-api-keys
+      --region ${AWS::Region}
+      --include-values
+      --query "items[?contains(name,'nlp-sentiment')].{name:name,value:value}"
+      --output table
 
   FunctionArn:
     Description: Lambda Function ARN
