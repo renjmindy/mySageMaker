@@ -1,0 +1,30 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Large data / model files
+nltk_data/
+.cache/
+*.bin
+*.pth
+*.h5
+
+# Flask instance folder (SQLite DB, secrets)
+instance/
+
+# Environment / secrets
+.env
+
+# Images
+*.png
+*.jpg
+*.jpeg
+
+# OS / IDE
+.DS_Store
+.ipynb_checkpoints/

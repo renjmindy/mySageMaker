@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: NLP Healthcare Sentiment Analysis API - AWS Lambda Deployment (fine-tuned models by cjen1008)
+
+Globals:
+  Function:
+    Timeout: 180            # 3 min — first invocation loads model weights from image
+    MemorySize: 3072        # 3 GB — sufficient for healthcare models (max ~440 MB each)
+    Environment:
+      Variables:
+        NLTK_DATA:           /var/task/nltk_data
+        HF_HOME:             /var/task/.cache/huggingface
+        TRANSFORMERS_CACHE:  /var/task/.cache/huggingface
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+
+  SentimentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:   !Sub nlp-hc-sentiment-${Stage}
+      PackageType:    Image
+      ImageUri:       !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/nlp-hc-sentiment:latest
+      Description:    NLP Healthcare Sentiment — 6 fine-tuned Transformer models (cjen1008) via FastAPI
+      Architectures:  [x86_64]
+      EphemeralStorage:
+        Size: 2048
+      Events:
+        ApiRoot:
+          Type: Api
+          Properties:
+            Path:      /
+            Method:    ANY
+            RestApiId: !Ref SentimentApi
+        ApiProxy:
+          Type: Api
+          Properties:
+            Path:      /{proxy+}
+            Method:    ANY
+            RestApiId: !Ref SentimentApi
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+
+  SentimentApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:        !Sub nlp-hc-sentiment-api-${Stage}
+      StageName:   !Ref Stage
+      Description: NLP Healthcare Sentiment Analysis REST API
+      Auth:
+        ApiKeyRequired: true        # All routes require X-Api-Key header
+        UsagePlan:
+          CreateUsagePlan: PER_API  # SAM creates ApiKey + UsagePlan + UsagePlanKey
+          Description:    !Sub "NLP HC Sentiment API — 50 rps / 10 000 req/day (${Stage})"
+          Quota:
+            Limit:  10000
+            Period: DAY
+          Throttle:
+            RateLimit:  50          # steady-state req/s
+            BurstLimit: 100         # token-bucket burst
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin:  "'*'"
+
+  SentimentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:    !Sub /aws/lambda/nlp-hc-sentiment-${Stage}
+      RetentionInDays: 7
+
+  # ── Keep-warm: load all 6 models every 5 minutes to prevent cold starts ───
+  # Calls GET /api/v1/warmup which sequentially loads every model into memory.
+  # EventBridge invokes Lambda directly — no API Gateway 29 s timeout applies,
+  # so all 6 models can be loaded within the 180 s Lambda timeout.
+  # Payload is a complete API Gateway v1 proxy envelope (required by Mangum).
+  WarmupRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:               !Sub nlp-hc-sentiment-warmup-${Stage}
+      Description:        Loads all 6 healthcare models every 5 min to prevent cold starts
+      ScheduleExpression: rate(5 minutes)
+      State:              ENABLED
+      Targets:
+        - Id:    WarmupTarget
+          Arn:   !GetAtt SentimentFunction.Arn
+          Input: '{"httpMethod":"GET","path":"/api/v1/warmup","resource":"/{proxy+}","headers":{"Content-Type":"application/json"},"multiValueHeaders":{"Content-Type":["application/json"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"pathParameters":{"proxy":"api/v1/warmup"},"stageVariables":null,"requestContext":{"resourcePath":"/{proxy+}","httpMethod":"GET","stage":"prod","requestId":"warmup-all-models"},"body":null,"isBase64Encoded":false}'
+
+  WarmupPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SentimentFunction
+      Action:       lambda:InvokeFunction
+      Principal:    events.amazonaws.com
+      SourceArn:    !GetAtt WarmupRule.Arn
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL (include X-Api-Key header on every request)
+    Value: !Sub https://${SentimentApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt SentimentFunction.Arn
+
+  FunctionName:
+    Description: Lambda Function Name
+    Value: !Ref SentimentFunction
+
+  RetrieveApiKeyCommand:
+    Description: Run after deploy to get the plaintext API key value
+    Value: !Sub >-
+      aws apigateway get-api-keys
+      --region ${AWS::Region}
+      --include-values
+      --query "items[?contains(name,'nlp-hc-sentiment')].{name:name,value:value}"
+      --output table
