@@ -1,0 +1,81 @@
+# =============================================================================
+# Dockerfile.healthcare
+# Healthcare PREM Topic Classifier — AWS Lambda container image
+#
+# Single-stage build (simpler path management with Lambda base image):
+#   1. Install Python deps (all pre-built wheels via --prefer-binary)
+#   2. Cache sentence-transformer model weights (offline inference)
+#   3. Download NLTK data
+#   4. Copy source code
+#   5. Train classical models (LDA, NMF, LSI, HDP) — baked into image
+#
+# Base: AWS public ECR Lambda Python 3.11 (Amazon Linux 2, AMD64)
+# Lambda Python lives at: /var/lang/bin/python3.11
+# Site-packages:          /var/lang/lib/python3.11/site-packages
+# Lambda task root:       /var/task
+# =============================================================================
+
+FROM public.ecr.aws/lambda/python:3.11
+
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+# ── System dependencies ───────────────────────────────────────────────────────
+RUN yum install -y gcc gcc-c++ make && yum clean all
+
+# ── Python dependencies ───────────────────────────────────────────────────────
+COPY requirements.healthcare.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir --prefer-binary \
+      --extra-index-url https://download.pytorch.org/whl/cpu \
+      -r requirements.healthcare.txt \
+ && pip install --no-cache-dir --prefer-binary contractions \
+ && rm requirements.healthcare.txt
+
+# ── Download sentence-transformer model weights (offline inference) ───────────
+# Store in /var/task/hf_cache so Lambda's execution user can read them.
+# /root/.cache is root-only; /var/task is world-readable.
+ENV HF_HOME=/var/task/hf_cache
+ENV SENTENCE_TRANSFORMERS_HOME=/var/task/hf_cache/torch/sentence_transformers
+ENV TRANSFORMERS_CACHE=/var/task/hf_cache/hub
+ENV HF_HUB_DISABLE_IMPLICIT_TOKEN=1
+RUN python - <<'EOF'
+from sentence_transformers import SentenceTransformer
+print("Downloading all-MiniLM-L6-v2 ...")
+SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+print("Downloading all-mpnet-base-v2 ...")
+SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+print("✅ Sentence-transformer weights cached")
+EOF
+# Ensure all cached files are world-readable
+RUN chmod -R 755 /var/task/hf_cache
+
+# ── Download NLTK data ────────────────────────────────────────────────────────
+ENV NLTK_DATA=/var/task/nltk_data
+RUN python - <<'EOF'
+import nltk, os
+nltk_dir = os.environ["NLTK_DATA"]
+os.makedirs(nltk_dir, exist_ok=True)
+for pkg in ["punkt", "punkt_tab", "wordnet", "stopwords",
+            "averaged_perceptron_tagger"]:
+    nltk.download(pkg, download_dir=nltk_dir, quiet=False)
+print("✅ NLTK data downloaded")
+EOF
+
+# ── Application source ────────────────────────────────────────────────────────
+COPY healthcare_classifier/ ./healthcare_classifier/
+COPY scripts/train_models.py ./scripts/train_models.py
+COPY lambda_healthcare.py    ./lambda_healthcare.py
+
+# ── Train classical models — artefacts baked into the image ──────────────────
+ENV MODEL_DIR=/var/task/models
+RUN mkdir -p ${MODEL_DIR} \
+ && python scripts/train_models.py \
+ && echo "✅ All classical models trained"
+
+# ── Runtime environment ───────────────────────────────────────────────────────
+ENV TOKENIZERS_PARALLELISM=false
+ENV TRANSFORMERS_OFFLINE=1
+ENV HF_HUB_DISABLE_IMPLICIT_TOKEN=1
+
+# Lambda handler: module=lambda_healthcare, function=handler
+CMD ["lambda_healthcare.handler"]

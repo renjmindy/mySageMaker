@@ -8,3 +8,7 @@ nltk_data/
 *.jpeg
 .env
 instance/
+# Trained model artefacts (built at Docker time; too large for git)
+models/
+*.joblib
+

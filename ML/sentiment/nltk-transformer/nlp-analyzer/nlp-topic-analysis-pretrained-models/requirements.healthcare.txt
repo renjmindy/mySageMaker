@@ -1,0 +1,33 @@
+# ── Healthcare PREM Topic Classifier — Lambda requirements ───────────────────
+# All versions pinned to ranges that have pre-built manylinux wheels.
+# The Lambda base image (Amazon Linux 2, GCC 7.3) cannot compile from source.
+# Use --prefer-binary (set in Dockerfile) to enforce wheel-only installs.
+
+--index-url https://pypi.org/simple
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# numpy first — pin <2.0 so scikit-learn/scipy can find a compatible wheel
+numpy>=1.26.4,<2.0
+
+# PyTorch CPU-only wheel (from pytorch whl index)
+torch>=2.1.1
+
+# Sentence Transformers (BERTopic encoder)
+sentence-transformers>=2.2.2
+
+# Classical topic modeling — pin scikit-learn <1.6 (1.8 needs GCC>=9.3 to build)
+scikit-learn>=1.3.0,<1.6
+gensim>=4.3.0
+
+# NLP
+nltk>=3.9.1
+contractions>=0.1.73
+
+# Data
+scipy>=1.11.0,<1.15
+
+# Pydantic
+pydantic>=2.9.0
+
+# AWS Lambda packaging
+joblib>=1.3.0

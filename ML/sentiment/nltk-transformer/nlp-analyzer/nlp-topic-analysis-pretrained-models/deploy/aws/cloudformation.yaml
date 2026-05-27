@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+  Healthcare PREM Topic Classifier — full infrastructure stack.
+  Creates: Lambda function · API Gateway REST API (v1) ·
+           API Key · Usage Plan · EventBridge rule (5-min warm-up ping) · IAM role.
+  Note: ECR repository is managed outside this stack (pre-existing).
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Parameters
+# ─────────────────────────────────────────────────────────────────────────────
+Parameters:
+  AppName:
+    Type: String
+    Default: healthcare-topic-classifier
+    Description: Base name used for every resource.
+
+  ImageUri:
+    Type: String
+    Description: |
+      Full ECR image URI, e.g.
+      123456789012.dkr.ecr.ap-southeast-2.amazonaws.com/healthcare-topic-classifier:latest
+
+  Stage:
+    Type: String
+    Default: prod
+    Description: API Gateway stage name.
+
+  LambdaMemoryMB:
+    Type: Number
+    Default: 5120
+    Description: |
+      Memory for the Lambda (MB). All 6 models are loaded in process:
+        BERTopic MiniLM  ~0.9 GB
+        BERTopic MPNet   ~1.4 GB
+        LDA/NMF/LSI/HDP  ~0.3 GB
+      5 GB gives comfortable headroom.
+    AllowedValues: [3008, 4096, 5120, 6144, 7168, 8192, 9216, 10240]
+
+  LambdaTimeoutSec:
+    Type: Number
+    Default: 300
+    Description: |
+      Lambda timeout in seconds. 300s (5 min) covers a cold-start that loads
+      all sentence-transformer models + first inference batch.
+
+  WarmupSchedule:
+    Type: String
+    Default: "rate(5 minutes)"
+    Description: EventBridge schedule for the keep-warm ping.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Resources
+# ─────────────────────────────────────────────────────────────────────────────
+Resources:
+
+  # ── IAM Execution Role ───────────────────────────────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ECRReadOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                Resource: "*"
+
+  # ── Lambda Function ──────────────────────────────────────────────────────────
+  ClassifierLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref AppName
+      Description: Healthcare PREM topic classifier — 6 models over 15 PREM topics.
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: !Ref LambdaMemoryMB
+      Timeout: !Ref LambdaTimeoutSec
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MODEL_DIR:                  "/var/task/models"
+          NLTK_DATA:                  "/var/task/nltk_data"
+          TOKENIZERS_PARALLELISM:     "false"
+          TRANSFORMERS_OFFLINE:       "1"
+          HF_HOME:                    "/var/task/hf_cache"
+          SENTENCE_TRANSFORMERS_HOME: "/var/task/hf_cache/torch/sentence_transformers"
+
+  # ── Lambda permissions ───────────────────────────────────────────────────────
+  LambdaApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ClassifierLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ClassifierRestApi}/*"
+
+  LambdaEventBridgePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ClassifierLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WarmupRule.Arn
+
+  # ── API Gateway REST API (v1) ────────────────────────────────────────────────
+  ClassifierRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub "${AppName}-api"
+      Description: Healthcare PREM Topic Classifier REST API
+      EndpointConfiguration:
+        Types:
+          - EDGE
+
+  # ── Resource: /{proxy+} ──────────────────────────────────────────────────────
+  ProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ClassifierRestApi
+      ParentId:  !GetAtt ClassifierRestApi.RootResourceId
+      PathPart:  "{proxy+}"
+
+  # ANY /{proxy+} — Lambda proxy integration (API key required)
+  ProxyAnyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:         !Ref ClassifierRestApi
+      ResourceId:        !Ref ProxyResource
+      HttpMethod:        ANY
+      AuthorizationType: NONE
+      ApiKeyRequired:    true
+      Integration:
+        Type:                  AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations"
+          - LambdaArn: !GetAtt ClassifierLambda.Arn
+
+  # OPTIONS /{proxy+} — CORS preflight (no key required)
+  ProxyOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:         !Ref ClassifierRestApi
+      ResourceId:        !Ref ProxyResource
+      HttpMethod:        OPTIONS
+      AuthorizationType: NONE
+      ApiKeyRequired:    false
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin:  "'*'"
+            ResponseTemplates:
+              application/json: ""
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin:  true
+
+  # ANY / — root path (API key required)
+  RootAnyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:         !Ref ClassifierRestApi
+      ResourceId:        !GetAtt ClassifierRestApi.RootResourceId
+      HttpMethod:        ANY
+      AuthorizationType: NONE
+      ApiKeyRequired:    true
+      Integration:
+        Type:                  AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations"
+          - LambdaArn: !GetAtt ClassifierLambda.Arn
+
+  # OPTIONS / — root CORS preflight
+  RootOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:         !Ref ClassifierRestApi
+      ResourceId:        !GetAtt ClassifierRestApi.RootResourceId
+      HttpMethod:        OPTIONS
+      AuthorizationType: NONE
+      ApiKeyRequired:    false
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin:  "'*'"
+            ResponseTemplates:
+              application/json: ""
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin:  true
+
+  # ── Deployment & Stage ───────────────────────────────────────────────────────
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ProxyAnyMethod
+      - ProxyOptionsMethod
+      - RootAnyMethod
+      - RootOptionsMethod
+    Properties:
+      RestApiId: !Ref ClassifierRestApi
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId:    !Ref ClassifierRestApi
+      DeploymentId: !Ref ApiDeployment
+      StageName:    !Ref Stage
+
+  # ── API Key ──────────────────────────────────────────────────────────────────
+  ClassifierApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+      - ClassifierApiUsagePlan
+    Properties:
+      Name:    !Sub "${AppName}-api-key-${Stage}"
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref ClassifierRestApi
+          StageName: !Ref Stage
+
+  # ── Usage Plan ───────────────────────────────────────────────────────────────
+  ClassifierApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - ApiStage
+    Properties:
+      UsagePlanName: !Sub "${AppName}-usage-plan-${Stage}"
+      Description:   !Sub "Healthcare Topic Classifier API — 50 rps / 10 000 req/day (${Stage})"
+      ApiStages:
+        - ApiId: !Ref ClassifierRestApi
+          Stage: !Ref Stage
+      Quota:
+        Limit:  10000
+        Period: DAY
+      Throttle:
+        RateLimit:  50
+        BurstLimit: 100
+
+  # ── Usage Plan Key (links API key to usage plan) ─────────────────────────────
+  ClassifierApiUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId:       !Ref ClassifierApiKey
+      KeyType:     API_KEY
+      UsagePlanId: !Ref ClassifierApiUsagePlan
+
+  # ── EventBridge warm-up rule (every 5 min) ───────────────────────────────────
+  WarmupRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:               !Sub "${AppName}-warmup"
+      Description:        "Keep all 6 PREM classifier models warm — prevents cold-start delays."
+      ScheduleExpression: !Ref WarmupSchedule
+      State:              ENABLED
+      Targets:
+        - Id:  ClassifierLambdaTarget
+          Arn: !GetAtt ClassifierLambda.Arn
+          Input: |
+            {
+              "source": "aws.events",
+              "detail-type": "ScheduledEvent",
+              "detail": {
+                "action": "warmup",
+                "models": ["bertopic_mini","bertopic_mpnet","lda","lsi","hdp","nmf"]
+              }
+            }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Outputs
+# ─────────────────────────────────────────────────────────────────────────────
+Outputs:
+  ApiEndpoint:
+    Description: "Base URL for the Healthcare PREM Classifier API"
+    Value: !Sub "https://${ClassifierRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Export:
+      Name: !Sub "${AppName}-api-endpoint"
+
+  ClassifyUrl:
+    Description: "POST endpoint — topic classification"
+    Value: !Sub "https://${ClassifierRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/classify"
+
+  HealthUrl:
+    Description: "GET endpoint — health check"
+    Value: !Sub "https://${ClassifierRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/health"
+
+  LambdaArn:
+    Description: "Lambda function ARN"
+    Value: !GetAtt ClassifierLambda.Arn
+
+  ECRRepository:
+    Description: "ECR repository URI (pre-existing, managed outside this stack)"
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AppName}"
+
+  RetrieveApiKeyCommand:
+    Description: "Run after deploy to get the plaintext API key value"
+    Value: !Sub >-
+      aws apigateway get-api-keys --region ${AWS::Region} --include-values
+      --query "items[?contains(name,'${AppName}')].{name:name,value:value}"
+      --output table
