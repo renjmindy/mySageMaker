@@ -296,26 +296,49 @@ body(doc, "You will need these two values for every request you make:")
 add_table(doc,
     ["Item", "Value"],
     [
-        ["Base URL", "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"],
-        ["API Key",  "YOUR_API_KEY_HERE"],
+        ["Base URL",        "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"],
+        ["API Key",         "Retrieve from AWS — see Step 2 below (never hardcode)"],
         ["Key Header Name", "x-api-key"],
-        ["AWS Region", "ap-southeast-2 (Sydney)"],
+        ["AWS Region",      "ap-southeast-2 (Sydney)"],
     ],
     col_widths=[4.5, 12]
 )
 
 add_callout(doc,
-    "Keep your API key private. Do not commit it to Git or share it in public channels. "
-    "Store it in an environment variable or a secrets manager.",
+    "NEVER paste the API key directly into your source code or commit it to Git. "
+    "Always retrieve it from AWS at runtime or store it in an environment variable. "
+    "Hardcoded keys in code repositories are automatically detected by security scanners "
+    "and must be rotated immediately.",
     "warning"
 )
 
-h2(doc, "Step 2 — Set Shell Variables (Terminal / Command Line)")
-body(doc, "Open a terminal and run these two lines. They save the URL and key so you don't have to retype them:")
+h2(doc, "Step 2 — Retrieve Your API Key from AWS & Set Shell Variables")
+body(doc, (
+    "The API key is stored securely in AWS API Gateway — not in any file. "
+    "Run the following commands in your terminal to retrieve it and save it "
+    "to shell variables for use in subsequent steps:"
+))
 add_code(doc, """\
-BASE="https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-KEY="YOUR_API_KEY_HERE"\
+# Retrieve the API key from AWS (requires AWS CLI configured with ap-southeast-2 access)
+export HEALTHCARE_API_KEY=$(aws apigateway get-api-keys \\
+  --region ap-southeast-2 \\
+  --include-values \\
+  --query "items[?contains(name,'healthcare-topic-classifier')].value | [0]" \\
+  --output text)
+
+# Set the base URL
+export HEALTHCARE_API_BASE="$HEALTHCARE_API_BASE"
+
+# Verify both are set
+echo "Base URL : $HEALTHCARE_API_BASE"
+echo "Key set  : ${HEALTHCARE_API_KEY:0:4}************************"  # shows only first 4 chars\
 """, "bash")
+
+add_callout(doc,
+    "The echo command above intentionally shows only the first 4 characters of the key "
+    "so you can confirm it loaded without revealing the full value in your terminal history.",
+    "tip"
+)
 
 h2(doc, "Step 3 — Run a Health Check")
 body(doc, (
@@ -323,8 +346,8 @@ body(doc, (
     "Run this in your terminal:"
 ))
 add_code(doc, """\
-curl -s "$BASE/health" \\
-  -H "x-api-key: $KEY" \\
+curl -s "$HEALTHCARE_API_BASE/health" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   | python3 -m json.tool\
 """, "bash")
 
@@ -351,9 +374,9 @@ add_callout(doc,
 h2(doc, "Step 4 — Classify Your First Text")
 body(doc, "Send a piece of patient feedback to the /classify endpoint:")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{
     "text": "The doctor was very kind and explained everything clearly.",
     "models": ["bertopic_mini"],
@@ -388,7 +411,7 @@ body(doc, (
 add_table(doc,
     ["Header Name", "Header Value", "Required?"],
     [
-        ["x-api-key", "YOUR_API_KEY_HERE", "Yes — on every request"],
+        ["x-api-key", "$HEALTHCARE_API_KEY  (retrieve from AWS — see Section 2, Step 2)", "Yes — on every request"],
         ["Content-Type", "application/json", "Yes — on POST requests"],
     ],
     col_widths=[4, 9, 3.5]
@@ -408,8 +431,8 @@ h2(doc, "3.4  GET /health")
 body(doc, "Use this endpoint to check whether the API is running before sending data.")
 body(doc, "Request:")
 add_code(doc, """\
-curl -s "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod/health" \\
-  -H "x-api-key: YOUR_API_KEY_HERE"\
+curl -s "$HEALTHCARE_API_BASE/health" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY"\
 """, "bash")
 body(doc, "Response (HTTP 200):")
 add_code(doc, """\
@@ -519,7 +542,7 @@ h3(doc, "Single text — default model")
 add_code(doc, """\
 POST /classify
 Content-Type: application/json
-x-api-key: YOUR_API_KEY_HERE
+x-api-key: $HEALTHCARE_API_KEY
 
 {
   "text": "The nurse was incredibly supportive and made me feel at ease.",
@@ -616,16 +639,16 @@ body(doc, "The simplest way to test. Copy-paste these directly into your termina
 
 h3(doc, "Health check")
 add_code(doc, """\
-curl -s "$BASE/health" \\
-  -H "x-api-key: $KEY" \\
+curl -s "$HEALTHCARE_API_BASE/health" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   | python3 -m json.tool\
 """, "bash")
 
 h3(doc, "Classify a single text")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{
     "text": "The discharge instructions were unclear and confusing.",
     "models": ["all"],
@@ -635,9 +658,9 @@ curl -s -X POST "$BASE/classify" \\
 
 h3(doc, "Classify multiple texts at once")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{
     "texts": [
       "Dr Smith was very thorough and answered all my questions.",
@@ -653,25 +676,31 @@ h2(doc, "6.2  Python")
 body(doc, "Install the requests library first if you don't have it:")
 add_code(doc, "pip install requests", "bash")
 
+add_callout(doc,
+    "All Python examples load the API key from the HEALTHCARE_API_KEY environment variable. "
+    "Never hardcode the key as a string in your source code.",
+    "warning"
+)
+
 h3(doc, "Basic example")
 add_code(doc, """\
+import os
 import requests
-import json
 
-# ── Configuration ──────────────────────────────────────────────────────────
-BASE_URL = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-API_KEY  = "YOUR_API_KEY_HERE"
+# ── Load credentials from environment variables (never hardcode!) ───────────
+BASE_URL = os.environ["HEALTHCARE_API_BASE"]   # set in Step 2 of Quick Start
+API_KEY  = os.environ["HEALTHCARE_API_KEY"]    # set in Step 2 of Quick Start
 
 HEADERS = {
     "Content-Type": "application/json",
     "x-api-key":    API_KEY,
 }
 
-# ── 1. Health check ────────────────────────────────────────────────────────
+# ── 1. Health check ─────────────────────────────────────────────────────────
 response = requests.get(f"{BASE_URL}/health", headers=HEADERS)
 print("Health:", response.json())
 
-# ── 2. Classify a single text ──────────────────────────────────────────────
+# ── 2. Classify a single text ───────────────────────────────────────────────
 payload = {
     "text":   "The nurse was incredibly supportive and made me feel at ease.",
     "models": ["all"],
@@ -691,13 +720,13 @@ for result in data["results"]:
 
 h3(doc, "Classifying many texts in a loop")
 add_code(doc, """\
+import os
 import requests
 
-BASE_URL = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-API_KEY  = "YOUR_API_KEY_HERE"
+BASE_URL = os.environ["HEALTHCARE_API_BASE"]
+API_KEY  = os.environ["HEALTHCARE_API_KEY"]
 HEADERS  = {"Content-Type": "application/json", "x-api-key": API_KEY}
 
-# A list of patient feedback comments to classify
 feedback_list = [
     "Dr Smith was very thorough and answered all my questions.",
     "I waited over two hours past my appointment time.",
@@ -723,11 +752,12 @@ for item in response.json()["results"]:
 
 h3(doc, "Saving results to a CSV file")
 add_code(doc, """\
+import os
 import requests
 import csv
 
-BASE_URL = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-API_KEY  = "YOUR_API_KEY_HERE"
+BASE_URL = os.environ["HEALTHCARE_API_BASE"]
+API_KEY  = os.environ["HEALTHCARE_API_KEY"]
 HEADERS  = {"Content-Type": "application/json", "x-api-key": API_KEY}
 
 feedback_list = [
@@ -759,12 +789,17 @@ print("Results saved to classification_results.csv")\
 """, "python")
 
 h2(doc, "6.3  JavaScript / Node.js")
-body(doc, "Using the built-in fetch API (Node.js 18+) or the axios library.")
+body(doc, "Using the built-in fetch API (Node.js 18+). Load the key from process.env — never hardcode it.")
 
-h3(doc, "Using fetch (Node.js 18+ or modern browser)")
+h3(doc, "Using fetch (Node.js 18+)")
 add_code(doc, """\
-const BASE_URL = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod";
-const API_KEY  = "YOUR_API_KEY_HERE";
+// Load from environment variables (set before running: export HEALTHCARE_API_KEY=...)
+const BASE_URL = process.env.HEALTHCARE_API_BASE;
+const API_KEY  = process.env.HEALTHCARE_API_KEY;
+
+if (!BASE_URL || !API_KEY) {
+  throw new Error("Set HEALTHCARE_API_BASE and HEALTHCARE_API_KEY env vars first.");
+}
 
 async function classifyFeedback(texts) {
   const response = await fetch(`${BASE_URL}/classify`, {
@@ -773,17 +808,12 @@ async function classifyFeedback(texts) {
       "Content-Type": "application/json",
       "x-api-key":    API_KEY,
     },
-    body: JSON.stringify({
-      texts:  texts,
-      models: ["all"],
-      top_n:  3,
-    }),
+    body: JSON.stringify({ texts, models: ["all"], top_n: 3 }),
   });
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
-
   return response.json();
 }
 
@@ -817,15 +847,16 @@ body(doc, (
 
 h2(doc, "7.1  Set Up (run once)")
 add_code(doc, """\
-BASE="https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-KEY="YOUR_API_KEY_HERE"\
+BASE="$HEALTHCARE_API_BASE"
+KEY="$HEALTHCARE_API_KEY"\
 """, "bash")
 
 h2(doc, "7.2  Test 1 — Health Check")
 body(doc, "Verifies the API is live and all 6 models are loaded.")
 add_code(doc, """\
-curl -s "$BASE/health" \\
-  -H "x-api-key: $KEY" \\
+curl -s \\
+  "$HEALTHCARE_API_BASE/health" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   | python3 -m json.tool\
 """, "bash")
 body(doc, "✅  Pass if: status is \"ok\" and all 6 models show true.")
@@ -833,9 +864,10 @@ body(doc, "✅  Pass if: status is \"ok\" and all 6 models show true.")
 h2(doc, "7.3  Test 2 — Single Text, All Models")
 body(doc, "Verifies the classify endpoint works with a single text across all 6 models.")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{
     "text": "Dr Smith was very thorough and answered all my questions.",
     "models": ["all"],
@@ -847,9 +879,10 @@ body(doc, "✅  Pass if: response contains classifications for all 6 models and 
 h2(doc, "7.4  Test 3 — All 15 PREM Topics")
 body(doc, "Sends one representative text per topic to verify all categories can be detected.")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{
     "texts": [
       "My GP was very thorough and spent time answering all my questions.",
@@ -877,9 +910,10 @@ body(doc, "✅  Pass if: 15 results are returned, each with a topic_id from 0 to
 h2(doc, "7.5  Test 4 — Specific Models Only")
 body(doc, "Verifies you can select a subset of models instead of running all 6.")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{
     "texts": ["My telehealth video call worked perfectly."],
     "models": ["bertopic_mini", "lda"],
@@ -893,8 +927,10 @@ body(doc, "These tests verify the API returns the correct error codes for bad re
 
 h3(doc, "Missing API key → 403 Forbidden")
 add_code(doc, """\
+# Deliberately omit the key — expect 403
 curl -s -o /dev/null -w "%{http_code}" \\
-  -X POST "$BASE/classify" \\
+  -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
   -d '{"text": "test"}'\
 """, "bash")
@@ -903,7 +939,8 @@ body(doc, "✅  Pass if: output is 403.")
 h3(doc, "Wrong API key → 403 Forbidden")
 add_code(doc, """\
 curl -s -o /dev/null -w "%{http_code}" \\
-  -X POST "$BASE/classify" \\
+  -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: wrong-key-here" \\
   -d '{"text": "test"}'\
@@ -912,9 +949,10 @@ body(doc, "✅  Pass if: output is 403.")
 
 h3(doc, "Missing texts field → 422 Unprocessable")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{"models": ["all"]}' \\
   | python3 -m json.tool\
 """, "bash")
@@ -922,9 +960,10 @@ body(doc, "✅  Pass if: response contains an error message about missing \"text
 
 h3(doc, "Invalid model name → 422 Unprocessable")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{"text": "test", "models": ["invalid_model_name"]}' \\
   | python3 -m json.tool\
 """, "bash")
@@ -1018,25 +1057,30 @@ body(doc, "Store the key safely in Python like this:")
 add_code(doc, """\
 import os
 
-# In a .env file (never committed to Git):
-#   API_KEY=YOUR_API_KEY_HERE
+# Retrieve the key at runtime — never hardcode it:
+#   export HEALTHCARE_API_KEY=$(aws apigateway get-api-keys \\
+#     --region ap-southeast-2 --include-values \\
+#     --query "items[?contains(name,'healthcare-topic-classifier')].value | [0]" \\
+#     --output text)
 
-API_KEY = os.environ.get("API_KEY")
+API_KEY = os.environ.get("HEALTHCARE_API_KEY")
 if not API_KEY:
-    raise ValueError("API_KEY environment variable is not set!")\
+    raise ValueError("HEALTHCARE_API_KEY environment variable is not set!")\
 """, "python")
 
 h2(doc, "9.3  Error Handling")
 body(doc, "Always handle errors in your code. Here is a robust Python example:")
 add_code(doc, """\
-import requests
+import os, requests
 
 def classify_feedback(texts, models=None, top_n=3):
     \"\"\"Classify feedback texts. Returns results or raises a clear error.\"\"\"
-    url     = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod/classify"
-    headers = {
+    base_url = os.environ["HEALTHCARE_API_BASE"]   # e.g. https://<id>.execute-api.<region>.amazonaws.com/prod
+    api_key  = os.environ["HEALTHCARE_API_KEY"]    # retrieved via AWS CLI, never hardcoded
+    url      = f"{base_url}/classify"
+    headers  = {
         "Content-Type": "application/json",
-        "x-api-key":    "YOUR_API_KEY_HERE",
+        "x-api-key":    api_key,
     }
 
     try:
@@ -1211,8 +1255,8 @@ body(doc, "Tear out and keep this page handy.")
 
 h2(doc, "Credentials")
 add_code(doc, """\
-BASE="https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-KEY="YOUR_API_KEY_HERE"\
+BASE="$HEALTHCARE_API_BASE"
+KEY="$HEALTHCARE_API_KEY"\
 """, "bash")
 
 h2(doc, "Endpoints")
@@ -1241,20 +1285,21 @@ add_table(doc,
 
 h2(doc, "Minimal cURL — classify one text")
 add_code(doc, """\
-curl -s -X POST "$BASE/classify" \\
+curl -s -X POST \\
+  "$HEALTHCARE_API_BASE/classify" \\
   -H "Content-Type: application/json" \\
-  -H "x-api-key: $KEY" \\
+  -H "x-api-key: $HEALTHCARE_API_KEY" \\
   -d '{"text": "YOUR TEXT HERE", "models": ["all"], "top_n": 3}' \\
   | python3 -m json.tool\
 """, "bash")
 
 h2(doc, "Minimal Python")
 add_code(doc, """\
-import requests
+import os, requests
 r = requests.post(
-    "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod/classify",
+    os.environ["HEALTHCARE_API_BASE"] + "/classify",
     headers={"Content-Type": "application/json",
-             "x-api-key": "YOUR_API_KEY_HERE"},
+             "x-api-key": os.environ["HEALTHCARE_API_KEY"]},
     json={"text": "YOUR TEXT HERE", "models": ["all"], "top_n": 3},
 )
 print(r.json())\
@@ -1369,11 +1414,19 @@ add_code(doc, "pip install requests", "bash")
 
 h3(doc, "Step 2 — Run the evaluation script")
 add_code(doc, """\
-import requests
+import os, requests
 
-# ── Configuration ──────────────────────────────────────────────────────────────
-BASE_URL = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-API_KEY  = "YOUR_API_KEY_HERE"
+# ── Configuration — credentials from environment (never hardcoded) ─────────────
+# Set before running:
+#   export HEALTHCARE_API_BASE=$(aws cloudformation describe-stacks \\
+#     --stack-name healthcare-topic-classifier-stack --region ap-southeast-2 \\
+#     --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" --output text)
+#   export HEALTHCARE_API_KEY=$(aws apigateway get-api-keys \\
+#     --region ap-southeast-2 --include-values \\
+#     --query "items[?contains(name,'healthcare-topic-classifier')].value | [0]" \\
+#     --output text)
+BASE_URL = os.environ["HEALTHCARE_API_BASE"]
+API_KEY  = os.environ["HEALTHCARE_API_KEY"]
 HEADERS  = {"Content-Type": "application/json", "x-api-key": API_KEY}
 
 # ── Ground-truth test cases (text, expected topic name) ────────────────────────
