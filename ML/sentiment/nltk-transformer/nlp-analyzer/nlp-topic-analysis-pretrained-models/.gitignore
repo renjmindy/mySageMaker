@@ -12,3 +12,6 @@ instance/
 models/
 *.joblib
 
+# Docker image export — share directly, never commit to git
+*.tar.gz
+
