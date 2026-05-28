@@ -1,5 +1,5 @@
 """
-Basic usage example for the NLP Healthcare Sentiment Analysis library.
+Basic usage example for the NLP Sentiment Analysis library.
 
 Run from the repo root:
     python examples/basic_usage.py
@@ -43,24 +43,18 @@ def demo(text: str, model_type: str) -> None:
 
 if __name__ == "__main__":
     texts = [
-        "The patient is recovering well and responding positively to treatment. "
-        "The care team is satisfied with the progress.",
+        "This product is absolutely amazing. I love everything about it. "
+        "The quality is outstanding and the customer service was fantastic.",
 
-        "The patient reported severe side effects and persistent pain after the procedure. "
-        "The treatment outcome was very disappointing.",
+        "The film was a complete waste of time. The acting was terrible "
+        "and the plot made no sense whatsoever. Very disappointing.",
 
         "The patient reports feeling overwhelmed and anxious about the upcoming surgery. "
         "She expressed fear about the anesthesia but showed surprising resilience.",
     ]
 
-    # Run all 6 healthcare models on the clinical note
-    for model_type in ModelType:
-        demo(texts[2], model_type)
+    for text in texts:
+        demo(text, ModelType.DEFAULT)
 
-    # Also compare v1 vs v2 BERT on positive and negative examples
-    print(f"\n{'='*60}")
-    print("── BERT Healthcare v1 vs v2 comparison ──")
-    demo(texts[0], ModelType.BERT_HC)
-    demo(texts[0], ModelType.BERT_HC_V2)
-    demo(texts[1], ModelType.BERT_HC)
-    demo(texts[1], ModelType.BERT_HC_V2)
+    # Also run emotion model on the clinical note
+    demo(texts[2], ModelType.EMOTION)

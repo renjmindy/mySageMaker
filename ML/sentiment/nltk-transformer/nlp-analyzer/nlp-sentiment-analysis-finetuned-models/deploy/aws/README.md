@@ -1,18 +1,6 @@
-# AWS Lambda Deployment — NLP Healthcare Sentiment Analysis
+# AWS Lambda Deployment
 
-Deploy the fine-tuned healthcare sentiment API (6 models by **cjen1008**) to AWS Lambda
-with a single API Gateway endpoint. Region: **ap-southeast-2** (Sydney).
-
-## Models deployed
-
-| `model_type` | HuggingFace ID | Labels |
-|---|---|---|
-| `bert_hc_v2` *(default)* | `cjen1008/bert-healthcare-sentiment_v2` | NEGATIVE / NEUTRAL / POSITIVE |
-| `distilroberta_hc_v2` | `cjen1008/distilroberta-healthcare-sentiment_v2` | NEGATIVE / NEUTRAL / POSITIVE |
-| `distilbert_hc_v2` | `cjen1008/distilbert-healthcare-sentiment_v2` | NEGATIVE / NEUTRAL / POSITIVE |
-| `bert_hc` | `cjen1008/bert-healthcare-sentiment` | NEGATIVE / NEUTRAL / POSITIVE |
-| `distilbert_hc` | `cjen1008/distilbert-healthcare-sentiment` | NEGATIVE / NEUTRAL / POSITIVE |
-| `distilroberta_hc` | `cjen1008/distilroberta-healthcare-sentiment` | NEGATIVE / NEUTRAL / POSITIVE |
+Deploy the NLP Sentiment Analysis API to AWS Lambda with API Gateway.
 
 ## Free Tier
 
@@ -22,10 +10,9 @@ with a single API Gateway endpoint. Region: **ap-southeast-2** (Sydney).
 
 ## Prerequisites
 
-1. **AWS CLI** configured for ap-southeast-2
+1. **AWS CLI** configured
    ```bash
    aws configure
-   # Default region: ap-southeast-2
    ```
 
 2. **AWS SAM CLI**
@@ -46,91 +33,66 @@ chmod +x deploy/aws/deploy.sh
 ## Configuration
 
 ```bash
-export STACK_NAME=nlp-hc-sentiment      # CloudFormation stack name (default)
-export AWS_REGION=ap-southeast-2        # AWS region (Sydney)
-export STAGE=prod                       # prod | staging | dev
+export STACK_NAME=nlp-sentiment      # CloudFormation stack name (default)
+export AWS_REGION=us-east-1          # AWS region
+export STAGE=prod                    # prod | staging | dev
 ```
 
 ## Manual Steps
 
 ```bash
-REGION=ap-southeast-2
-ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-
 # 1. Build Lambda image
-docker build --platform linux/amd64 --provenance=false \
-  -f deploy/aws/Dockerfile -t nlp-hc-sentiment .
+docker build --platform linux/amd64 -f deploy/aws/Dockerfile -t nlp-sentiment .
 
 # 2. Push to ECR
-aws ecr create-repository --repository-name nlp-hc-sentiment --region ${REGION}
-aws ecr get-login-password --region ${REGION} | \
-  docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com
-docker tag nlp-hc-sentiment:latest \
-  ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/nlp-hc-sentiment:latest
-docker push ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/nlp-hc-sentiment:latest
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+aws ecr create-repository --repository-name nlp-sentiment
+aws ecr get-login-password | docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com
+docker tag nlp-sentiment:latest ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/nlp-sentiment:latest
+docker push ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/nlp-sentiment:latest
 
 # 3. SAM deploy
 sam deploy \
   --template-file deploy/aws/template.yaml \
-  --stack-name nlp-hc-sentiment-prod \
-  --region ${REGION} \
+  --stack-name nlp-sentiment-prod \
   --capabilities CAPABILITY_IAM \
-  --image-repository ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/nlp-hc-sentiment \
+  --image-repository ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/nlp-sentiment \
   --parameter-overrides Stage=prod
 ```
 
 ## Testing
 
 ```bash
-ENDPOINT="https://YOUR_API_ID.execute-api.ap-southeast-2.amazonaws.com/prod"
-API_KEY="your-api-key"
+ENDPOINT="https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/prod"
 
 # Health check
-curl -H "X-Api-Key: ${API_KEY}" "${ENDPOINT}/api/v1/health"
+curl "${ENDPOINT}/api/v1/health"
 
-# BERT Healthcare v2 (default) — positive note
+# Analyse sentiment (DistilBERT)
 curl -X POST "${ENDPOINT}/api/v1/analyze" \
   -H 'Content-Type: application/json' \
-  -H "X-Api-Key: ${API_KEY}" \
-  -d '{"text": "The patient is recovering well and responding positively to treatment.", "model_type": "bert_hc_v2"}'
+  -d '{"text": "This product is absolutely amazing I love everything about it", "model_type": "default"}'
 
-# DistilRoBERTa Healthcare v2 — negative note
+# Analyse emotion (GoEmotions)
 curl -X POST "${ENDPOINT}/api/v1/analyze" \
   -H 'Content-Type: application/json' \
-  -H "X-Api-Key: ${API_KEY}" \
-  -d '{"text": "The patient reported severe side effects and persistent pain after the procedure.", "model_type": "distilroberta_hc_v2"}'
-
-# BERT Healthcare v1 — neutral / mixed note
-curl -X POST "${ENDPOINT}/api/v1/analyze" \
-  -H 'Content-Type: application/json' \
-  -H "X-Api-Key: ${API_KEY}" \
-  -d '{"text": "The patient shows mixed results. Some improvement noted but fatigue persists.", "model_type": "bert_hc"}'
+  -d '{"text": "The patient feels anxious and scared about the upcoming procedure", "model_type": "emotion"}'
 ```
-
-## Keep-Warm (EventBridge)
-
-An **EventBridge rule** fires a synthetic `/api/v1/health` request to the Lambda
-**every 5 minutes**, preventing cold starts. It is deployed automatically by the
-SAM template (`WarmupRule` + `WarmupPermission`). No manual setup required.
-
-Additionally, `lambda_handler.py` pre-loads `BERT Healthcare v2` at container
-startup so the first real request is served without a model-weight loading delay.
 
 ## Cleanup
 
 ```bash
-sam delete --stack-name nlp-hc-sentiment-prod --region ap-southeast-2
-aws ecr delete-repository --repository-name nlp-hc-sentiment \
-  --region ap-southeast-2 --force
+sam delete --stack-name nlp-sentiment-prod
+aws ecr delete-repository --repository-name nlp-sentiment --force
 ```
 
 ## Performance Notes
 
-- **Memory**: 3 GB (largest model is BERT base ~440 MB; sufficient for lazy-loaded models)
+- **Memory**: 3 GB (required for three transformer models simultaneously)
 - **Ephemeral storage**: 2 GB
-- **Timeout**: 3 minutes (first cold-start model load)
-- **Cold start**: ~20–40 s (one model + spaCy); warm requests ~300 ms–1 s
-- All 6 model weights are baked into the container image at build time
+- **Timeout**: 120 seconds
+- **Cold start**: ~30–60 s (three models + spaCy); warm requests ~500 ms–2 s
+- Models are baked into the container image at build time to minimise cold starts
 
 ## Cost Estimate
 

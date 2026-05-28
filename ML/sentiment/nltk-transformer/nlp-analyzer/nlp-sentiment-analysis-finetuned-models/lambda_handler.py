@@ -15,9 +15,21 @@ _mangum = Mangum(app, lifespan="off")
 
 
 def handler(event, context):
-    # Warmup / scheduled events that arrive without requestContext or httpMethod
-    # (e.g. a direct EventBridge invocation whose Input omits those keys) must
-    # not reach Mangum — it cannot infer a handler and will raise RuntimeError.
-    if "httpMethod" not in event and "requestContext" not in event:
+    # Only forward events that match one of Mangum's three handler types:
+    #   REST API  → has "httpMethod"
+    #   HTTP API  → has "version" 1.0 or 2.0
+    #   ALB       → has requestContext.elb
+    # Everything else (EventBridge, SQS, direct-invoke test payloads, …)
+    # is treated as a warmup ping and short-circuited here.
+    is_http = (
+        "httpMethod" in event
+        or event.get("version") in ("1.0", "2.0")
+        or bool(event.get("requestContext", {}).get("elb"))
+    )
+    if not is_http:
         return {"statusCode": 200, "body": "warm"}
-    return _mangum(event, context)
+    try:
+        return _mangum(event, context)
+    except RuntimeError:
+        # Malformed or unrecognised event shape — treat as warmup rather than crash.
+        return {"statusCode": 200, "body": "warm"}

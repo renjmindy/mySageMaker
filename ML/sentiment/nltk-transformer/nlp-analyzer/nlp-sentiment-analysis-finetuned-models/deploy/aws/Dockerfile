@@ -1,12 +1,10 @@
-# AWS Lambda container image — NLP Healthcare Sentiment Analysis API
-# Fine-tuned models by cjen1008 (bert / distilbert / distilroberta, v1 + v2)
+# AWS Lambda container image — NLP Sentiment Analysis API
 # Builds for linux/amd64 (Lambda requirement)
 #
-# Build:  docker build --platform linux/amd64 --provenance=false \
-#                      -f deploy/aws/Dockerfile -t nlp-hc-sentiment-lambda .
-# Test:   docker run -p 9000:8080 nlp-hc-sentiment-lambda
+# Build:  docker build --platform linux/amd64 -f deploy/aws/Dockerfile -t nlp-sentiment-lambda .
+# Test:   docker run -p 9000:8080 nlp-sentiment-lambda
 #         curl -X POST http://localhost:9000/2015-03-31/functions/function/invocations \
-#              -d '{"httpMethod":"GET","path":"/api/v1/health","resource":"/{proxy+}","headers":{},"multiValueHeaders":{},"queryStringParameters":null,"multiValueQueryStringParameters":null,"pathParameters":{"proxy":"api/v1/health"},"stageVariables":null,"requestContext":{"resourcePath":"/{proxy+}","httpMethod":"GET","stage":"local","requestId":"test"},"body":null,"isBase64Encoded":false}'
+#              -d '{"httpMethod":"GET","path":"/api/v1/health","headers":{},"body":null}'
 
 FROM public.ecr.aws/lambda/python:3.12
 
@@ -39,36 +37,40 @@ for pkg in ["punkt", "punkt_tab", "wordnet", "averaged_perceptron_tagger"]:
     nltk.download(pkg, download_dir=os.environ["NLTK_DATA"], quiet=True)
 PY
 
-# ── Pre-download all 6 fine-tuned healthcare models ───────────────────────────
+# ── Pre-download all 7 HuggingFace models ─────────────────────────────────────
 # Baked into image → zero download delay at runtime (cold start = model load only)
-# All models use the direct AutoModel inference path (same as analyzer.py).
-#   v2 models → LABEL_0/1/2 mapped to NEGATIVE/NEUTRAL/POSITIVE in analyzer
-#   v1 models → native negative/neutral/positive labels
+# Uses AutoModel (same path as analyzer.py) so weights are cached identically
 ENV HF_HOME=/var/task/.cache/huggingface \
     TRANSFORMERS_CACHE=/var/task/.cache/huggingface
 RUN mkdir -p ${HF_HOME} && python - <<'PY'
 import os
 os.environ["HF_HOME"] = "/var/task/.cache/huggingface"
 
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, pipeline
 
-models = [
-    # (hf_id,                                           tokenizer_override)
-    ("cjen1008/bert-healthcare-sentiment_v2",           None),
-    ("cjen1008/distilroberta-healthcare-sentiment_v2",  None),
-    ("cjen1008/distilbert-healthcare-sentiment_v2",     None),
-    ("cjen1008/bert-healthcare-sentiment",              None),
-    ("cjen1008/distilbert-healthcare-sentiment",        None),
-    ("cjen1008/distilroberta-healthcare-sentiment",     None),
+# 5 direct-inference models (AutoModel path used by analyzer.py)
+direct = [
+    ("distilbert-base-uncased-finetuned-sst-2-english", None),
+    ("nlptown/bert-base-multilingual-uncased-sentiment", None),
+    ("sohan-ai/sentiment-analysis-model-amazon-reviews", "distilbert-base-uncased"),
+    ("cardiffnlp/twitter-roberta-base-sentiment-latest", None),
+    ("textattack/bert-base-uncased-SST-2",               "bert-base-uncased"),
 ]
-
-for hf_id, tok_id in models:
+for hf_id, tok_id in direct:
     print(f"Caching {hf_id} ...")
     AutoTokenizer.from_pretrained(tok_id or hf_id)
     AutoConfig.from_pretrained(hf_id)
     AutoModelForSequenceClassification.from_pretrained(hf_id)
 
-print("All 6 healthcare models cached.")
+# GoEmotions — pipeline path
+print("Caching j-hartmann/emotion-english-distilroberta-base ...")
+pipeline("sentiment-analysis", model="j-hartmann/emotion-english-distilroberta-base", top_k=None)
+
+# Zero-shot — pipeline path
+print("Caching facebook/bart-large-mnli ...")
+pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+print("All 7 models cached.")
 PY
 
 # ── Application source ────────────────────────────────────────────────────────

@@ -9,12 +9,13 @@ class AnalyzeRequest(BaseModel):
     model_type: str = Field(
         "bert_hc_v2",
         description=(
-            "One of: 'bert_hc_v2' (BERT Healthcare v2), "
-            "'distilroberta_hc_v2' (DistilRoBERTa Healthcare v2), "
-            "'distilbert_hc_v2' (DistilBERT Healthcare v2), "
-            "'bert_hc' (BERT Healthcare), "
-            "'distilbert_hc' (DistilBERT Healthcare), "
-            "'distilroberta_hc' (DistilRoBERTa Healthcare)"
+            # Fine-tuned healthcare (cjen1008)
+            "Fine-tuned HC: 'bert_hc_v2', 'distilroberta_hc_v2', 'distilbert_hc_v2', "
+            "'bert_hc', 'distilbert_hc', 'distilroberta_hc'. "
+            # Pretrained general-purpose
+            "Pretrained: 'default' (DistilBERT SST-2), 'roberta' (BERT Multilingual 5-star), "
+            "'emotion' (GoEmotions 7-class), 'amazon' (Amazon Reviews), "
+            "'twitter' (RoBERTa Twitter), 'sst2' (BERT SST-2), 'zeroshot' (BART MNLI)."
         ),
     )
 
@@ -29,6 +30,7 @@ class AnalyzeResponse(BaseModel):
     probabilities: List[float]
     labels: List[str]
     model_type: str
+    redacted_text: str
     cleaned_text: str
     tokenized_text: List[str]
     lemmatized_text: List[str]

@@ -64,6 +64,7 @@ COPY src/       ./src/
 COPY api/       ./api/
 COPY ui/        ./ui/
 COPY examples/  ./examples/
+COPY app.py         ./
 COPY lambda_handler.py ./
 
 RUN chown -R appuser:appuser /app

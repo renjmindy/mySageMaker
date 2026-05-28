@@ -1,13 +1,14 @@
 #!/bin/bash
-# AWS Lambda Container Image Deployment — NLP Healthcare Sentiment Analysis
-# Fine-tuned models by cjen1008 | Region: ap-southeast-2
+# AWS Lambda Container Image Deployment — NLP Sentiment Analysis
 
 set -e
 
-STACK_NAME="${STACK_NAME:-nlp-hc-sentiment}"
-REGION="${AWS_REGION:-ap-southeast-2}"
+STACK_NAME="${STACK_NAME:-nlp-sentiment}"
+REGION="${AWS_REGION:-us-east-1}"
 STAGE="${STAGE:-prod}"
-IMAGE_NAME="nlp-hc-sentiment"
+IMAGE_NAME="nlp-sentiment"
+OPENMED_PII_BASE_URL="${OPENMED_PII_BASE_URL:-https://i6di6fkeqi.execute-api.ap-southeast-2.amazonaws.com/prod}"
+OPENMED_PII_API_KEY="${OPENMED_PII_API_KEY:-t1Ej9UB6ZU1VUFKUURAky7fK4ux9pFwa3Db7s4u4}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,8 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}NLP Healthcare Sentiment — AWS Deploy${NC}"
-echo -e "${GREEN}Region: ${REGION}${NC}"
+echo -e "${GREEN}NLP Sentiment Analysis — AWS Deploy${NC}"
 echo -e "${GREEN}========================================${NC}"
 
 # ── Prerequisites ────────────────────────────────────────────────────────────
@@ -42,27 +42,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# ── Ensure lambda_handler.py is correct ──────────────────────────────────────
+# ── Ensure lambda_handler.py exists ─────────────────────────────────────────
 if [ ! -f lambda_handler.py ]; then
     echo -e "\n${YELLOW}Creating lambda_handler.py...${NC}"
     cat > lambda_handler.py << 'EOF'
-"""AWS Lambda entry-point. Wraps the FastAPI app with Mangum."""
 from mangum import Mangum
 from api.main import app
 
-try:
-    from src.analyzer import _get_direct_model
-    from src.models import ModelType
-    _get_direct_model(ModelType.BERT_HC_V2)
-except Exception:
-    pass
-
 _mangum = Mangum(app, lifespan="off")
 
+
 def handler(event, context):
-    if "httpMethod" not in event and "requestContext" not in event:
+    is_http = (
+        "httpMethod" in event
+        or event.get("version") in ("1.0", "2.0")
+        or bool(event.get("requestContext", {}).get("elb"))
+    )
+    if not is_http:
         return {"statusCode": 200, "body": "warm"}
-    return _mangum(event, context)
+    try:
+        return _mangum(event, context)
+    except RuntimeError:
+        return {"statusCode": 200, "body": "warm"}
 EOF
 fi
 
@@ -72,7 +73,7 @@ if ! grep -q "mangum" requirements.txt; then
 fi
 
 # ── ECR repository ───────────────────────────────────────────────────────────
-echo -e "\n${YELLOW}Setting up ECR repository (${IMAGE_NAME}) in ${REGION}...${NC}"
+echo -e "\n${YELLOW}Setting up ECR repository...${NC}"
 aws ecr describe-repositories --repository-names "$IMAGE_NAME" --region "$REGION" &>/dev/null || \
     aws ecr create-repository --repository-name "$IMAGE_NAME" --region "$REGION"
 
@@ -81,7 +82,7 @@ aws ecr get-login-password --region "$REGION" | \
     docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
 # ── Build & push ─────────────────────────────────────────────────────────────
-echo -e "\n${YELLOW}Building Docker image (this will take several minutes — 6 models are downloaded)...${NC}"
+echo -e "\n${YELLOW}Building Docker image (this will take several minutes — models are large)...${NC}"
 docker build --platform linux/amd64 --provenance=false \
     -t "${IMAGE_NAME}:latest" \
     -f deploy/aws/Dockerfile .
@@ -114,7 +115,10 @@ sam deploy \
     --stack-name "${STACK_NAME}-${STAGE}" \
     --region "$REGION" \
     --capabilities CAPABILITY_IAM \
-    --parameter-overrides Stage="$STAGE" \
+    --parameter-overrides \
+        Stage="$STAGE" \
+        OpenMedPiiBaseUrl="$OPENMED_PII_BASE_URL" \
+        OpenMedPiiApiKey="$OPENMED_PII_API_KEY" \
     --image-repository "${ECR_URI}" \
     --no-confirm-changeset \
     --no-fail-on-empty-changeset
@@ -131,35 +135,9 @@ API_ENDPOINT=$(aws cloudformation describe-stacks \
     --output text)
 
 echo -e "\n${GREEN}API Endpoint:${NC} ${API_ENDPOINT}"
-
-# ── Retrieve the generated API key value ─────────────────────────────────────
-echo -e "\n${YELLOW}Retrieving API key...${NC}"
-API_KEY_VALUE=$(aws apigateway get-api-keys \
-    --region "$REGION" \
-    --include-values \
-    --query "items[?contains(name,'nlp-hc-sentiment')].value | [0]" \
-    --output text 2>/dev/null || echo "")
-
-if [ -n "$API_KEY_VALUE" ] && [ "$API_KEY_VALUE" != "None" ]; then
-    echo -e "${GREEN}API Key:${NC} ${API_KEY_VALUE}"
-else
-    echo -e "${YELLOW}Could not auto-retrieve key. Run manually:${NC}"
-    echo "aws apigateway get-api-keys --region ${REGION} --include-values --query \"items[?contains(name,'nlp-hc-sentiment')].{name:name,value:value}\" --output table"
-    API_KEY_VALUE="<your-api-key>"
-fi
-
-echo -e "\n${YELLOW}Quick tests:${NC}"
-echo "# Health check"
-echo "curl -H 'X-Api-Key: ${API_KEY_VALUE}' '${API_ENDPOINT}/api/v1/health'"
+echo -e "\n${YELLOW}Quick test:${NC}"
+echo "curl '${API_ENDPOINT}/api/v1/health'"
 echo ""
-echo "# BERT Healthcare v2 (default)"
 echo "curl -X POST '${API_ENDPOINT}/api/v1/analyze' \\"
 echo "  -H 'Content-Type: application/json' \\"
-echo "  -H 'X-Api-Key: ${API_KEY_VALUE}' \\"
-echo "  -d '{\"text\": \"The patient is recovering well and responding positively to treatment.\", \"model_type\": \"bert_hc_v2\"}'"
-echo ""
-echo "# DistilBERT Healthcare v1"
-echo "curl -X POST '${API_ENDPOINT}/api/v1/analyze' \\"
-echo "  -H 'Content-Type: application/json' \\"
-echo "  -H 'X-Api-Key: ${API_KEY_VALUE}' \\"
-echo "  -d '{\"text\": \"The patient reported severe side effects and persistent pain after the procedure.\", \"model_type\": \"distilbert_hc\"}'"
+echo "  -d '{\"text\": \"This product is absolutely amazing I love everything about it\", \"model_type\": \"default\"}'"

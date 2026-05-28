@@ -29,6 +29,10 @@ plotly>=5.3.1
 kaleido==0.2.1
 reportlab>=4.0.0
 
+# HTTP client & config
+requests>=2.31.0
+python-dotenv>=1.0.0
+
 # Server
 gunicorn>=22.0.0
 

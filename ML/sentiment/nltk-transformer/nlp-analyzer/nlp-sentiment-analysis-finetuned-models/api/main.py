@@ -11,13 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routes import router
 
 app = FastAPI(
-    title="NLP Sentiment Analysis API",
+    title="NLP OpenMed Sentiment Analysis API",
     description=(
-        "HIPAA-aware NLP pipeline using pretrained Transformer models. "
-        "Performs full preprocessing (cleaning, tokenisation, stemming, "
+        "HIPAA-aware NLP pipeline with 13 Transformer models: "
+        "6 fine-tuned healthcare models (cjen1008/*) + 7 pretrained general-purpose models. "
+        "Performs OpenMed PII redaction, full preprocessing (cleaning, tokenisation, stemming, "
         "lemmatisation, NER, POS) then runs sentiment inference."
     ),
-    version="1.0.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
