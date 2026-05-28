@@ -1,0 +1,149 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# NLP OpenMed — Fully Offline Local Image
+#
+# Bundles two services in one container (no cloud calls at runtime):
+#   Service 1 — OpenMed PII De-identification API   → port 8001
+#   Service 2 — NLP Sentiment Analysis API (13 HF)  → port 8000
+#
+# All 14 HuggingFace models, NLTK data, and the spaCy model are baked in.
+# The sentiment service calls the PII service at http://localhost:8001 —
+# credentials and cloud endpoints are NOT required.
+#
+# ── Build & export (run from this directory) ──────────────────────────────────
+#   bash scripts/package-image.sh          → nlp-openmed-local.tar.gz
+#
+# ── Recipient: load & run ────────────────────────────────────────────────────
+#   bash load-and-run.sh                   (bundled alongside the .tar.gz)
+#   OR manually:
+#     docker load < nlp-openmed-local.tar.gz
+#     docker run -d -p 8000:8000 -p 8001:8001 --name nlp-openmed nlp-openmed-local
+#
+# ── API docs ─────────────────────────────────────────────────────────────────
+#   Sentiment   http://localhost:8000/docs
+#   PII         http://localhost:8001/docs
+#
+# NOTE: Build context must be the ML/ parent directory.
+#       Use scripts/package-image.sh — it sets the context automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HF_HOME=/app/.cache/huggingface \
+    NLTK_DATA=/app/nltk_data \
+    MPLCONFIGDIR=/app/.config/matplotlib \
+    OPENMED_PII_BASE_URL=http://localhost:8001 \
+    OPENMED_PII_API_KEY=local-only \
+    PRELOAD_MODEL=true
+
+# ── System dependencies ───────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    gcc \
+    g++ \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash appuser
+
+WORKDIR /app
+
+# ── Python dependencies ───────────────────────────────────────────────────────
+# Sentiment requirements first — pins PyTorch to the CPU-only wheel index
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/requirements.txt ./nlp-requirements.txt
+RUN pip install --upgrade pip && pip install --no-cache-dir -r nlp-requirements.txt
+
+# PII requirements — overlapping deps (torch, transformers, fastapi) already satisfied
+COPY open-med/medical-pii-deidentification/requirements.txt ./pii-requirements.txt
+RUN pip install --no-cache-dir -r pii-requirements.txt
+
+# ── spaCy model ───────────────────────────────────────────────────────────────
+RUN python -m spacy download en_core_web_md
+
+# ── NLTK data ─────────────────────────────────────────────────────────────────
+RUN mkdir -p ${NLTK_DATA} && python - <<'PY'
+import nltk, os
+for pkg in ["punkt", "punkt_tab", "wordnet", "averaged_perceptron_tagger"]:
+    nltk.download(pkg, download_dir=os.environ["NLTK_DATA"], quiet=True)
+PY
+
+# ── Pre-download OpenMed PII model (1 model) ──────────────────────────────────
+RUN mkdir -p ${HF_HOME} && python - <<'PY'
+from huggingface_hub import snapshot_download
+print("Downloading PII model: OpenMed/OpenMed-PII-SuperClinical-Small-44M-v1")
+snapshot_download(repo_id="OpenMed/OpenMed-PII-SuperClinical-Small-44M-v1")
+print("PII model cached.")
+PY
+
+# ── Pre-download all 13 sentiment models ─────────────────────────────────────
+# Uses snapshot_download to cache all files without loading into memory,
+# then also pre-fetches the two standalone tokenizers that some models reference.
+RUN python - <<'PY'
+from huggingface_hub import snapshot_download
+from transformers import AutoTokenizer
+
+sentiment_models = [
+    # Fine-tuned healthcare (cjen1008)
+    "cjen1008/bert-healthcare-sentiment_v2",
+    "cjen1008/distilroberta-healthcare-sentiment_v2",
+    "cjen1008/distilbert-healthcare-sentiment_v2",
+    "cjen1008/bert-healthcare-sentiment",
+    "cjen1008/distilbert-healthcare-sentiment",
+    "cjen1008/distilroberta-healthcare-sentiment",
+    # General-purpose pretrained
+    "distilbert-base-uncased-finetuned-sst-2-english",
+    "nlptown/bert-base-multilingual-uncased-sentiment",
+    "j-hartmann/emotion-english-distilroberta-base",
+    "sohan-ai/sentiment-analysis-model-amazon-reviews",
+    "cardiffnlp/twitter-roberta-base-sentiment-latest",
+    "textattack/bert-base-uncased-SST-2",
+    "facebook/bart-large-mnli",
+]
+
+for repo in sentiment_models:
+    print(f"  Caching {repo} ...")
+    snapshot_download(repo_id=repo)
+
+# Standalone tokenizers used by AMAZON and SST2 models
+for tok in ["distilbert-base-uncased", "bert-base-uncased"]:
+    print(f"  Caching tokenizer {tok} ...")
+    AutoTokenizer.from_pretrained(tok)
+
+print("All 13 sentiment models and tokenizers cached.")
+PY
+
+RUN mkdir -p ${MPLCONFIGDIR}
+
+# ── Application code ──────────────────────────────────────────────────────────
+# PII service
+COPY open-med/medical-pii-deidentification/src/ ./pii/src/
+COPY open-med/medical-pii-deidentification/api/ ./pii/api/
+
+# NLP sentiment service
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/src/      ./nlp/src/
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/api/      ./nlp/api/
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/ui/       ./nlp/ui/
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/examples/ ./nlp/examples/
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/static/   ./nlp/static/
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/app.py    ./nlp/
+
+# Process supervisor configuration
+COPY sentiment/nltk-transformer/nlp-analyzer/nlp-openmed-sentiment-analysis-finetuned-models/supervisord.conf /etc/supervisor/conf.d/nlp-openmed.conf
+
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Sentiment API (external) + PII API (internal, also exposed for direct use)
+EXPOSE 8000 8001
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
+    CMD curl -f http://localhost:8000/api/v1/health && curl -f http://localhost:8001/api/v1/health || exit 1
+
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]

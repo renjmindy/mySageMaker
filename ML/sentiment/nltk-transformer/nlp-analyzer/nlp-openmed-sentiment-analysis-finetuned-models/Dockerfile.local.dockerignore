@@ -1,0 +1,38 @@
+# Build-context exclusions for Dockerfile.local
+# (Docker >= 23 uses <Dockerfile>.dockerignore automatically)
+
+# Credentials — must never enter an image layer
+**/.env
+**/.env.*
+**/*.env
+
+# Python runtime artifacts
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Cloud deploy manifests (not needed in the image)
+**/deploy/
+**/.aws-sam/
+
+# Dev / docs extras
+**/docs/
+**/snapshot/
+**/instance/
+**/tests/
+**/add_months.py
+**/postbuild
+**/*.tar.gz
+**/*.zip
+**/nltk_data/
+
+# IDE / OS
+**/.idea/
+**/.vscode/
+**/*.DS_Store

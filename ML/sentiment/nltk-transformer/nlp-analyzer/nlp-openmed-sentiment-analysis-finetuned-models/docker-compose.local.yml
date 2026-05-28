@@ -1,0 +1,29 @@
+# Convenience wrapper for the pre-built nlp-openmed-local image.
+#
+# Usage (after loading the image from the .tar.gz):
+#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.local.yml logs -f
+#   docker compose -f docker-compose.local.yml down
+#
+# Both APIs are exposed on the host:
+#   Sentiment Analysis API  →  http://localhost:8000/docs
+#   PII De-identification API → http://localhost:8001/docs
+
+services:
+  nlp-openmed:
+    image: nlp-openmed-local:latest
+    container_name: nlp-openmed
+    ports:
+      - "8000:8000"   # NLP Sentiment Analysis API
+      - "8001:8001"   # OpenMed PII De-identification API
+    environment:
+      OPENMED_PII_BASE_URL: http://localhost:8001
+      OPENMED_PII_API_KEY: local-only
+      PRELOAD_MODEL: "true"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 5
