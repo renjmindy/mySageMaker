@@ -1,0 +1,89 @@
+# =============================================================================
+# Dockerfile.lambda  —  Healthcare PREM Topic Classifier  •  AWS Lambda image
+#
+# Base: public.ecr.aws/lambda/python:3.11  (WORKDIR = /var/task)
+# Handler: lambda_healthcare.handler
+#
+# All paths match the Lambda function's environment variables:
+#   NLTK_DATA  = /var/task/nltk_data
+#   MODEL_DIR  = /var/task/models
+#   HF_HOME    = /var/task/hf_cache
+#
+# Build:
+#   docker build --provenance=false -f Dockerfile.lambda -t healthcare-lambda .
+#
+# Push to ECR:
+#   docker tag healthcare-lambda <account>.dkr.ecr.ap-southeast-2.amazonaws.com/healthcare-topic-classifier:latest
+#   docker push <account>.dkr.ecr.ap-southeast-2.amazonaws.com/healthcare-topic-classifier:latest
+# =============================================================================
+
+FROM public.ecr.aws/lambda/python:3.11
+
+# ── Python dependencies ───────────────────────────────────────────────────────
+# All packages install from binary wheels (--prefer-binary) — no gcc needed.
+# Slim set: sentence-transformers + classical NLP only (no spaCy, FastAPI, UMAP).
+COPY requirements.lambda.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir --prefer-binary \
+      --extra-index-url https://download.pytorch.org/whl/cpu \
+      -r requirements.lambda.txt \
+ && rm requirements.lambda.txt
+
+# ── Pre-cache sentence-transformer weights ────────────────────────────────────
+# HF_HOME matches the Lambda function's environment variable.
+# TRANSFORMERS_OFFLINE=1 is set at runtime to block outbound calls.
+ENV HF_HOME=/var/task/hf_cache
+ENV HF_HUB_DISABLE_IMPLICIT_TOKEN=1
+
+RUN python - <<'EOF'
+from sentence_transformers import SentenceTransformer
+import os, stat
+
+print("Downloading all-MiniLM-L6-v2 ...")
+SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+print("Downloading all-mpnet-base-v2 ...")
+SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+
+# Ensure all cache files are world-readable (Lambda runs as a non-root user)
+for root, dirs, files in os.walk("/var/task/hf_cache"):
+    for d in dirs:
+        os.chmod(os.path.join(root, d), 0o755)
+    for f in files:
+        os.chmod(os.path.join(root, f), 0o644)
+
+print("Sentence-transformer weights cached.")
+EOF
+
+# ── Pre-download NLTK data ────────────────────────────────────────────────────
+# NLTK_DATA matches the Lambda function's environment variable.
+ENV NLTK_DATA=/var/task/nltk_data
+
+RUN python - <<'EOF'
+import nltk, os
+os.makedirs(os.environ["NLTK_DATA"], exist_ok=True)
+for pkg in ["punkt", "punkt_tab", "wordnet", "stopwords", "averaged_perceptron_tagger"]:
+    nltk.download(pkg, download_dir=os.environ["NLTK_DATA"], quiet=False)
+print("NLTK data downloaded.")
+EOF
+
+# ── Application source ────────────────────────────────────────────────────────
+# Only healthcare_classifier/ and lambda_healthcare.py are needed for the
+# Lambda handler — src/, api/, and ui/ are not required here.
+COPY healthcare_classifier/ ./healthcare_classifier/
+COPY scripts/ ./scripts/
+COPY lambda_healthcare.py ./
+
+# ── Train classical PREM models (LDA / NMF / LSI / HDP) ──────────────────────
+# Fits all four models on the 225-sentence PREM seed corpus and saves them to
+# /var/task/models/ — matches Lambda env var MODEL_DIR=/var/task/models.
+ENV MODEL_DIR=/var/task/models
+
+RUN python scripts/train_models.py
+
+# ── Runtime environment ───────────────────────────────────────────────────────
+ENV TRANSFORMERS_OFFLINE=1
+ENV HF_HUB_OFFLINE=1
+ENV TOKENIZERS_PARALLELISM=false
+
+# ── Lambda entry point ────────────────────────────────────────────────────────
+CMD ["lambda_healthcare.handler"]
