@@ -5672,8 +5672,14 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
     # Per-month analysis — only when ≥2 month sections are present
     sections = _parse_month_sections(text_input)
 
-    monthly_fig  = None
-    quality_fig  = None
+    monthly_fig        = None
+    quality_fig        = None
+    monthly_top_topics = []
+    wards              = []
+    risk_labels        = []
+    sentiments         = []
+    quality_scores     = []
+    summary_table      = ""
     if len(sections) >= 2:
         monthly_fig, monthly_top_topics = _build_monthly_topic_chart(
             sections, topic_model_key, topic_model_label, int(top_n)
