@@ -4262,17 +4262,23 @@ def _build_pdf_report(text, sentiment, model_label, probabilities, labels, prepr
 
     # ── Preprocessing ──────────────────────────────────────────────────────────
     story += section("Preprocessing Pipeline")
+    def _tok_str(lst, max_n=60):
+        """Truncate long token lists so no single PDF cell exceeds page height."""
+        if len(lst) <= max_n:
+            return ", ".join(lst)
+        return ", ".join(lst[:max_n]) + f"  … (+{len(lst) - max_n} more)"
+
     preproc_rows = [
         ("Cleaned",    preprocess.cleaned_text),
         ("Removed",    preprocess.removed_text),
         ("Normalized", preprocess.normalized_text),
-        ("Tokenized",  ", ".join(preprocess.tokenized_text)),
-        ("Stemmed",    " ".join(preprocess.stemmed_text)),
-        ("Lemmatized", " ".join(preprocess.lemmatized_text)),
+        ("Tokenized",  _tok_str(preprocess.tokenized_text)),
+        ("Stemmed",    _tok_str(preprocess.stemmed_text)),
+        ("Lemmatized", _tok_str(preprocess.lemmatized_text)),
         ("Word count", str(len(preprocess.tokenized_text))),
     ]
     pre_data = [[Paragraph(f"<b>{k}</b>", body), Paragraph(v, mono)] for k, v in preproc_rows]
-    pre_tbl = Table(pre_data, colWidths=[1.1 * inch, 5.8 * inch])
+    pre_tbl = Table(pre_data, colWidths=[1.1 * inch, 5.8 * inch], splitByRow=1)
     pre_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f8f9fa")),
         ("GRID",       (0, 0), (-1, -1), 0.3, colors.HexColor("#dee2e6")),
@@ -4340,7 +4346,7 @@ def _build_pdf_report(text, sentiment, model_label, probabilities, labels, prepr
             Paragraph(str(len(words)), body),
             Paragraph(", ".join(words) or "—", mono),
         ])
-    dist_tbl = Table(dist_data, colWidths=[1.2 * inch, 0.7 * inch, 5.0 * inch])
+    dist_tbl = Table(dist_data, colWidths=[1.2 * inch, 0.7 * inch, 5.0 * inch], splitByRow=1)
     dist_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#8e44ad")),
         ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
