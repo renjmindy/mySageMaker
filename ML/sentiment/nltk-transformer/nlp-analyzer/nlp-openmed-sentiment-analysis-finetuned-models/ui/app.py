@@ -4925,7 +4925,7 @@ def _build_topic_table_html(classifications, top_n):
                 cells += (
                     f'<td style="padding:6px 12px;background:{bg};text-align:center;">'
                     f'{t["topic_name"]}'
-                    f'<br><span style="font-size:0.78rem;color:#888;">{pct:.1f}%</span></td>'
+                    f'<br><span style="font-size:0.78rem;color:#000;">{pct:.1f}%</span></td>'
                 )
             else:
                 cells += f'<td style="padding:6px 12px;background:{bg};color:#ccc;">—</td>'
