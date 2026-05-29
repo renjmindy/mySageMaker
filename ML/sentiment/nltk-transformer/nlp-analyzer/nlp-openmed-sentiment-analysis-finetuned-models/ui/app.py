@@ -4262,32 +4262,46 @@ def _build_pdf_report(text, sentiment, model_label, probabilities, labels, prepr
 
     # ── Preprocessing ──────────────────────────────────────────────────────────
     story += section("Preprocessing Pipeline")
-    def _tok_str(lst, max_n=60):
-        """Truncate long token lists so no single PDF cell exceeds page height."""
+
+    def _trunc_str(s, max_chars=600):
+        """Truncate plain text so no single PDF row exceeds page height."""
+        if len(s) <= max_chars:
+            return s
+        return s[:max_chars] + f"  … ({len(s) - max_chars} chars omitted)"
+
+    def _tok_str(lst, max_n=50):
+        """Truncate token lists so no single PDF row exceeds page height."""
         if len(lst) <= max_n:
             return ", ".join(lst)
         return ", ".join(lst[:max_n]) + f"  … (+{len(lst) - max_n} more)"
 
     preproc_rows = [
-        ("Cleaned",    preprocess.cleaned_text),
-        ("Removed",    preprocess.removed_text),
-        ("Normalized", preprocess.normalized_text),
+        ("Cleaned",    _trunc_str(preprocess.cleaned_text)),
+        ("Removed",    _trunc_str(preprocess.removed_text)),
+        ("Normalized", _trunc_str(preprocess.normalized_text)),
         ("Tokenized",  _tok_str(preprocess.tokenized_text)),
         ("Stemmed",    _tok_str(preprocess.stemmed_text)),
         ("Lemmatized", _tok_str(preprocess.lemmatized_text)),
         ("Word count", str(len(preprocess.tokenized_text))),
     ]
-    pre_data = [[Paragraph(f"<b>{k}</b>", body), Paragraph(v, mono)] for k, v in preproc_rows]
-    pre_tbl = Table(pre_data, colWidths=[1.1 * inch, 5.8 * inch], splitByRow=1)
-    pre_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f8f9fa")),
-        ("GRID",       (0, 0), (-1, -1), 0.3, colors.HexColor("#dee2e6")),
-        ("VALIGN",     (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
+    # Each row is its own mini-table so it becomes an independent flowable.
+    # This lets ReportLab start any oversized row on a fresh page rather than
+    # failing because a multi-row table can't be split mid-cell.
+    pre_row_style = TableStyle([
+        ("BACKGROUND",    (0, 0), (0, -1), colors.HexColor("#f8f9fa")),
+        ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#dee2e6")),
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
-    ]))
-    story.append(pre_tbl)
+        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+    ])
+    for k, v in preproc_rows:
+        row_tbl = Table(
+            [[Paragraph(f"<b>{k}</b>", body), Paragraph(v, mono)]],
+            colWidths=[1.1 * inch, 5.8 * inch],
+        )
+        row_tbl.setStyle(pre_row_style)
+        story.append(row_tbl)
 
     # ── Charts ────────────────────────────────────────────────────────────────
     usable_width = doc.width  # points between margins
