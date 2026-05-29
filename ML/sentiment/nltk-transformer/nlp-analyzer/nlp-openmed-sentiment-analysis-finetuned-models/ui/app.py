@@ -4948,7 +4948,7 @@ def _build_topic_pie_chart(topics, top_n, topic_model_label):
             text=f"Top {len(slices)} Topics — {topic_model_label}",
             x=0.5, font=dict(size=14),
         ),
-        legend=dict(orientation="v", x=1.02, y=0.5),
+        legend=dict(orientation="v", x=0, y=1, xanchor="left", yanchor="top"),
         margin=dict(t=60, b=20, l=20, r=20),
         paper_bgcolor="#f0fff4",
         height=400,
