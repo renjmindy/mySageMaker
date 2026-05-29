@@ -104,9 +104,4 @@ EXPOSE 8000 7860
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:${PORT}/api/v1/health || curl -f http://localhost:${PORT}/ || exit 1
 
-# Switch on MODE at runtime
-CMD if [ "$MODE" = "ui" ]; then \
-        python -m ui.app; \
-    else \
-        uvicorn api.main:app --host 0.0.0.0 --port ${PORT}; \
-    fi
+CMD python app.py
