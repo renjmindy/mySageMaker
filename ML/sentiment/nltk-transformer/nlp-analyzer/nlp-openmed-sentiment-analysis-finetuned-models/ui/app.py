@@ -5234,15 +5234,15 @@ def _compute_risk_label(sentiment, score):
     _neg_labels = {"NEGATIVE", "ANGER", "DISGUST", "FEAR", "SADNESS", "1 STAR", "2 STARS"}
     _neu_labels = {"NEUTRAL", "SURPRISE", "3 STARS"}
     if s in _neg_labels and score <= 4.0:
-        return "🔴 High"
+        return "High"
     if s in _neu_labels and score <= 7.0:
-        return "🟠 Medium"
-    return "🟢 Low"
+        return "Medium"
+    return "Low"
 
 
 def _build_monthly_summary_table(months, wards, sentiments, scores, risk_labels):
     """HTML table showing Month, Ward, Sentiment, Score, Risk as separate columns."""
-    _risk_bg = {"🔴 High": "#fdecea", "🟠 Medium": "#fff3e0", "🟢 Low": "#e8f5e9"}
+    _risk_bg = {"High": "#fdecea", "Medium": "#fff3e0", "Low": "#e8f5e9"}
     rows = ""
     for i, (m, w, s, sc, r) in enumerate(zip(months, wards, sentiments, scores, risk_labels)):
         bg = "#f9f9f9" if i % 2 == 0 else "#ffffff"
@@ -5273,8 +5273,8 @@ def _build_monthly_summary_table(months, wards, sentiments, scores, risk_labels)
 def _build_ward_risk_chart(wards, risk_labels):
     """Horizontal stacked bar: risk_label distribution across unique wards."""
     from collections import defaultdict
-    _risk_order  = ["🔴 High", "🟠 Medium", "🟢 Low"]
-    _risk_colors = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
+    _risk_order  = ["High", "Medium", "Low"]
+    _risk_colors = {"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"}
 
     ward_risk = defaultdict(lambda: defaultdict(int))
     for w, r in zip(wards, risk_labels):
@@ -5318,7 +5318,7 @@ def _build_ward_risk_chart(wards, risk_labels):
 
 
 def _build_quality_score_chart(months, scores, risk_labels, wards, sentiment_model_label):
-    _risk_color = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
+    _risk_color = {"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"}
     bar_colors  = [_risk_color[r] for r in risk_labels]
     bar_text    = [f"{s:.1f}  [{r}]" for s, r in zip(scores, risk_labels)]
     x_labels    = [f"{m}<br><sub>{w}</sub>" for m, w in zip(months, wards)]
@@ -5644,7 +5644,7 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
                 sentiments.append(dominant_sent)
             except Exception:
                 quality_scores.append(5.0)
-                risk_labels.append("🟢 Low")
+                risk_labels.append("Low")
                 sentiments.append("—")
         quality_fig   = _build_quality_score_chart(
             month_labels, quality_scores, risk_labels, wards, sentiment_model_label
