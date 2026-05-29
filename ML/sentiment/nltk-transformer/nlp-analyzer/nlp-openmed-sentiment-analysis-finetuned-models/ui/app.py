@@ -3700,6 +3700,262 @@ PATIENT_SAMPLES = {
     },
 }
 
+# ── Ward assignments: patient → [ward per month in chronological order] ───────
+PATIENT_WARDS = {
+    "Patient A — Oncology": [
+        "Oncology Clinic", "Chemotherapy Day Unit", "Chemotherapy Day Unit",
+        "Chemotherapy Day Unit", "Chemotherapy Day Unit", "Oncology Outpatient",
+        "Oncology Outpatient", "Oncology Outpatient", "Oncology Outpatient",
+        "Cancer Wellness Centre", "Oncology Outpatient", "Community Care",
+    ],
+    "Patient B — Post-Surgical Recovery": [
+        "Surgical Ward", "Physiotherapy Unit", "Physiotherapy Unit",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Orthopaedic Outpatient",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Orthopaedic Outpatient",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Community Care",
+    ],
+    "Patient C — Mental Health (Depression)": [
+        "Psychiatry Outpatient", "Psychiatry Outpatient", "Psychiatry Outpatient",
+        "Community Mental Health", "Community Mental Health", "Community Mental Health",
+        "Community Mental Health", "Community Mental Health", "Community Mental Health",
+        "Psychiatry Outpatient", "Psychiatry Outpatient", "Psychiatry Outpatient",
+    ],
+    "Patient D — Oncology (Breast Cancer)": [
+        "Breast Cancer Clinic", "Breast Cancer Clinic", "Chemotherapy Day Unit",
+        "Chemotherapy Day Unit", "Chemotherapy Day Unit", "Oncology Outpatient",
+        "Oncology Outpatient", "Cancer Wellness Centre", "Oncology Outpatient",
+        "Oncology Outpatient", "Oncology Outpatient", "Oncology Outpatient",
+    ],
+    "Patient E — Sports Injury Recovery (Teenager)": [
+        "Emergency Department", "Radiology / Orthopaedic Clinic", "Physiotherapy Unit",
+        "Physiotherapy Unit", "Physiotherapy Unit", "Sports Medicine Outpatient",
+        "Sports Medicine Outpatient", "Sports Medicine Outpatient", "Sports Medicine Outpatient",
+        "Sports Medicine Outpatient", "Sports Medicine Outpatient", "Sports Medicine Outpatient",
+    ],
+    "Patient F — Orthopaedic Hip Replacement": [
+        "Orthopaedic Outpatient", "Orthopaedic Surgical Ward", "Rehabilitation Unit",
+        "Rehabilitation Unit", "Orthopaedic Outpatient", "Orthopaedic Outpatient",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Orthopaedic Outpatient",
+        "Orthopaedic Outpatient", "Community Care", "Community Care",
+    ],
+    "Patient G — Multiple Sclerosis (NDIS-Supported)": [
+        "Neurology Ward", "Neurology Outpatient", "Neurology Outpatient",
+        "Neurology Outpatient", "Neurology Outpatient", "Neurology Outpatient",
+        "Neurology Outpatient", "Neurology Outpatient", "Neurology Outpatient",
+        "NDIS Community Support", "NDIS Community Support", "NDIS Community Support",
+    ],
+    "Patient H — Skin Cancer Scare (Dermatology)": [
+        "Dermatology Clinic", "Dermatology Clinic", "Dermatology Clinic",
+        "Dermatology Clinic", "Dermatology Clinic", "Dermatology Clinic",
+        "Dermatology Clinic", "Dermatology Clinic", "Dermatology Clinic",
+        "Dermatology Clinic", "Dermatology Clinic", "Dermatology Clinic",
+    ],
+    "Patient I — Urology (Diagnostic Journey)": [
+        "Urology Clinic", "Urology Clinic", "Urology Clinic",
+        "Urology Clinic", "Urology Ward", "Urology Outpatient",
+        "Urology Outpatient", "Urology Outpatient", "Urology Outpatient",
+        "Urology Outpatient", "Urology Outpatient", "Urology Outpatient",
+    ],
+    "Patient J — Paediatric Cerebral Palsy (Parent Journal)": [
+        "Paediatric Ward", "Paediatric Ward", "Developmental Services",
+        "Developmental Services", "Developmental Services", "Developmental Services",
+        "Developmental Services", "Paediatric Outpatient", "Paediatric Outpatient",
+        "Paediatric Outpatient", "Paediatric Outpatient", "Paediatric Outpatient",
+    ],
+    "Patient K — Stroke Recovery (OT & NDIS)": [
+        "Stroke Unit", "Stroke Unit", "Neurology Ward",
+        "Rehabilitation Unit", "Rehabilitation Unit", "Rehabilitation Unit",
+        "Rehabilitation Unit", "Rehabilitation Unit", "Community Rehab",
+        "NDIS Community Support", "NDIS Community Support", "NDIS Community Support",
+    ],
+    "Patient L — Crohn's Disease (Gastroenterology)": [
+        "Gastroenterology Ward", "Gastroenterology Ward", "Gastroenterology Outpatient",
+        "Gastroenterology Outpatient", "Gastroenterology Outpatient", "Gastroenterology Outpatient",
+        "Gastroenterology Outpatient", "Gastroenterology Outpatient", "Gastroenterology Outpatient",
+        "Gastroenterology Outpatient", "Gastroenterology Outpatient", "Gastroenterology Outpatient",
+    ],
+    "Patient M — Breast Screening Recall": [
+        "Breast Clinic", "Breast Clinic", "Breast Clinic",
+        "Breast Cancer Unit", "Chemotherapy Day Unit", "Chemotherapy Day Unit",
+        "Oncology Outpatient", "Oncology Outpatient", "Oncology Outpatient",
+        "Oncology Outpatient", "Oncology Outpatient", "Oncology Outpatient",
+    ],
+    "Patient N — Continence Clinic (Elderly Patient)": [
+        "Continence & Urology Clinic", "Continence & Urology Clinic", "Continence & Urology Clinic",
+        "Continence & Urology Clinic", "Continence & Urology Clinic", "Continence & Urology Clinic",
+        "Geriatric Outpatient", "Geriatric Outpatient", "Geriatric Outpatient",
+        "Geriatric Outpatient", "Geriatric Outpatient", "Geriatric Outpatient",
+    ],
+    "Patient O — Post-Surgical Recovery (Inter-Hospital Transfer)": [
+        "Surgical Ward / ICU", "Surgical Ward", "Surgical Ward",
+        "Rehabilitation Unit", "Rehabilitation Unit", "Rehabilitation Unit",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Orthopaedic Outpatient",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Community Care",
+    ],
+    "Patient P — Cardiac Rehabilitation": [
+        "Cardiac Ward", "Cardiac Rehabilitation Unit", "Cardiac Rehabilitation Unit",
+        "Cardiac Rehabilitation Unit", "Cardiac Rehabilitation Unit", "Cardiac Rehabilitation Unit",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+    ],
+    "Patient Q — COPD (Respiratory Medicine)": [
+        "Respiratory Ward", "Respiratory Ward", "Respiratory Outpatient",
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+    ],
+    "Patient R — Musculoskeletal Pain (Elderly, Access Issues)": [
+        "Physiotherapy Unit", "Physiotherapy Unit", "Physiotherapy Unit",
+        "Rheumatology Outpatient", "Rheumatology Outpatient", "Rheumatology Outpatient",
+        "Physiotherapy Unit", "Physiotherapy Unit", "Physiotherapy Unit",
+        "Rheumatology Outpatient", "Rheumatology Outpatient", "Community Care",
+    ],
+    "Patient S — Rheumatoid Arthritis (Medication Review)": [
+        "Rheumatology Clinic", "Rheumatology Clinic", "Rheumatology Clinic",
+        "Rheumatology Clinic", "Rheumatology Clinic", "Rheumatology Clinic",
+        "Rheumatology Clinic", "Rheumatology Clinic", "Rheumatology Clinic",
+        "Rheumatology Clinic", "Rheumatology Clinic", "Rheumatology Clinic",
+    ],
+    "Patient T — Post-Knee Surgery (Physiotherapy)": [
+        "Orthopaedic Surgical Ward", "Physiotherapy Unit", "Physiotherapy Unit",
+        "Physiotherapy Unit", "Physiotherapy Unit", "Physiotherapy Unit",
+        "Sports Medicine Outpatient", "Sports Medicine Outpatient", "Orthopaedic Outpatient",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Community Care",
+    ],
+    "Patient U — Type 2 Diabetes (New Referral via Ipswich)": [
+        "Diabetes Clinic", "Diabetes Clinic", "Diabetes Clinic",
+        "Diabetes Clinic", "Diabetes Clinic", "Diabetes Clinic",
+        "Diabetes Clinic", "Diabetes Clinic", "Diabetes Clinic",
+        "Diabetes Clinic", "Diabetes Clinic", "Endocrinology Outpatient",
+    ],
+    "Patient V — Type 2 Diabetes (Established, Insulin Adjustment)": [
+        "Diabetes Clinic", "Diabetes Clinic", "Diabetes Clinic",
+        "Diabetes Clinic", "Diabetes Clinic", "Diabetes Clinic",
+        "Diabetes Clinic", "Diabetes Clinic", "Diabetes Clinic",
+        "Diabetes Clinic", "Endocrinology Outpatient", "Endocrinology Outpatient",
+    ],
+    "Patient W — COPD (Long-term, Valued Continuity of Care)": [
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+        "Respiratory Outpatient", "Respiratory Outpatient", "Respiratory Outpatient",
+    ],
+    "Patient X — Cardiac Disease (Elderly, Billing & Forms Assistance)": [
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+        "Cardiac Ward", "Cardiac Ward", "Cardiology Outpatient",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+    ],
+    "Patient Y — Pregnancy (Antenatal & Midwifery)": [
+        "Antenatal Clinic", "Antenatal Clinic", "Antenatal Clinic",
+        "Labour Ward / Maternity", "Postnatal Ward", "Postnatal Outpatient",
+        "Postnatal Outpatient", "Postnatal Outpatient", "Postnatal Outpatient",
+        "Community Midwifery", "Community Midwifery", "Community Midwifery",
+    ],
+    "Patient Z — Postnatal (Working Parent, Scheduling)": [
+        "Postnatal Outpatient", "Postnatal Outpatient", "Postnatal Outpatient",
+        "Postnatal Outpatient", "Postnatal Outpatient", "Postnatal Outpatient",
+        "Postnatal Outpatient", "Antenatal Clinic", "Antenatal Clinic",
+        "Labour Ward / Maternity", "Postnatal Ward", "Community Midwifery",
+    ],
+    "Patient AA — Haematology (Blood Collection, Skilled Nursing)": [
+        "Haematology Outpatient", "Haematology Outpatient", "Haematology Outpatient",
+        "Haematology Outpatient", "Haematology Outpatient", "Haematology Outpatient",
+        "Haematology Outpatient", "Haematology Outpatient", "Haematology Outpatient",
+        "Haematology Outpatient", "Haematology Outpatient", "Community Care",
+    ],
+    "Patient AB — Endocrinology (Results Portal, Communication)": [
+        "Endocrinology Outpatient", "Endocrinology Outpatient", "Endocrinology Outpatient",
+        "Endocrinology Outpatient", "Endocrinology Outpatient", "Endocrinology Outpatient",
+        "Endocrinology Outpatient", "Endocrinology Outpatient", "Endocrinology Outpatient",
+        "Endocrinology Outpatient", "Endocrinology Outpatient", "Endocrinology Outpatient",
+    ],
+    "Patient AC — Gynaecology (Cultural & Religious Needs)": [
+        "Gynaecology Clinic", "Gynaecology Clinic", "Gynaecology Clinic",
+        "Gynaecology Ward", "Gynaecology Outpatient", "Gynaecology Outpatient",
+        "Gynaecology Outpatient", "Gynaecology Outpatient", "Gynaecology Outpatient",
+        "Gynaecology Outpatient", "Gynaecology Outpatient", "Gynaecology Outpatient",
+    ],
+    "Patient AD — Geriatrics (Language & Interpreter Access)": [
+        "Geriatric Assessment Unit", "Geriatric Assessment Unit", "Geriatric Assessment Unit",
+        "Geriatric Ward", "Geriatric Outpatient", "Geriatric Outpatient",
+        "Geriatric Outpatient", "Community Aged Care", "Community Aged Care",
+        "Community Aged Care", "Community Aged Care", "Community Aged Care",
+    ],
+    "Patient AE — Mental Health (FIFO Worker, Telehealth)": [
+        "Psychiatry Outpatient", "Telehealth Mental Health", "Telehealth Mental Health",
+        "Telehealth Mental Health", "Telehealth Mental Health", "Telehealth Mental Health",
+        "Telehealth Mental Health", "Telehealth Mental Health", "Telehealth Mental Health",
+        "Telehealth Mental Health", "Community Mental Health", "Community Mental Health",
+    ],
+    "Patient AF — Mental Health (Excessive Wait Time)": [
+        "Psychiatry Outpatient", "Psychiatry Outpatient", "Psychiatry Outpatient",
+        "Psychiatry Outpatient", "Community Mental Health", "Community Mental Health",
+        "Community Mental Health", "Community Mental Health", "Community Mental Health",
+        "Community Mental Health", "Community Mental Health", "Community Mental Health",
+    ],
+    "Patient AG — Post-Surgical Wound Care": [
+        "Surgical Ward", "Wound Care Clinic", "Wound Care Clinic",
+        "Wound Care Clinic", "Wound Care Clinic", "Community Wound Care",
+        "Orthopaedic Outpatient", "Orthopaedic Outpatient", "Community Care",
+        "Community Care", "Community Care", "Community Care",
+    ],
+    "Patient AH — Post-Surgical Recovery (Inter-Hospital Transfer, Medication Safety)": [
+        "Surgical Ward / ICU", "Surgical Ward", "Community Care",
+        "Community Care", "Community Care", "Community Care",
+        "Community Care", "Community Care", "Community Care",
+        "Community Care", "Orthopaedic Outpatient", "Orthopaedic Outpatient",
+    ],
+    "Patient AI — Cardiology (Proactive Communication, Stress Test)": [
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiac Catheterisation Lab",
+        "Cardiac Ward", "Cardiac Rehabilitation Unit", "Cardiology Outpatient",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+    ],
+    "Patient AJ — Cardiac Rehabilitation (Accessibility, Dual-Specialist Coordination)": [
+        "Cardiac Ward", "Cardiac Rehabilitation Unit", "Cardiac Rehabilitation Unit",
+        "Cardiac Rehabilitation Unit", "Cardiac Rehabilitation Unit", "Cardiac Rehabilitation Unit",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+        "Cardiology Outpatient", "Cardiology Outpatient", "Cardiology Outpatient",
+    ],
+}
+
+_SPECIALTY_WARD_DEFAULTS = {
+    "oncology": "Oncology Outpatient", "cancer": "Oncology Outpatient",
+    "surgical": "Surgical Ward", "post-surgical": "Surgical Ward",
+    "mental health": "Psychiatry Outpatient", "depression": "Community Mental Health",
+    "sports injury": "Physiotherapy Unit", "orthopaedic": "Orthopaedic Outpatient",
+    "multiple sclerosis": "Neurology Outpatient", "stroke": "Neurology Ward",
+    "dermatology": "Dermatology Clinic", "urology": "Urology Outpatient",
+    "paediatric": "Paediatric Ward", "crohn": "Gastroenterology Outpatient",
+    "cardiac": "Cardiology Outpatient", "copd": "Respiratory Outpatient",
+    "respiratory": "Respiratory Outpatient", "diabetes": "Diabetes Clinic",
+    "pregnancy": "Maternity Ward", "postnatal": "Postnatal Ward",
+    "haematology": "Haematology Outpatient", "endocrinology": "Endocrinology Outpatient",
+    "gynaecology": "Gynaecology Clinic", "geriatric": "Geriatric Assessment Unit",
+    "rheumatoid": "Rheumatology Clinic", "musculoskeletal": "Physiotherapy Unit",
+    "continence": "Continence & Urology Clinic", "wound care": "Wound Care Clinic",
+}
+
+
+def get_ward(patient_name, month_key):
+    """Return the ward label for a given patient and month key."""
+    ward_list   = PATIENT_WARDS.get(patient_name, [])
+    month_keys  = list(PATIENT_SAMPLES.get(patient_name, {}).keys())
+    try:
+        idx = month_keys.index(month_key)
+        if idx < len(ward_list):
+            return ward_list[idx]
+    except ValueError:
+        pass
+    # Fallback: derive from patient specialty
+    pname_lower = patient_name.lower()
+    for spec, ward in _SPECIALTY_WARD_DEFAULTS.items():
+        if spec in pname_lower:
+            return ward
+    return "General Ward"
+
+
 PATIENT_NAMES = list(PATIENT_SAMPLES.keys())
 
 MODEL_CHOICES = list(MODEL_LABEL_TO_TYPE.keys())
@@ -4984,23 +5240,24 @@ def _compute_risk_label(sentiment, score):
     return "🟢 Low"
 
 
-def _build_quality_score_chart(months, scores, risk_labels, sentiment_model_label):
+def _build_quality_score_chart(months, scores, risk_labels, wards, sentiment_model_label):
     _risk_color = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
-    bar_colors = [_risk_color[r] for r in risk_labels]
-    bar_text   = [f"{s:.1f}  [{r}]" for s, r in zip(scores, risk_labels)]
+    bar_colors  = [_risk_color[r] for r in risk_labels]
+    bar_text    = [f"{s:.1f}  [{r}]" for s, r in zip(scores, risk_labels)]
+    x_labels    = [f"{m}<br><sub>{w}</sub>" for m, w in zip(months, wards)]
     hover_text = [
         f"<b>%{{x}}</b><br>Score: {s:.1f} / 10<br>Risk: <b>{r}</b>"
         for s, r in zip(scores, risk_labels)
     ]
     fig = go.Figure(go.Bar(
-        x=months,
+        x=x_labels,
         y=scores,
         marker_color=bar_colors,
         text=bar_text,
         textposition="outside",
         textfont=dict(size=11, color="#000"),
-        customdata=risk_labels,
-        hovertemplate="<b>%{x}</b><br>Score: %{y:.1f} / 10<br>Risk: <b>%{customdata}</b><extra></extra>",
+        customdata=list(zip(risk_labels, wards)),
+        hovertemplate="<b>%{x}</b><br>Ward: %{customdata[1]}<br>Score: %{y:.1f} / 10<br>Risk: <b>%{customdata[0]}</b><extra></extra>",
     ))
     fig.update_layout(
         title=dict(
@@ -5212,7 +5469,7 @@ Elapsed: {elapsed:.1f}s</p>
     return tmp.name
 
 
-def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top_n):
+def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_model_label, top_n):
     if not text_input or not text_input.strip():
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
@@ -5298,6 +5555,7 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         month_labels   = [_short_m(s[0]) for s in sections]
         quality_scores = []
         risk_labels    = []
+        wards          = [get_ward(patient_name, s[0]) for s in sections]
         for _, body in sections:
             try:
                 redacted_body, _ = redact_pii(body)
@@ -5307,9 +5565,9 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
                 risk_labels.append(_compute_risk_label(dominant_sent, score))
             except Exception:
                 quality_scores.append(5.0)
-                risk_labels.append("Low")
+                risk_labels.append("🟢 Low")
         quality_fig = _build_quality_score_chart(
-            month_labels, quality_scores, risk_labels, sentiment_model_label
+            month_labels, quality_scores, risk_labels, wards, sentiment_model_label
         )
 
     return status_html, consensus_html, table_html, fig, report, monthly_fig, quality_fig
@@ -5614,7 +5872,7 @@ examples/
 
     topic_run_btn.click(
         fn=run_topic_analysis,
-        inputs=[text_input, topic_model_dd, topic_sent_dd, topic_top_n],
+        inputs=[text_input, patient_dd, topic_model_dd, topic_sent_dd, topic_top_n],
         outputs=_topic_outputs,
     )
 
