@@ -5289,7 +5289,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 )
 
         # ── Tab 3: Topic & Theme Analytics ────────────────────────────────
-        with gr.TabItem("Topic & Theme Analytics"):
+        with gr.TabItem("Topic & Theme Analytics (1pMq)"):
             gr.Markdown(
                 "Select a **topic model** and a **sentiment model**, choose Top-N topics, "
                 "then click **Run Topic Analysis**. The chart shows the sentiment distribution "
