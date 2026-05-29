@@ -4972,7 +4972,9 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                         choices=MODEL_CHOICES, value=MODEL_CHOICES[0],
                         label="Model",
                     )
-                    analyze_btn = gr.Button("Analyze", variant="primary")
+                    with gr.Row():
+                        analyze_btn = gr.Button("Analyze", variant="primary", scale=3)
+                        clear_btn   = gr.Button("🔄 New Patient", variant="secondary", scale=1)
 
                 with gr.Column(scale=1):
                     sentiment_out = gr.HTML(label="Overall Sentiment")
@@ -5132,6 +5134,20 @@ examples/
         fn=run_analysis,
         inputs=[text_input, file_input, model_dd],
         outputs=_outputs,
+    )
+
+    # Clear all inputs + outputs and reset for a new patient
+    _html_out = [sentiment_out, redacted_out, cleaned_out, removed_out,
+                 normalized_out, tokenized_out, stemmed_out, lemmatized_out,
+                 ner_out, pos_out]
+    _plot_out  = [prob_plot, wc_plot, dist_plot]
+    _file_out  = [report_file, report_file_pdf, report_file_html]
+    clear_btn.click(
+        fn=lambda: ("", None,
+                    *[""] * len(_html_out),
+                    *[None] * len(_plot_out),
+                    *[None] * len(_file_out)),
+        outputs=[text_input, file_input] + _html_out + _plot_out + _file_out,
     )
 
 
