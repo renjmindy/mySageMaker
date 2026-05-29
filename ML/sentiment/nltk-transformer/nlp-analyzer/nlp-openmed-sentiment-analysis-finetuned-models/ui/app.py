@@ -4895,117 +4895,143 @@ def get_month_names(patient):
 
 
 # ── Topic & Theme Analytics ───────────────────────────────────────────────────
-_TOPIC_API_BASE = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
-_TOPIC_API_KEY  = os.getenv("TOPIC_API_KEY", "5aDXnKHdCTXNVh10c27oadWkkZrAfqT2EAqQHTI6")
-_TOPIC_MODELS   = ["bertopic_mini", "bertopic_mpnet", "lda", "lsi", "hdp", "nmf"]
-_MODEL_DISPLAY  = {
+_TOPIC_API_BASE       = "https://5kzn638wee.execute-api.ap-southeast-2.amazonaws.com/prod"
+_TOPIC_API_KEY        = os.getenv("TOPIC_API_KEY", "5aDXnKHdCTXNVh10c27oadWkkZrAfqT2EAqQHTI6")
+_TOPIC_MODELS         = ["bertopic_mini", "bertopic_mpnet", "lda", "lsi", "hdp", "nmf"]
+_TOPIC_MODEL_DISPLAY  = {
     "bertopic_mini":  "BERTopic (MiniLM)",
     "bertopic_mpnet": "BERTopic (MPNet)",
     "lda": "LDA", "lsi": "LSI", "hdp": "HDP", "nmf": "NMF",
 }
-_TOPIC_COLORS = ["#3498db", "#2980b9", "#27ae60", "#8e44ad", "#e67e22", "#e74c3c"]
+_TOPIC_MODEL_CHOICES  = [_TOPIC_MODEL_DISPLAY[m] for m in _TOPIC_MODELS]
+_TOPIC_DISPLAY_TO_KEY = {v: k for k, v in _TOPIC_MODEL_DISPLAY.items()}
+
+_SENTIMENT_LABEL_COLORS = {
+    "NEGATIVE":  "#e74c3c",
+    "NEUTRAL":   "#95a5a6",
+    "POSITIVE":  "#27ae60",
+    "ANGER":     "#c0392b",
+    "DISGUST":   "#8e44ad",
+    "FEAR":      "#e67e22",
+    "JOY":       "#27ae60",
+    "SADNESS":   "#2980b9",
+    "SURPRISE":  "#f1c40f",
+    "1 STAR":    "#e74c3c",
+    "2 STARS":   "#e67e22",
+    "3 STARS":   "#f39c12",
+    "4 STARS":   "#2ecc71",
+    "5 STARS":   "#27ae60",
+}
 
 
-def _build_topic_table_html(classifications, top_n):
-    models = [m for m in _TOPIC_MODELS if m in classifications]
-    th = "".join(
-        f'<th style="background:#8e44ad;color:#fff;padding:8px 12px;text-align:center;">'
-        f'{_MODEL_DISPLAY.get(m, m)}</th>'
-        for m in models
-    )
+def _build_topic_table_single(topics, top_n):
     rows = ""
-    for rank in range(top_n):
+    for rank, t in enumerate(topics[:top_n]):
         bg = "#f9f0ff" if rank % 2 == 0 else "#fff"
-        cells = f'<td style="padding:6px 10px;font-weight:700;background:{bg};color:#555;">#{rank+1}</td>'
-        for m in models:
-            topics = classifications.get(m, {}).get("top_topics", [])
-            if rank < len(topics):
-                t = topics[rank]
-                pct = t["score"] * 100
-                cells += (
-                    f'<td style="padding:6px 12px;background:{bg};text-align:center;">'
-                    f'{t["topic_name"]}'
-                    f'<br><span style="font-size:0.78rem;color:#000;">{pct:.1f}%</span></td>'
-                )
-            else:
-                cells += f'<td style="padding:6px 12px;background:{bg};color:#ccc;">—</td>'
-        rows += f"<tr>{cells}</tr>"
+        rows += (
+            f'<tr>'
+            f'<td style="padding:6px 10px;font-weight:700;background:{bg};color:#555;">#{rank+1}</td>'
+            f'<td style="padding:6px 14px;background:{bg};">{t["topic_name"]}</td>'
+            f'<td style="padding:6px 12px;background:{bg};text-align:center;color:#000;font-weight:600;">'
+            f'{t["score"]*100:.1f}%</td>'
+            f'</tr>'
+        )
     return (
         '<div style="overflow-x:auto;margin-top:8px;">'
         '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
-        f'<thead><tr><th style="background:#8e44ad;color:#fff;padding:8px 10px;">Rank</th>{th}</tr></thead>'
-        f'<tbody>{rows}</tbody></table></div>'
+        '<thead><tr>'
+        '<th style="background:#8e44ad;color:#fff;padding:8px 10px;">Rank</th>'
+        '<th style="background:#8e44ad;color:#fff;padding:8px 14px;">Topic</th>'
+        '<th style="background:#8e44ad;color:#fff;padding:8px 12px;">Score</th>'
+        f'</tr></thead><tbody>{rows}</tbody></table></div>'
     )
 
 
-def _build_topic_chart(classifications, top_n):
-    from plotly.subplots import make_subplots
-    models = [m for m in _TOPIC_MODELS if m in classifications]
-    n_cols, n_rows = 3, 2
-    fig = make_subplots(
-        rows=n_rows, cols=n_cols,
-        subplot_titles=[_MODEL_DISPLAY.get(m, m) for m in models],
-        horizontal_spacing=0.12, vertical_spacing=0.18,
-    )
-    for i, m in enumerate(models):
-        r, c = i // n_cols + 1, i % n_cols + 1
-        topics = classifications.get(m, {}).get("top_topics", [])[:top_n]
-        names  = [t["topic_name"] for t in topics][::-1]
-        scores = [round(t["score"] * 100, 1) for t in topics][::-1]
-        fig.add_trace(
-            go.Bar(
-                x=scores, y=names, orientation="h",
-                marker_color=_TOPIC_COLORS[i],
-                text=[f"{s:.1f}%" for s in scores], textposition="outside",
-                name=_MODEL_DISPLAY.get(m, m), showlegend=False,
-            ),
-            row=r, col=c,
-        )
-        fig.update_xaxes(range=[0, 105], row=r, col=c, showticklabels=False)
+def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
+    topic_names = [t["topic_name"] for t in topics[:top_n]]
+    all_probs   = []
+    for name in topic_names:
+        try:
+            _, probs = analyze_sentiment(name, sentiment_model_type)
+            all_probs.append([p * 100 for p in probs])
+        except Exception:
+            all_probs.append([0.0] * len(labels))
+
+    # Build stacked horizontal bars — reverse so rank #1 is at the top
+    y_names = topic_names[::-1]
+    fig = go.Figure()
+    for i, label in enumerate(labels):
+        x_vals = [all_probs[j][i] for j in range(len(topic_names))][::-1]
+        color  = _SENTIMENT_LABEL_COLORS.get(label, f"hsl({i*45},65%,50%)")
+        fig.add_trace(go.Bar(
+            name=label,
+            y=y_names,
+            x=x_vals,
+            orientation="h",
+            marker_color=color,
+            text=[f"{v:.1f}%" for v in x_vals],
+            textposition="inside",
+            insidetextanchor="middle",
+            textfont=dict(color="white", size=11),
+        ))
+
     fig.update_layout(
-        height=480, margin=dict(t=60, b=20, l=10, r=10),
-        title_text="Top Topics by Model", title_x=0.5,
-        paper_bgcolor="white", plot_bgcolor="#f9f0ff",
+        barmode="stack",
+        height=max(320, len(topic_names) * 70 + 120),
+        title=dict(text="Sentiment Distribution Across Top Topics", x=0.5, font=dict(size=14)),
+        xaxis=dict(title="Sentiment probability (%)", range=[0, 100]),
+        yaxis=dict(title=""),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        margin=dict(l=20, r=20, t=80, b=40),
+        paper_bgcolor="white",
+        plot_bgcolor="#fdf9ff",
     )
     return fig
 
 
-def _build_topic_html_report(text, classifications, consensus_topic, consensus_count, top_n, elapsed):
+def _build_topic_html_report(text, topics, consensus_topic, sent_model_label,
+                              topic_model_label, labels, all_probs, top_n, elapsed):
     from datetime import datetime
-    models = [m for m in _TOPIC_MODELS if m in classifications]
-    rows = ""
-    for rank in range(top_n):
-        bg = "#f9f0ff" if rank % 2 == 0 else "#fff"
-        cells = f'<td style="padding:6px 10px;font-weight:700;background:{bg};">#{rank+1}</td>'
-        for m in models:
-            topics = classifications.get(m, {}).get("top_topics", [])
-            if rank < len(topics):
-                t = topics[rank]
-                cells += (
-                    f'<td style="padding:6px 12px;background:{bg};text-align:center;">'
-                    f'{t["topic_name"]} ({t["score"]*100:.1f}%)</td>'
-                )
-            else:
-                cells += f'<td style="padding:6px 12px;background:{bg};">—</td>'
-        rows += f"<tr>{cells}</tr>"
-    th = "".join(f'<th style="background:#8e44ad;color:#fff;padding:8px 12px;">{_MODEL_DISPLAY.get(m,m)}</th>' for m in models)
+    topic_rows = "".join(
+        f'<tr><td style="padding:6px 10px;font-weight:700;">#{i+1}</td>'
+        f'<td style="padding:6px 14px;">{t["topic_name"]}</td>'
+        f'<td style="padding:6px 12px;text-align:center;">{t["score"]*100:.1f}%</td></tr>'
+        for i, t in enumerate(topics[:top_n])
+    )
+    sent_rows = "".join(
+        f'<tr><td style="padding:6px 10px;">{topics[j]["topic_name"]}</td>'
+        + "".join(
+            f'<td style="padding:6px 12px;text-align:center;">{all_probs[j][i]*100:.1f}%</td>'
+            for i in range(len(labels))
+        ) + "</tr>"
+        for j in range(min(top_n, len(topics)))
+    )
+    label_ths = "".join(f'<th style="background:#2980b9;color:#fff;padding:8px 12px;">{l}</th>' for l in labels)
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Topic & Theme Analysis Report</title>
+<title>Topic &amp; Theme Analysis Report</title>
 <style>body{{font-family:Arial,sans-serif;max-width:960px;margin:40px auto;padding:0 20px;}}
 h1{{color:#8e44ad;}} h2{{color:#6c3483;border-bottom:2px solid #d7bde2;padding-bottom:4px;}}
-table{{border-collapse:collapse;width:100%;}} th,td{{border:1px solid #d7bde2;}}
-.badge{{display:inline-block;background:#27ae60;color:#fff;border-radius:20px;
-        padding:5px 16px;font-size:1rem;font-weight:700;}}
+table{{border-collapse:collapse;width:100%;margin-bottom:20px;}} th,td{{border:1px solid #d7bde2;}}
+.badge{{display:inline-block;background:#27ae60;color:#fff;border-radius:20px;padding:5px 16px;font-weight:700;}}
 </style></head><body>
 <h1>Topic &amp; Theme Analysis Report</h1>
-<p style="color:#888;">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} &nbsp;|&nbsp; Elapsed: {elapsed:.1f}s</p>
-<h2>Input Text</h2><pre style="background:#f4ecf7;padding:12px;border-radius:6px;white-space:pre-wrap;">{text[:1000]}{"…" if len(text)>1000 else ""}</pre>
-<h2>Consensus Topic</h2>
-<p><span class="badge">{consensus_topic}</span>
-&nbsp;<span style="color:#888;">({consensus_count}/{len(models)} models agree)</span></p>
-<h2>Top Topics by Model</h2>
-<table><thead><tr><th style="background:#8e44ad;color:#fff;padding:8px 10px;">Rank</th>{th}</tr></thead>
-<tbody>{rows}</tbody></table>
+<p style="color:#888;">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} &nbsp;|&nbsp;
+Topic model: <b>{topic_model_label}</b> &nbsp;|&nbsp; Sentiment model: <b>{sent_model_label}</b> &nbsp;|&nbsp;
+Elapsed: {elapsed:.1f}s</p>
+<h2>Input Text</h2>
+<pre style="background:#f4ecf7;padding:12px;border-radius:6px;white-space:pre-wrap;">{text[:1000]}{"…" if len(text)>1000 else ""}</pre>
+<h2>Top Topic</h2>
+<p><span class="badge">{consensus_topic}</span></p>
+<h2>Top {top_n} Topics</h2>
+<table><thead><tr>
+<th style="background:#8e44ad;color:#fff;padding:8px 10px;">Rank</th>
+<th style="background:#8e44ad;color:#fff;padding:8px 14px;">Topic</th>
+<th style="background:#8e44ad;color:#fff;padding:8px 12px;">Score</th>
+</tr></thead><tbody>{topic_rows}</tbody></table>
+<h2>Sentiment Distribution per Topic</h2>
+<table><thead><tr>
+<th style="background:#2980b9;color:#fff;padding:8px 14px;">Topic</th>{label_ths}
+</tr></thead><tbody>{sent_rows}</tbody></table>
 </body></html>"""
     tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
     tmp.write(html)
@@ -5013,8 +5039,7 @@ table{{border-collapse:collapse;width:100%;}} th,td{{border:1px solid #d7bde2;}}
     return tmp.name
 
 
-def run_topic_analysis(text_input, top_n):
-    from collections import Counter
+def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top_n):
     if not text_input or not text_input.strip():
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
@@ -5025,11 +5050,16 @@ def run_topic_analysis(text_input, top_n):
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ Text too short (minimum 4 words)</span>')
         return err, "", "", None, None
+
+    topic_model_key  = _TOPIC_DISPLAY_TO_KEY.get(topic_model_label, "bertopic_mini")
+    sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
+    sentiment_labels = SUPPORTED_MODELS[sentiment_type]["labels"]
+
     try:
         resp = requests.post(
             f"{_TOPIC_API_BASE}/classify",
             headers={"x-api-key": _TOPIC_API_KEY, "Content-Type": "application/json"},
-            json={"text": text_input.strip(), "models": ["all"], "top_n": int(top_n)},
+            json={"text": text_input.strip(), "models": [topic_model_key], "top_n": int(top_n)},
             timeout=30,
         )
         resp.raise_for_status()
@@ -5041,33 +5071,43 @@ def run_topic_analysis(text_input, top_n):
         return err, "", "", None, None
 
     classifications = data["results"][0]["classifications"]
-    elapsed = data.get("elapsed_sec", 0)
+    elapsed  = data.get("elapsed_sec", 0)
+    topics   = classifications.get(topic_model_key, {}).get("top_topics", [])[:int(top_n)]
 
-    # Status badge
     status_html = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
         f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
-        f'✓ Topic analysis complete — {elapsed:.1f}s | {len(classifications)} models</span>'
+        f'✓ Complete — {elapsed:.1f}s &nbsp;|&nbsp; '
+        f'Topic: <b>{topic_model_label}</b> &nbsp;|&nbsp; Sentiment: <b>{sentiment_model_label}</b></span>'
     )
 
-    # Consensus
-    top1 = [classifications[m]["topic_name"] for m in _TOPIC_MODELS if m in classifications]
-    counts = Counter(top1)
-    consensus_topic, consensus_count = counts.most_common(1)[0]
-    color = "#27ae60" if consensus_count >= 4 else "#e67e22" if consensus_count >= 2 else "#7f8c8d"
+    top1 = topics[0]["topic_name"] if topics else "—"
     consensus_html = (
         f'<div style="margin:10px 0;">'
-        f'<span style="font-size:0.85rem;color:#6b7280;margin-right:8px;font-weight:600;">Consensus topic:</span>'
-        f'<span style="background:{color};color:#fff;border-radius:20px;'
-        f'padding:5px 18px;font-size:1rem;font-weight:700;">{consensus_topic}</span>'
+        f'<span style="font-size:0.85rem;color:#6b7280;margin-right:8px;font-weight:600;">Top topic:</span>'
+        f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
+        f'padding:5px 18px;font-size:1rem;font-weight:700;">{top1}</span>'
         f'<span style="font-size:0.82rem;color:#6b7280;margin-left:10px;">'
-        f'{consensus_count}/{len(top1)} models agree</span></div>'
+        f'({topics[0]["score"]*100:.1f}% confidence)</span></div>'
+        if topics else ""
     )
 
-    table_html = _build_topic_table_html(classifications, int(top_n))
-    fig        = _build_topic_chart(classifications, int(top_n))
-    report     = _build_topic_html_report(text_input, classifications, consensus_topic, consensus_count, int(top_n), elapsed)
+    table_html = _build_topic_table_single(topics, int(top_n))
+    fig        = _build_topic_stacked_chart(topics, sentiment_type, sentiment_labels, int(top_n))
 
+    # Collect probs for report
+    all_probs = []
+    for t in topics:
+        try:
+            _, probs = analyze_sentiment(t["topic_name"], sentiment_type)
+            all_probs.append(probs)
+        except Exception:
+            all_probs.append([0.0] * len(sentiment_labels))
+
+    report = _build_topic_html_report(
+        text_input, topics, top1, sentiment_model_label,
+        topic_model_label, sentiment_labels, all_probs, int(top_n), elapsed,
+    )
     return status_html, consensus_html, table_html, fig, report
 
 
@@ -5250,14 +5290,23 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
         # ── Tab 3: Topic & Theme Analytics ────────────────────────────────
         with gr.TabItem("Topic & Theme Analytics"):
             gr.Markdown(
-                "Uses the **Healthcare PREM Topic Classifier** (6 models: BERTopic, LDA, LSI, HDP, NMF) "
-                "to identify the dominant topic themes in the loaded patient text. "
-                "Load patient data above first, then click **Run Topic Analysis**."
+                "Select a **topic model** and a **sentiment model**, choose Top-N topics, "
+                "then click **Run Topic Analysis**. The chart shows the sentiment distribution "
+                "across each top topic. Load patient data above first."
             )
             with gr.Row():
-                topic_top_n     = gr.Slider(minimum=1, maximum=5, value=3, step=1,
-                                            label="Top N topics per model", scale=3)
-                topic_run_btn   = gr.Button("Run Topic Analysis", variant="primary", scale=2)
+                topic_model_dd    = gr.Dropdown(
+                    choices=_TOPIC_MODEL_CHOICES, value=_TOPIC_MODEL_CHOICES[0],
+                    label="Topic model", scale=2,
+                )
+                topic_sent_dd     = gr.Dropdown(
+                    choices=MODEL_CHOICES, value=MODEL_CHOICES[0],
+                    label="Sentiment model", scale=2,
+                )
+                topic_top_n       = gr.Slider(minimum=1, maximum=5, value=3, step=1,
+                                              label="Top N topics", scale=1)
+            with gr.Row():
+                topic_run_btn   = gr.Button("Run Topic Analysis", variant="primary", scale=3)
                 topic_clear_btn = gr.Button("🔄 New Patient", variant="secondary", scale=1)
             topic_status    = gr.HTML()
             topic_consensus = gr.HTML()
@@ -5357,7 +5406,7 @@ examples/
 
     topic_run_btn.click(
         fn=run_topic_analysis,
-        inputs=[text_input, topic_top_n],
+        inputs=[text_input, topic_model_dd, topic_sent_dd, topic_top_n],
         outputs=_topic_outputs,
     )
 
