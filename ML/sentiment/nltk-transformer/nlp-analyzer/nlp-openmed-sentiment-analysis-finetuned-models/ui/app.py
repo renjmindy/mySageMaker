@@ -4988,7 +4988,7 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top
 
     months = [_short(r[0]) for r in results]
 
-    # Collect all unique topic names (preserving first-seen order)
+    # Assign stable topic colors across all months
     all_topic_names = list(dict.fromkeys(
         t["topic_name"]
         for _, topics in results
@@ -4996,23 +4996,35 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top
     ))
     color_map = {name: _palette[i % len(_palette)] for i, name in enumerate(all_topic_names)}
 
-    # Build score matrix: topic → [score_month0, score_month1, ...]
-    score_matrix = {name: [0.0] * len(months) for name in all_topic_names}
-    for mi, (_, topics) in enumerate(results):
-        for t in topics:
-            score_matrix[t["topic_name"]][mi] = round(t["score"] * 100, 1)
-
+    # Add traces in REVERSE rank order so rank-1 ends up on top of the stack
     fig = go.Figure()
-    for topic in all_topic_names:
-        scores = score_matrix[topic]
+    for rank_idx in range(top_n - 1, -1, -1):
+        y_scores, topic_names, bar_colors = [], [], []
+        for _, topics in results:
+            if rank_idx < len(topics):
+                t = topics[rank_idx]
+                y_scores.append(round(t["score"] * 100, 1))
+                topic_names.append(t["topic_name"])
+                bar_colors.append(color_map[t["topic_name"]])
+            else:
+                y_scores.append(0.0)
+                topic_names.append("—")
+                bar_colors.append("#eeeeee")
+
         fig.add_trace(go.Bar(
-            name=topic,
+            name=f"Rank #{rank_idx + 1}",
             x=months,
-            y=scores,
-            marker_color=color_map[topic],
+            y=y_scores,
+            marker_color=bar_colors,
+            customdata=topic_names,
+            text=topic_names,
+            textposition="inside",
+            insidetextanchor="middle",
+            textfont=dict(size=10, color="#fff"),
             hovertemplate=(
                 "<b>%{x}</b><br>"
-                f"<b>Topic:</b> {topic}<br>"
+                f"<b>Rank:</b> #{rank_idx + 1}<br>"
+                "<b>Topic:</b> %{customdata}<br>"
                 "<b>Score:</b> %{y:.1f}%"
                 "<extra></extra>"
             ),
@@ -5026,8 +5038,11 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top
         xaxis=dict(title="Month", tickangle=-30),
         yaxis=dict(title="Confidence Score (%)"),
         barmode="stack",
-        legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
-        height=460,
+        legend=dict(
+            title="Rank", orientation="h",
+            yanchor="top", y=-0.25, xanchor="center", x=0.5,
+        ),
+        height=480,
         margin=dict(l=20, r=20, t=60, b=120),
         paper_bgcolor="white",
         plot_bgcolor="#fdf9ff",
