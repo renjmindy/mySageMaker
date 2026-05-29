@@ -4972,33 +4972,53 @@ def _compute_quality_score(probs, labels):
     return round(max(1.0, min(10.0, 1 + 9 * weighted)), 1)
 
 
-def _build_quality_score_chart(months, scores, sentiment_model_label):
-    colors = [
-        "#27ae60" if s >= 8 else "#f39c12" if s >= 6 else "#e67e22" if s >= 4 else "#e74c3c"
-        for s in scores
+def _compute_risk_label(sentiment, score):
+    """Assign risk level based on dominant sentiment and quality score."""
+    s = sentiment.upper()
+    _neg_labels = {"NEGATIVE", "ANGER", "DISGUST", "FEAR", "SADNESS", "1 STAR", "2 STARS"}
+    _neu_labels = {"NEUTRAL", "SURPRISE", "3 STARS"}
+    if s in _neg_labels and score <= 4.0:
+        return "High"
+    if s in _neu_labels and score <= 4.0:
+        return "Medium"
+    return "Low"
+
+
+def _build_quality_score_chart(months, scores, risk_labels, sentiment_model_label):
+    _risk_color = {"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"}
+    bar_colors = [_risk_color[r] for r in risk_labels]
+    bar_text   = [f"{s:.1f}  [{r}]" for s, r in zip(scores, risk_labels)]
+    hover_text = [
+        f"<b>%{{x}}</b><br>Score: {s:.1f} / 10<br>Risk: <b>{r}</b>"
+        for s, r in zip(scores, risk_labels)
     ]
     fig = go.Figure(go.Bar(
         x=months,
         y=scores,
-        marker_color=colors,
-        text=[f"{s:.1f}" for s in scores],
+        marker_color=bar_colors,
+        text=bar_text,
         textposition="outside",
-        textfont=dict(size=12, color="#000"),
-        hovertemplate="<b>%{x}</b><br>Quality Score: %{y:.1f} / 10<extra></extra>",
+        textfont=dict(size=11, color="#000"),
+        customdata=risk_labels,
+        hovertemplate="<b>%{x}</b><br>Score: %{y:.1f} / 10<br>Risk: <b>%{customdata}</b><extra></extra>",
     ))
     fig.add_hline(
+        y=4, line_dash="dot", line_color="#e74c3c",
+        annotation_text="Risk threshold (4)", annotation_position="top right",
+    )
+    fig.add_hline(
         y=5, line_dash="dash", line_color="#95a5a6",
-        annotation_text="Mid (5)", annotation_position="top right",
+        annotation_text="Mid (5)", annotation_position="bottom right",
     )
     fig.update_layout(
         title=dict(
-            text=f"Monthly Healthcare Quality Score (1–10)  ·  {sentiment_model_label}",
+            text=f"Monthly Healthcare Quality Score & Risk  ·  {sentiment_model_label}",
             x=0.5, font=dict(size=14),
         ),
         xaxis=dict(title="Month", tickangle=-30),
-        yaxis=dict(title="Score (1 – 10)", range=[0, 11.5]),
+        yaxis=dict(title="Score (1 – 10)", range=[0, 12]),
         showlegend=False,
-        height=380,
+        height=400,
         margin=dict(l=20, r=20, t=60, b=80),
         paper_bgcolor="#f0fff4",
         plot_bgcolor="#f0fff4",
@@ -5285,15 +5305,19 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
             return m.group(1) if m else lbl.split("—")[0].strip()
         month_labels   = [_short_m(s[0]) for s in sections]
         quality_scores = []
+        risk_labels    = []
         for _, body in sections:
             try:
                 redacted_body, _ = redact_pii(body)
-                _, month_probs = analyze_sentiment(redacted_body, sentiment_type)
-                quality_scores.append(_compute_quality_score(month_probs, sentiment_labels))
+                dominant_sent, month_probs = analyze_sentiment(redacted_body, sentiment_type)
+                score = _compute_quality_score(month_probs, sentiment_labels)
+                quality_scores.append(score)
+                risk_labels.append(_compute_risk_label(dominant_sent, score))
             except Exception:
                 quality_scores.append(5.0)
+                risk_labels.append("Low")
         quality_fig = _build_quality_score_chart(
-            month_labels, quality_scores, sentiment_model_label
+            month_labels, quality_scores, risk_labels, sentiment_model_label
         )
 
     return status_html, consensus_html, table_html, fig, report, monthly_fig, quality_fig
