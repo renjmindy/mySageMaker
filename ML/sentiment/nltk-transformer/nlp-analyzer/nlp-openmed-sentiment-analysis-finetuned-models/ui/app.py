@@ -4954,6 +4954,56 @@ def _build_topic_pie_chart(topics, top_n, topic_model_label):
     return fig
 
 
+def _compute_quality_score(probs, labels):
+    """Map sentiment probabilities → healthcare quality score 1–10."""
+    lu = [l.upper() for l in labels]
+    _pos = {"POSITIVE", "JOY", "4 STARS", "5 STARS"}
+    _neu = {"NEUTRAL", "SURPRISE", "3 STARS"}
+    _neg = {"NEGATIVE", "ANGER", "DISGUST", "FEAR", "SADNESS", "1 STAR", "2 STARS"}
+    pos = sum(p for l, p in zip(lu, probs) if l in _pos)
+    neu = sum(p for l, p in zip(lu, probs) if l in _neu)
+    neg = sum(p for l, p in zip(lu, probs) if l in _neg)
+    total = pos + neu + neg
+    if total < 1e-6:
+        return 5.0
+    weighted = (pos * 1.0 + neu * 0.5 + neg * 0.0) / total
+    return round(max(1.0, min(10.0, 1 + 9 * weighted)), 1)
+
+
+def _build_quality_score_chart(months, scores, sentiment_model_label):
+    colors = [
+        "#27ae60" if s >= 8 else "#f39c12" if s >= 6 else "#e67e22" if s >= 4 else "#e74c3c"
+        for s in scores
+    ]
+    fig = go.Figure(go.Bar(
+        x=months,
+        y=scores,
+        marker_color=colors,
+        text=[f"{s:.1f}" for s in scores],
+        textposition="outside",
+        textfont=dict(size=12, color="#000"),
+        hovertemplate="<b>%{x}</b><br>Quality Score: %{y:.1f} / 10<extra></extra>",
+    ))
+    fig.add_hline(
+        y=5, line_dash="dash", line_color="#95a5a6",
+        annotation_text="Mid (5)", annotation_position="top right",
+    )
+    fig.update_layout(
+        title=dict(
+            text=f"Monthly Healthcare Quality Score (1–10)  ·  {sentiment_model_label}",
+            x=0.5, font=dict(size=14),
+        ),
+        xaxis=dict(title="Month", tickangle=-30),
+        yaxis=dict(title="Score (1 – 10)", range=[0, 11.5]),
+        showlegend=False,
+        height=380,
+        margin=dict(l=20, r=20, t=60, b=80),
+        paper_bgcolor="white",
+        plot_bgcolor="#f0fff4",
+    )
+    return fig
+
+
 def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top_n):
     from concurrent.futures import ThreadPoolExecutor
 
@@ -5153,12 +5203,12 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ No text loaded — please load patient data first</span>')
-        return err, "", "", None, None, None
+        return err, "", "", None, None, None, None
     if len(text_input.strip().split()) < 4:
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ Text too short (minimum 4 words)</span>')
-        return err, "", "", None, None, None
+        return err, "", "", None, None, None, None
 
     topic_model_key  = _TOPIC_DISPLAY_TO_KEY.get(topic_model_label, "bertopic_mini")
     sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
@@ -5177,7 +5227,7 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         err = (f'<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                f'⚠ API error: {str(exc)[:120]}</span>')
-        return err, "", "", None, None, None, None
+        return err, "", "", None, None, None, None, None
 
     classifications = data["results"][0]["classifications"]
     elapsed  = data.get("elapsed_sec", 0)
@@ -5219,14 +5269,32 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         topic_model_label, sentiment_labels, all_probs, int(top_n), elapsed,
     )
 
-    # Monthly topic distribution — only when ≥2 month sections are present
+    # Per-month analysis — only when ≥2 month sections are present
     sections = _parse_month_sections(text_input)
-    monthly_fig = (
-        _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, int(top_n))
-        if len(sections) >= 2 else None
-    )
 
-    return status_html, consensus_html, table_html, fig, report, monthly_fig
+    monthly_fig  = None
+    quality_fig  = None
+    if len(sections) >= 2:
+        monthly_fig = _build_monthly_topic_chart(
+            sections, topic_model_key, topic_model_label, int(top_n)
+        )
+        def _short_m(lbl):
+            m = re.match(r'(Month\s*\d+)', lbl, re.IGNORECASE)
+            return m.group(1) if m else lbl.split("—")[0].strip()
+        month_labels   = [_short_m(s[0]) for s in sections]
+        quality_scores = []
+        for _, body in sections:
+            try:
+                redacted_body, _ = redact_pii(body)
+                _, month_probs = analyze_sentiment(redacted_body, sentiment_type)
+                quality_scores.append(_compute_quality_score(month_probs, sentiment_labels))
+            except Exception:
+                quality_scores.append(5.0)
+        quality_fig = _build_quality_score_chart(
+            month_labels, quality_scores, sentiment_model_label
+        )
+
+    return status_html, consensus_html, table_html, fig, report, monthly_fig, quality_fig
 
 
 def update_months(patient):
@@ -5434,6 +5502,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             with gr.Row():
                 topic_monthly_chart = gr.Plot(show_label=False)
             with gr.Row():
+                topic_score_chart = gr.Plot(show_label=False)
+            with gr.Row():
                 topic_report = gr.File(label="Download Topic Report (.html)", interactive=False)
 
         # ── Tab 4: About ──────────────────────────────────────────────────
@@ -5522,7 +5592,7 @@ examples/
                  ner_out, pos_out]
     _plot_out  = [prob_plot, wc_plot, dist_plot]
     _file_out  = [report_file, report_file_pdf, report_file_html]
-    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report, topic_monthly_chart]
+    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report, topic_monthly_chart, topic_score_chart]
 
     topic_run_btn.click(
         fn=run_topic_analysis,
@@ -5531,7 +5601,7 @@ examples/
     )
 
     _shared_reset  = [text_input, file_input, sample_dd, load_status]
-    _topic_reset   = ["", "", None, None, None, None]
+    _topic_reset   = ["", "", None, None, None, None, None]
 
     clear_btn.click(
         fn=lambda: ("", None, [], "",
