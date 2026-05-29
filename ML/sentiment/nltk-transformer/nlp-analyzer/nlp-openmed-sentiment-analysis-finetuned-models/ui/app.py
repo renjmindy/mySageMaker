@@ -5002,14 +5002,6 @@ def _build_quality_score_chart(months, scores, risk_labels, sentiment_model_labe
         customdata=risk_labels,
         hovertemplate="<b>%{x}</b><br>Score: %{y:.1f} / 10<br>Risk: <b>%{customdata}</b><extra></extra>",
     ))
-    fig.add_hline(
-        y=4, line_dash="dot", line_color="#e74c3c",
-        annotation_text="Risk threshold (4)", annotation_position="top right",
-    )
-    fig.add_hline(
-        y=5, line_dash="dash", line_color="#95a5a6",
-        annotation_text="Mid (5)", annotation_position="bottom right",
-    )
     fig.update_layout(
         title=dict(
             text=f"Monthly Healthcare Quality Score & Risk  ·  {sentiment_model_label}",
