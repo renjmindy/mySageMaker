@@ -4979,7 +4979,7 @@ def _compute_risk_label(sentiment, score):
     _neu_labels = {"NEUTRAL", "SURPRISE", "3 STARS"}
     if s in _neg_labels and score <= 4.0:
         return "🔴 High"
-    if s in _neu_labels and score <= 4.0:
+    if s in _neu_labels and score <= 7.0:
         return "🟠 Medium"
     return "🟢 Low"
 
