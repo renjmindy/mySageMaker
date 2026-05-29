@@ -4969,7 +4969,8 @@ def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
     fig = go.Figure()
     for i, label in enumerate(labels):
         x_vals = [all_probs[j][i] for j in range(len(topic_names))][::-1]
-        color  = _SENTIMENT_LABEL_COLORS.get(label, f"hsl({i*45},65%,50%)")
+        color      = _SENTIMENT_LABEL_COLORS.get(label, f"hsl({i*45},65%,50%)")
+        raw_scores = [v / 100 for v in x_vals]
         fig.add_trace(go.Bar(
             name=label,
             y=y_names,
@@ -4980,6 +4981,14 @@ def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
             textposition="inside",
             insidetextanchor="middle",
             textfont=dict(color="white", size=11),
+            customdata=raw_scores,
+            hovertemplate=(
+                "<b>Topic:</b> %{y}<br>"
+                "<b>Sentiment:</b> %{fullData.name}<br>"
+                "<b>Portion:</b> %{x:.1f}%<br>"
+                "<b>Score:</b> %{customdata:.3f}"
+                "<extra></extra>"
+            ),
         ))
 
     fig.update_layout(
