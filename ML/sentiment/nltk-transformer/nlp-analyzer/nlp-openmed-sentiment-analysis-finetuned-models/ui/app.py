@@ -4940,9 +4940,9 @@ def _build_topic_table_single(topics, top_n):
         '<div style="overflow-x:auto;margin-top:8px;">'
         '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
         '<thead><tr>'
-        '<th style="background:#8e44ad;color:#fff;padding:8px 10px;">Rank</th>'
-        '<th style="background:#8e44ad;color:#fff;padding:8px 14px;">Topic</th>'
-        '<th style="background:#8e44ad;color:#fff;padding:8px 12px;">Score</th>'
+        '<th style="background:#8e44ad;color:#000;padding:8px 10px;">Rank</th>'
+        '<th style="background:#8e44ad;color:#000;padding:8px 14px;">Topic</th>'
+        '<th style="background:#8e44ad;color:#000;padding:8px 12px;">Score</th>'
         f'</tr></thead><tbody>{rows}</tbody></table></div>'
     )
 
