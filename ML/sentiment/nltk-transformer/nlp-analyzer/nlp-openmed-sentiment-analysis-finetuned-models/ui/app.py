@@ -4954,13 +4954,13 @@ def _build_topic_pie_chart(topics, top_n, topic_model_label):
     return fig
 
 
-def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label):
+def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top_n):
     from concurrent.futures import ThreadPoolExecutor
 
     _palette = [
         "#8e44ad", "#3498db", "#27ae60", "#e67e22", "#e74c3c",
         "#1abc9c", "#f39c12", "#2980b9", "#c0392b", "#16a085",
-        "#d35400", "#7f8c8d", "#2c3e50", "#8e44ad", "#27ae60",
+        "#d35400", "#7f8c8d", "#2c3e50", "#6c3483", "#117a65",
     ]
 
     def _fetch(args):
@@ -4969,38 +4969,46 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label):
             r = requests.post(
                 f"{_TOPIC_API_BASE}/classify",
                 headers={"x-api-key": _TOPIC_API_KEY, "Content-Type": "application/json"},
-                json={"text": body, "models": [topic_model_key], "top_n": 1},
+                json={"text": body, "models": [topic_model_key], "top_n": top_n},
                 timeout=20,
             )
             r.raise_for_status()
-            cls = r.json()["results"][0]["classifications"].get(topic_model_key, {})
-            return label, cls.get("topic_name", "Unknown"), round(cls.get("confidence", 0) * 100, 1)
+            cls   = r.json()["results"][0]["classifications"].get(topic_model_key, {})
+            topics = cls.get("top_topics", [])
+            return label, topics
         except Exception:
-            return label, "Error", 0.0
+            return label, []
 
     with ThreadPoolExecutor(max_workers=6) as ex:
         results = list(ex.map(_fetch, sections))
 
-    # Shorten month label to "Month N" for readability
     def _short(lbl):
         m = re.match(r'(Month\s*\d+)', lbl, re.IGNORECASE)
         return m.group(1) if m else lbl.split("—")[0].strip()
 
-    months     = [_short(r[0]) for r in results]
-    top_topics = [r[1] for r in results]
-    top_scores = [r[2] for r in results]
+    months = [_short(r[0]) for r in results]
 
-    # Assign a stable color to each unique topic
-    unique_topics = list(dict.fromkeys(top_topics))
-    color_map = {t: _palette[i % len(_palette)] for i, t in enumerate(unique_topics)}
+    # Collect all unique topic names (preserving first-seen order)
+    all_topic_names = list(dict.fromkeys(
+        t["topic_name"]
+        for _, topics in results
+        for t in topics
+    ))
+    color_map = {name: _palette[i % len(_palette)] for i, name in enumerate(all_topic_names)}
+
+    # Build score matrix: topic → [score_month0, score_month1, ...]
+    score_matrix = {name: [0.0] * len(months) for name in all_topic_names}
+    for mi, (_, topics) in enumerate(results):
+        for t in topics:
+            score_matrix[t["topic_name"]][mi] = round(t["score"] * 100, 1)
 
     fig = go.Figure()
-    for topic in unique_topics:
-        idxs = [i for i, t in enumerate(top_topics) if t == topic]
+    for topic in all_topic_names:
+        scores = score_matrix[topic]
         fig.add_trace(go.Bar(
             name=topic,
-            x=[months[i] for i in idxs],
-            y=[top_scores[i] for i in idxs],
+            x=months,
+            y=scores,
             marker_color=color_map[topic],
             hovertemplate=(
                 "<b>%{x}</b><br>"
@@ -5011,13 +5019,16 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label):
         ))
 
     fig.update_layout(
-        title=dict(text=f"Monthly Topic Distribution — {topic_model_label}", x=0.5, font=dict(size=14)),
+        title=dict(
+            text=f"Monthly Top-{top_n} Topic Distribution — {topic_model_label}",
+            x=0.5, font=dict(size=14),
+        ),
         xaxis=dict(title="Month", tickangle=-30),
-        yaxis=dict(title="Confidence Score (%)", range=[0, 110]),
-        barmode="group",
+        yaxis=dict(title="Confidence Score (%)"),
+        barmode="stack",
         legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
-        height=420,
-        margin=dict(l=20, r=20, t=60, b=100),
+        height=460,
+        margin=dict(l=20, r=20, t=60, b=120),
         paper_bgcolor="white",
         plot_bgcolor="#fdf9ff",
     )
@@ -5199,7 +5210,7 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
     # Monthly topic distribution — only when ≥2 month sections are present
     sections = _parse_month_sections(text_input)
     monthly_fig = (
-        _build_monthly_topic_chart(sections, topic_model_key, topic_model_label)
+        _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, int(top_n))
         if len(sections) >= 2 else None
     )
 
