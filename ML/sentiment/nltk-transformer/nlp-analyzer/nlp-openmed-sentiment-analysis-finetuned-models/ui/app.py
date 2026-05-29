@@ -5143,11 +5143,11 @@ examples/
     _plot_out  = [prob_plot, wc_plot, dist_plot]
     _file_out  = [report_file, report_file_pdf, report_file_html]
     clear_btn.click(
-        fn=lambda: ("", None,
+        fn=lambda: ("", None, [],
                     *[""] * len(_html_out),
                     *[None] * len(_plot_out),
                     *[None] * len(_file_out)),
-        outputs=[text_input, file_input] + _html_out + _plot_out + _file_out,
+        outputs=[text_input, file_input, sample_dd] + _html_out + _plot_out + _file_out,
     )
 
 
