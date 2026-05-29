@@ -5000,7 +5000,7 @@ def _build_quality_score_chart(months, scores, sentiment_model_label):
         showlegend=False,
         height=380,
         margin=dict(l=20, r=20, t=60, b=80),
-        paper_bgcolor="white",
+        paper_bgcolor="#f0fff4",
         plot_bgcolor="#f0fff4",
     )
     return fig
@@ -5093,7 +5093,7 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top
         showlegend=False,
         height=480,
         margin=dict(l=20, r=20, t=60, b=40),
-        paper_bgcolor="white",
+        paper_bgcolor="#f0fff4",
         plot_bgcolor="#f0fff4",
     )
     return fig
@@ -5144,7 +5144,7 @@ def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
         yaxis=dict(title=""),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(l=20, r=20, t=80, b=40),
-        paper_bgcolor="white",
+        paper_bgcolor="#f0fff4",
         plot_bgcolor="#f0fff4",
     )
     return fig
