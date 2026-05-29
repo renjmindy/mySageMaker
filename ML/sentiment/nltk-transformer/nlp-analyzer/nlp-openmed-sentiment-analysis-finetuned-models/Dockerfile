@@ -5,7 +5,7 @@
 # API:    docker run -p 8000:8000 -e MODE=api nlp-sentiment
 # UI:     docker run -p 7860:7860 -e MODE=ui  nlp-sentiment
 
-FROM python:3.11-slim
+FROM python:3.11.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
