@@ -39,7 +39,7 @@ Resources:
   SentimentFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName:   !Sub nlp-sentiment-${Stage}
+      FunctionName:   !Sub nlp-hc-sentiment-${Stage}
       PackageType:    Image
       ImageUri:       !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/nlp-sentiment:latest
       Description:    NLP OpenMed Sentiment Analysis — 13 Transformer models (6 HC fine-tuned + 7 pretrained) via FastAPI
@@ -72,7 +72,7 @@ Resources:
   SentimentApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name:        !Sub nlp-sentiment-api-${Stage}
+      Name:        !Sub nlp-hc-sentiment-api-${Stage}
       StageName:   !Ref Stage
       Description: NLP Sentiment Analysis REST API
       Auth:
@@ -94,7 +94,7 @@ Resources:
   SentimentLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName:    !Sub /aws/lambda/nlp-sentiment-${Stage}
+      LogGroupName:    !Sub /aws/lambda/nlp-hc-sentiment-${Stage}
       RetentionInDays: 7
 
   # ── Keep-warm: ping all 6 HC models every 5 minutes to prevent cold starts ───
@@ -102,7 +102,7 @@ Resources:
   WarmupRule:
     Type: AWS::Events::Rule
     Properties:
-      Name:               !Sub nlp-sentiment-warmup-${Stage}
+      Name:               !Sub nlp-hc-sentiment-warmup-${Stage}
       Description:        Warms bert_hc_v2 / distilroberta_hc_v2 / distilbert_hc_v2 / bert_hc / distilbert_hc
       ScheduleExpression: rate(5 minutes)
       State:              ENABLED
@@ -126,7 +126,7 @@ Resources:
   WarmupRule2:
     Type: AWS::Events::Rule
     Properties:
-      Name:               !Sub nlp-sentiment-warmup2-${Stage}
+      Name:               !Sub nlp-hc-sentiment-warmup2-${Stage}
       Description:        Warms distilroberta_hc (6th model — separate rule due to 5-target limit)
       ScheduleExpression: rate(5 minutes)
       State:              ENABLED
