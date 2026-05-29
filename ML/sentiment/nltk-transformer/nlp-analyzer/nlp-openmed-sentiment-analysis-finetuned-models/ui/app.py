@@ -5038,12 +5038,9 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top
         xaxis=dict(title="Month", tickangle=-30),
         yaxis=dict(title="Confidence Score (%)"),
         barmode="stack",
-        legend=dict(
-            title="Rank", orientation="h",
-            yanchor="top", y=-0.25, xanchor="center", x=0.5,
-        ),
+        showlegend=False,
         height=480,
-        margin=dict(l=20, r=20, t=60, b=120),
+        margin=dict(l=20, r=20, t=60, b=40),
         paper_bgcolor="white",
         plot_bgcolor="#fdf9ff",
     )
