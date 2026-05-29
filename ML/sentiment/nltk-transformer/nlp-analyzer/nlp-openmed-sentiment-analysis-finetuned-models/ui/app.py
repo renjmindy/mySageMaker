@@ -5043,7 +5043,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                     label="Sentiment model",
                     scale=3,
                 )
-                ts_btn = gr.Button("Run Time-Series Analysis", variant="primary", scale=1)
+                ts_btn       = gr.Button("Run Time-Series Analysis", variant="primary", scale=2)
+                ts_clear_btn = gr.Button("🔄 New Patient", variant="secondary", scale=1)
             ts_summary  = gr.HTML()
             with gr.Row():
                 ts_line_plot = gr.Plot(show_label=False)
@@ -5148,6 +5149,12 @@ examples/
                     *[None] * len(_plot_out),
                     *[None] * len(_file_out)),
         outputs=[text_input, file_input, sample_dd] + _html_out + _plot_out + _file_out,
+    )
+
+    ts_clear_btn.click(
+        fn=lambda: ("", None, [], "", None, None, None, None),
+        outputs=[text_input, file_input, sample_dd,
+                 ts_summary, ts_line_plot, ts_cat_plot, ts_delta_plot, ts_report_file],
     )
 
 
