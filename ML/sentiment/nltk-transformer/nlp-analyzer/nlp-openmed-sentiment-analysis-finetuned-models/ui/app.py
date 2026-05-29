@@ -4924,27 +4924,34 @@ _SENTIMENT_LABEL_COLORS = {
 }
 
 
-def _build_topic_table_single(topics, top_n):
-    rows = ""
-    for rank, t in enumerate(topics[:top_n]):
-        bg = "#f9f0ff" if rank % 2 == 0 else "#fff"
-        rows += (
-            f'<tr>'
-            f'<td style="padding:6px 10px;font-weight:700;background:{bg};color:#555;">#{rank+1}</td>'
-            f'<td style="padding:6px 14px;background:{bg};color:#000;">{t["topic_name"]}</td>'
-            f'<td style="padding:6px 12px;background:{bg};text-align:center;color:#000;font-weight:600;">'
-            f'{t["score"]*100:.1f}%</td>'
-            f'</tr>'
-        )
-    return (
-        '<div style="overflow-x:auto;margin-top:8px;">'
-        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
-        '<thead><tr>'
-        '<th style="background:#8e44ad;color:#000;padding:8px 10px;">Rank</th>'
-        '<th style="background:#8e44ad;color:#000;padding:8px 14px;">Topic</th>'
-        '<th style="background:#8e44ad;color:#000;padding:8px 12px;">Score</th>'
-        f'</tr></thead><tbody>{rows}</tbody></table></div>'
+def _build_topic_pie_chart(topics, top_n, topic_model_label):
+    slices = topics[:top_n]
+    labels = [t["topic_name"] for t in slices]
+    values = [round(t["score"] * 100, 2) for t in slices]
+    colors = [
+        "#8e44ad", "#3498db", "#27ae60", "#e67e22",
+        "#e74c3c", "#1abc9c", "#f39c12", "#2980b9",
+    ][:len(slices)]
+    fig = go.Figure(go.Pie(
+        labels=labels,
+        values=values,
+        hole=0.35,
+        marker=dict(colors=colors, line=dict(color="#fff", width=2)),
+        textinfo="label+percent",
+        textfont=dict(size=12, color="#000"),
+        hovertemplate="<b>%{label}</b><br>Score: %{value:.1f}%<extra></extra>",
+    ))
+    fig.update_layout(
+        title=dict(
+            text=f"Top {len(slices)} Topics — {topic_model_label}",
+            x=0.5, font=dict(size=14),
+        ),
+        legend=dict(orientation="v", x=1.02, y=0.5),
+        margin=dict(t=60, b=20, l=20, r=20),
+        paper_bgcolor="white",
+        height=400,
     )
+    return fig
 
 
 def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
@@ -5093,7 +5100,7 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         if topics else ""
     )
 
-    table_html = _build_topic_table_single(topics, int(top_n))
+    table_html = _build_topic_pie_chart(topics, int(top_n), topic_model_label)
     fig        = _build_topic_stacked_chart(topics, sentiment_type, sentiment_labels, int(top_n))
 
     # Collect probs for report
@@ -5311,8 +5318,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 topic_clear_btn = gr.Button("🔄 New Patient", variant="secondary", scale=1)
             topic_status    = gr.HTML()
             topic_consensus = gr.HTML()
-            topic_table     = gr.HTML()
             with gr.Row():
+                topic_table = gr.Plot(show_label=False)
                 topic_chart = gr.Plot(show_label=False)
             with gr.Row():
                 topic_report = gr.File(label="Download Topic Report (.html)", interactive=False)
@@ -5412,7 +5419,7 @@ examples/
     )
 
     _shared_reset  = [text_input, file_input, sample_dd, load_status]
-    _topic_reset   = ["", "", "", None, None]
+    _topic_reset   = ["", "", None, None, None]
 
     clear_btn.click(
         fn=lambda: ("", None, [], "",
