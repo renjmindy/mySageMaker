@@ -4978,14 +4978,14 @@ def _compute_risk_label(sentiment, score):
     _neg_labels = {"NEGATIVE", "ANGER", "DISGUST", "FEAR", "SADNESS", "1 STAR", "2 STARS"}
     _neu_labels = {"NEUTRAL", "SURPRISE", "3 STARS"}
     if s in _neg_labels and score <= 4.0:
-        return "High"
+        return "🔴 High"
     if s in _neu_labels and score <= 4.0:
-        return "Medium"
-    return "Low"
+        return "🟠 Medium"
+    return "🟢 Low"
 
 
 def _build_quality_score_chart(months, scores, risk_labels, sentiment_model_label):
-    _risk_color = {"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"}
+    _risk_color = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
     bar_colors = [_risk_color[r] for r in risk_labels]
     bar_text   = [f"{s:.1f}  [{r}]" for s, r in zip(scores, risk_labels)]
     hover_text = [
