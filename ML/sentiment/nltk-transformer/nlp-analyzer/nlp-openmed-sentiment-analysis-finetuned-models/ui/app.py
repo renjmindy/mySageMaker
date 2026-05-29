@@ -4931,7 +4931,7 @@ def _build_topic_table_single(topics, top_n):
         rows += (
             f'<tr>'
             f'<td style="padding:6px 10px;font-weight:700;background:{bg};color:#555;">#{rank+1}</td>'
-            f'<td style="padding:6px 14px;background:{bg};">{t["topic_name"]}</td>'
+            f'<td style="padding:6px 14px;background:{bg};color:#000;">{t["topic_name"]}</td>'
             f'<td style="padding:6px 12px;background:{bg};text-align:center;color:#000;font-weight:600;">'
             f'{t["score"]*100:.1f}%</td>'
             f'</tr>'
