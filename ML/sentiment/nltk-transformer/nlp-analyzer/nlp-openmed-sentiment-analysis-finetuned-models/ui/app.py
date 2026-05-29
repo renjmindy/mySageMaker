@@ -12,6 +12,7 @@ import os
 import re
 import sys
 import tempfile
+import requests
 
 import numpy as np
 import matplotlib
