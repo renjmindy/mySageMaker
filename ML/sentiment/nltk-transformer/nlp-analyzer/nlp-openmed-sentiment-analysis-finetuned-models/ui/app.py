@@ -4950,7 +4950,7 @@ def _build_topic_pie_chart(topics, top_n, topic_model_label):
         ),
         legend=dict(orientation="v", x=1.02, y=0.5),
         margin=dict(t=60, b=20, l=20, r=20),
-        paper_bgcolor="white",
+        paper_bgcolor="#f0fff4",
         height=400,
     )
     return fig
@@ -5094,7 +5094,7 @@ def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label, top
         height=480,
         margin=dict(l=20, r=20, t=60, b=40),
         paper_bgcolor="white",
-        plot_bgcolor="#fdf9ff",
+        plot_bgcolor="#f0fff4",
     )
     return fig
 
@@ -5145,7 +5145,7 @@ def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(l=20, r=20, t=80, b=40),
         paper_bgcolor="white",
-        plot_bgcolor="#fdf9ff",
+        plot_bgcolor="#f0fff4",
     )
     return fig
 
