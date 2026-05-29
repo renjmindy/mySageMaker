@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHAW-CAT — Singapore Meeting Brief, 13 May 2026 · TheClinician</title>
+<style>
+  :root {
+    --navy: #002185;
+    --navy-2: #1e2761;
+    --navy-deep: #001054;
+    --navy-ink: #0f172a;
+    --ice: #cadcfc;
+    --ice-soft: #eaf1ff;
+    --ice-deeper: #c8d6f0;
+    --gold: #ffb81c;
+    --gold-soft: #fff4d1;
+    --gold-deep: #b88200;
+    --bg: #f6f8fc;
+    --paper: #ffffff;
+    --rule: #d7e0ee;
+    --muted: #5b6b82;
+    --green: #0f8a5f;
+    --green-soft: #e8f6f0;
+    --green-deep: #0a6244;
+    --red: #b8312a;
+    --red-soft: #fdecea;
+    --red-deep: #8a1f1a;
+    --amber: #b06b00;
+    --amber-soft: #fff4dc;
+    --code-bg: #0b1b45;
+    --code-text: #e9efff;
+    --shadow-sm: 0 1px 2px rgba(11,27,69,.04);
+    --shadow-md: 0 1px 2px rgba(11,27,69,.04), 0 8px 24px rgba(11,27,69,.05);
+    --shadow-lg: 0 4px 12px rgba(11,27,69,.08), 0 20px 40px rgba(11,27,69,.08);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--navy-ink);
+    background: var(--bg);
+    line-height: 1.6;
+    font-size: 15.5px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 32px 80px; }
+  a { color: var(--navy); }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,.93);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--rule);
+    margin: -28px -32px 20px;
+    padding: 10px 32px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px;
+  }
+  .topbar .logo {
+    font-family: Cambria, Georgia, serif;
+    color: var(--navy); font-weight: 700; font-size: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar .logo::before { content: ""; width: 18px; height: 18px; background: var(--navy); border-radius: 3px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .stamp { color: var(--muted); }
+  .topbar button {
+    appearance: none; border: 1px solid var(--rule); background: white; color: var(--navy);
+    padding: 6px 14px; border-radius: 999px;
+    font-family: inherit; font-size: 12.5px; cursor: pointer;
+  }
+  .topbar button:hover { background: var(--ice-soft); border-color: var(--navy); }
+  .topbar button.primary { background: var(--navy); color: white; border-color: var(--navy); }
+
+  @media (max-width: 800px) {
+    .topbar { margin: -18px -16px 16px; padding: 8px 16px; flex-wrap: wrap; }
+    .wrap { padding: 18px 16px 50px; }
+  }
+
+  .hero {
+    background: linear-gradient(140deg, var(--navy-deep), var(--navy) 55%, var(--navy-2));
+    color: white; border-radius: 16px;
+    padding: 44px 44px 36px;
+    position: relative; overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  .hero::after {
+    content: ""; position: absolute; right: -100px; top: -100px;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(255,184,28,.32) 0%, rgba(255,184,28,0) 70%);
+  }
+  .hero .eyebrow {
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; margin: 0 0 14px;
+  }
+  .hero h1 {
+    font-size: 34px; line-height: 1.15; margin: 0 0 14px;
+    font-family: Cambria, Georgia, serif; font-weight: 700; max-width: 820px;
+  }
+  .hero .subtitle {
+    font-size: 17px; color: var(--ice); max-width: 820px; margin: 0 0 22px;
+  }
+  .gold-stripe { width: 56px; height: 4px; background: var(--gold); border-radius: 2px; margin-bottom: 16px; }
+  .hero .meta {
+    display: flex; flex-wrap: wrap; gap: 14px 28px;
+    padding-top: 18px; border-top: 1px solid rgba(255,255,255,.18);
+    font-size: 13.5px; color: var(--ice);
+  }
+  .hero .meta b { color: white; }
+  @media (max-width: 760px) {
+    .hero { padding: 28px 22px; }
+    .hero h1 { font-size: 24px; }
+  }
+
+  section { margin: 38px 0; scroll-margin-top: 70px; }
+  h2 {
+    font-family: Cambria, Georgia, serif;
+    font-size: 26px; color: var(--navy); margin: 0 0 8px;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  h2 .num {
+    font-size: 12px; letter-spacing: 3px; color: var(--gold-deep);
+    font-weight: 700; font-family: -apple-system, sans-serif;
+  }
+  h3 { font-family: Cambria, Georgia, serif; font-size: 20px; color: var(--navy-2); margin: 28px 0 10px; }
+  h4 { font-size: 13.5px; color: var(--navy); text-transform: uppercase; letter-spacing: 1.5px; margin: 16px 0 8px; }
+  p { margin: 8px 0 14px; }
+  .lede { font-size: 17px; color: var(--navy-2); max-width: 820px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .small { font-size: 13px; color: var(--muted); }
+
+  .card {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 12px; padding: 22px 26px;
+    box-shadow: var(--shadow-md);
+  }
+  .card.tone-good { background: var(--green-soft); border-color: #c2e7d6; }
+  .card.tone-info { background: var(--ice-soft); border-color: var(--ice-deeper); }
+  .card.tone-bad { background: var(--red-soft); border-color: #f4c6c2; }
+  .card.tone-warn { background: var(--amber-soft); border-color: #f4d99a; }
+  .grid { display: grid; gap: 14px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 760px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  .stat .label { font-size: 11.5px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .stat .value { font-family: Cambria, Georgia, serif; font-size: 22px; color: var(--navy); font-weight: 700; margin-bottom: 4px; }
+  .stat .sub { font-size: 13.5px; color: var(--navy-2); }
+  .stat .big { font-family: Cambria, Georgia, serif; font-size: 34px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .stat .big.bad { color: var(--red); }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+    font-size: 14px; background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 8px; overflow: hidden;
+  }
+  th {
+    background: var(--navy); color: white;
+    text-align: left; padding: 10px 12px;
+    font-size: 12px; letter-spacing: .6px; text-transform: uppercase;
+  }
+  td { padding: 10px 12px; border-top: 1px solid var(--rule); vertical-align: top; }
+  tr:nth-child(even) td { background: #fbfcfe; }
+  td.num { font-variant-numeric: tabular-nums; font-family: ui-monospace, Menlo, monospace; }
+  td.good { color: var(--green); font-weight: 600; }
+  td.bad { color: var(--red); font-weight: 600; }
+  td.warn { color: var(--amber); font-weight: 600; }
+  td.center { text-align: center; }
+
+  .callout {
+    border-left: 4px solid var(--gold);
+    background: var(--gold-soft);
+    border-radius: 0 12px 12px 0;
+    padding: 14px 20px;
+    margin: 18px 0;
+  }
+  .callout strong { color: var(--navy); }
+  .callout.success { border-color: var(--green); background: var(--green-soft); }
+  .callout.danger { border-color: var(--red); background: var(--red-soft); }
+  .callout.info { border-color: var(--navy); background: var(--ice-soft); }
+
+  .eq {
+    font-family: "Cambria Math", Cambria, serif;
+    font-size: 16px; color: var(--navy);
+    background: var(--ice-soft);
+    border: 1px solid var(--ice-deeper);
+    border-radius: 10px;
+    padding: 12px 22px;
+    margin: 12px 0;
+    overflow-x: auto;
+    font-style: italic;
+  }
+  .eq sub, .eq sup { font-size: 0.75em; }
+  .eq .label {
+    display: inline-block; font-family: -apple-system, sans-serif; font-style: normal;
+    font-size: 11px; background: var(--navy); color: var(--gold);
+    padding: 2px 10px; border-radius: 999px; margin-right: 12px;
+    letter-spacing: .5px; text-transform: uppercase; vertical-align: middle;
+  }
+
+  .quote {
+    background: var(--ice-soft);
+    border-left: 4px solid var(--navy);
+    padding: 14px 22px;
+    border-radius: 0 10px 10px 0;
+    margin: 14px 0;
+    font-size: 14.5px;
+    color: var(--navy-2);
+  }
+  .quote .who {
+    display: block;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .plot-card {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 14px; padding: 24px;
+    margin: 16px 0; box-shadow: var(--shadow-md);
+  }
+  .plot-card .controls {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    margin-bottom: 14px;
+  }
+  .plot-card label { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--navy-2); font-weight: 500; }
+  .plot-card input[type=range] { width: 200px; }
+  .plot-card .alpha-display {
+    font-family: ui-monospace, Menlo, monospace; font-weight: 700;
+    color: var(--navy); background: var(--ice-soft);
+    padding: 4px 12px; border-radius: 8px;
+    min-width: 70px; text-align: center;
+  }
+  .plot-card button.preset {
+    border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+    font-family: inherit; border: 1px solid; background: white;
+  }
+  .plot-card button.preset.bad { color: var(--red); border-color: #f4c6c2; background: var(--red-soft); }
+  .plot-card button.preset.good { color: var(--green); border-color: #c2e7d6; background: var(--green-soft); }
+  .plot-svg { width: 100%; height: 240px; }
+  .plot-explain {
+    margin-top: 12px; padding: 12px 16px;
+    border-radius: 8px; font-size: 13.5px; line-height: 1.5;
+  }
+
+  .compare-bars { display: grid; gap: 16px; margin-top: 14px; }
+  .compare-bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 80px;
+    gap: 14px; align-items: center;
+    font-size: 13.5px;
+  }
+  .compare-bar-row .label-cell { color: var(--navy-2); font-weight: 600; }
+  .compare-bar-row .label-cell small { display: block; color: var(--muted); font-weight: 400; }
+  .compare-bar-bg {
+    height: 28px; background: #eef2fa; border-radius: 6px;
+    position: relative; overflow: hidden;
+  }
+  .compare-bar-fill {
+    position: absolute; top: 0; bottom: 0;
+    transition: width .3s;
+  }
+  .compare-bar-fill.pos { background: var(--green); }
+  .compare-bar-fill.neg { background: var(--red); }
+  .compare-bar-value {
+    font-family: ui-monospace, Menlo, monospace; font-weight: 700;
+    color: var(--navy); font-size: 14px; text-align: right;
+  }
+  .axis-zero {
+    position: absolute; top: 0; bottom: 0;
+    width: 1px; background: var(--navy);
+    z-index: 2;
+  }
+  @media (max-width: 760px) {
+    .compare-bar-row { grid-template-columns: 1fr; }
+  }
+
+  details {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 10px; padding: 12px 18px; margin: 10px 0;
+  }
+  details[open] { box-shadow: var(--shadow-sm); }
+  summary {
+    cursor: pointer; font-weight: 600; color: var(--navy);
+    list-style: none; display: flex; align-items: center; gap: 10px;
+    font-size: 14.5px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "+"; color: var(--gold-deep); font-size: 18px; font-weight: 700; width: 14px; }
+  details[open] summary::before { content: "−"; }
+  details > * { margin-top: 10px; }
+
+  .toc {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 10px; padding: 18px 22px;
+  }
+  .toc ol { margin: 8px 0 0; padding-left: 22px; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 16px 18px; border-radius: 8px;
+    overflow-x: auto; font-size: 13px; line-height: 1.55;
+    border-left: 3px solid var(--gold);
+    margin: 12px 0;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  code { background: #eef2fa; padding: 1px 6px; border-radius: 4px; font-size: .92em; color: var(--navy); }
+
+  .provenance {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-left: 4px solid var(--navy);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px; margin: 18px 0 0;
+    font-size: 13.5px;
+  }
+  .provenance h4 { margin: 0 0 6px; color: var(--navy); }
+  .provenance ul { margin: 4px 0 0; padding-left: 20px; }
+  .provenance li { margin: 3px 0; color: var(--navy-2); }
+
+  footer {
+    margin-top: 48px; padding: 20px 0 0;
+    border-top: 1px solid var(--rule);
+    font-size: 13px; color: var(--muted);
+  }
+  footer b { color: var(--navy); }
+
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: .4px; text-transform: uppercase;
+  }
+  .pill.good { background: var(--green-soft); color: var(--green); }
+  .pill.bad { background: var(--red-soft); color: var(--red); }
+  .pill.warn { background: var(--amber-soft); color: var(--amber); }
+  .pill.info { background: var(--ice-soft); color: var(--navy); }
+  .pill.gold { background: var(--gold); color: var(--navy); }
+
+  ol.steps { counter-reset: step; padding: 0; list-style: none; margin: 12px 0; }
+  ol.steps li {
+    counter-increment: step;
+    position: relative; padding: 12px 14px 12px 56px;
+    border: 1px solid var(--rule); border-radius: 8px;
+    background: var(--paper); margin-bottom: 10px;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute; left: 12px; top: 12px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--navy); color: var(--gold);
+    font-family: Cambria, Georgia, serif; font-weight: 700; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps li b { color: var(--navy); }
+
+  @media print {
+    body { background: white; }
+    .topbar { display: none !important; }
+    .hero, .card, .plot-card { box-shadow: none; break-inside: avoid; }
+    details[open] { break-inside: avoid; }
+    details > *:not(summary) { display: block !important; }
+    details summary::before { content: "▾ "; }
+    section { break-inside: avoid-page; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="topbar" aria-label="Document actions">
+  <div class="logo">TheClinician</div>
+  <span class="spacer"></span>
+  <span class="stamp">Prepared for Singapore meeting · 13 May 2026</span>
+  <button type="button" id="btnPrint" class="primary">Download / print PDF</button>
+</nav>
+
+<header class="hero">
+  <div class="gold-stripe"></div>
+  <p class="eyebrow">SHAW-CAT · Joint review brief · For tonight's Singapore team meeting</p>
+  <h1>What we found today, how it confirms your team's reports, and the path forward</h1>
+  <p class="subtitle">
+    Over the course of 12 May 2026 we ran two targeted CAT-IRT validation sessions against
+    the SHAW-CAT instrument on our development environment to evaluate the concerns raised
+    by De Zhi, Yu Heng, and Silvana. The tests reproduced the negative-θ / inverted-direction
+    issue precisely. This brief documents the test design, results, root-cause analysis,
+    and our proposed path forward — designed to support tonight's joint discussion and
+    converge on a single, agreed engineering fix.
+  </p>
+  <div class="meta">
+    <div><b>Issued</b> · 13 May 2026, ahead of evening meeting</div>
+    <div><b>Audience</b> · Singapore Healthy Ageing &amp; Wellbeing programme team</div>
+    <div><b>Environment</b> · TheClinician Dev 2</div>
+    <div><b>Instrument</b> · SHAW-CAT (PQ, MQ, SQ banks)</div>
+  </div>
+</header>
+
+<aside class="provenance">
+  <h4>Sources for this brief</h4>
+  <ul>
+    <li><b>Singapore team reports</b> — email correspondence (Chin De Zhi, Kwan Yu Heng, Silvana Choo Xinyi) of 12 May 2026, and internal Slack discussion (Slava, Mindy/CJ)</li>
+    <li><b>Test runs</b> — two consistency-profile administrations conducted on Dev 2 patient-app form <span class="mono">21ea-00-GRsfLG7fNmPkoSCTK</span></li>
+    <li><b>Engine code</b> — <span class="mono">@zedoc/cat-irt/src/utilities.js</span>, <span class="mono">irtMethods.js</span>; <span class="mono">@zedoc/questionnaire/src/utils/evaluateDynamicProperties.js</span></li>
+    <li><b>Calibration data</b> — your unmodified SHAW-CAT calibration as deployed in the form</li>
+    <li><b>Theoretical reference</b> — Samejima (1969, 1996) GRM; Magis &amp; Barrada (2017) catR; Chalmers (2016) mirtCAT</li>
+  </ul>
+</aside>
+
+<!-- ============ EXEC SUMMARY ============ -->
+<section id="summary">
+  <h2><span class="num">EXECUTIVE SUMMARY</span></h2>
+
+  <div class="grid grid-3" style="margin-top:14px">
+    <div class="card stat tone-bad">
+      <div class="label">Bug status</div>
+      <div class="value">Reproduced</div>
+      <div class="sub">Today's two test runs reproduced the inverted-θ behaviour the Singapore team has been reporting. Best responses on SQ items produce strongly negative θ̂; worst responses produce strongly positive θ̂.</div>
+    </div>
+    <div class="card stat">
+      <div class="label">SQ θ̂ — worst-case profile</div>
+      <div class="big bad">+4.61</div>
+      <div class="sub">Should be strongly negative for an "I have no social support" response pattern. Inverted by ~9 trait units from expected.</div>
+    </div>
+    <div class="card stat">
+      <div class="label">SQ θ̂ — best-case profile</div>
+      <div class="big bad">−4.70</div>
+      <div class="sub">Should be strongly positive for an "I always have full social support" response pattern. Mirror inversion of the worst-case run — proves the bug is systematic, not a one-off.</div>
+    </div>
+  </div>
+
+  <div class="callout danger" style="margin-top:18px">
+    <strong>The headline finding.</strong> The SQ section produces θ̂ values mirrored across zero
+    relative to what the responses indicate. A respondent who answers "Always" to every item
+    (high social support) receives a T-score of 3.0 (the floor); a respondent who answers
+    "Never" to every item (no social support) receives a T-score of 96.1 (the ceiling).
+    This is exactly the behaviour Chin De Zhi reported, and is the cause of Yu Heng's
+    "engine doesn't appear adaptive" and Silvana's "fixed 8 questions regardless of responses"
+    observations.
+  </div>
+
+  <div class="callout success" style="margin-top:8px">
+    <strong>What's proposed.</strong> A single, narrowly-scoped engineering change: per-item
+    α-sign normalisation at calibration load time, with no other modifications to the engine,
+    no <span class="mono">θ × −1</span> layer, and no section-level configuration flags. This
+    fix is consistent with the math you'd expect for sign-artifact negative-α calibrations,
+    has been validated independently on a separate environment earlier today (producing the
+    correct θ̂_SQ = −4.41 for worst-case responses), and aligns with both Slava's and Mindy's
+    converging conclusions in the internal Slack thread. Details in §06.
+  </div>
+</section>
+
+<!-- ============ TOC ============ -->
+<section class="toc" aria-label="Table of contents">
+  <h4 style="margin:0 0 4px">Contents</h4>
+  <ol>
+    <li><a href="#findings">Singapore team's findings — what we heard</a></li>
+    <li><a href="#design">How we tested today</a></li>
+    <li><a href="#worst">Worst-case profile run — results</a></li>
+    <li><a href="#best">Best-case profile run — results</a></li>
+    <li><a href="#mechanism">The bug mechanism — why this is happening</a></li>
+    <li><a href="#fix">Proposed path forward — the recommended fix</a></li>
+    <li><a href="#options">Why this option, not the alternatives</a></li>
+    <li><a href="#plan">Implementation plan &amp; timeline</a></li>
+    <li><a href="#meeting">Discussion points for tonight's meeting</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</section>
+
+<!-- ============ 1. SINGAPORE FINDINGS ============ -->
+<section id="findings">
+  <h2><span class="num">01</span> Singapore team's findings — what we heard</h2>
+  <p class="lede">
+    Three independent observations from the SingHealth and MOH-Holdings teams, all consistent
+    with each other and pointing at the same underlying bug.
+  </p>
+
+  <h3>1.1 Chin De Zhi — the inversion observation</h3>
+  <div class="quote">
+    "Prelim testing using the new links did not produce the expected results. I have
+    negative Theta values for MQ and SQ item banks when the best response options are chosen
+    and positive Theta values when the worst options are chosen."
+    <span class="who">— Chin De Zhi (SGH), email of 12 May 2026, 5:08 PM</span>
+  </div>
+  <p>
+    This is the **bug we reproduced exactly today**. See §03 and §04.
+  </p>
+
+  <h3>1.2 Kwan Yu Heng — the "static questionnaire" observation</h3>
+  <div class="quote">
+    "We tested the link — for some reason the SHAWS CAT always give the same 8 qns for all
+    — as if its a static questionnaire. There is no algorithm or it seem the stopping rules
+    that doesn't work. For eg we try to fill in the last option for everyone — it is the
+    same result. We try to fill in between random options — it is also the same 8 qns.
+    There is no difference in using a CAT or not."
+    <span class="who">— Kwan Yu Heng (MOHH), 12 May 2026, 3:40 PM</span>
+  </div>
+  <p>
+    Two observations are bundled here. We addressed both in today's testing:
+  </p>
+  <ul>
+    <li><b>"Same 8 questions for all"</b> — partially explained by the engine's randomesque top-N selection rule combined with a small effective pool. Different test sessions <em>did</em> produce different first items in our runs today (PQ31 in one, PQ50 in another), confirming the randomize-first feature is operating. But the second-and-onwards picks draw from a relatively narrow pool, so the visible variability across patients is lower than a fully-adaptive instrument would show.</li>
+    <li><b>"No difference between best and worst responses"</b> — this is the inversion bug in action. Because the engine computes θ̂ in the wrong direction for negative-α items, the response-pattern effect on item selection is muted. The two profiles do produce different item sequences (we observed this today), but the difference is smaller than expected because θ̂ is unstable.</li>
+  </ul>
+
+  <h3>1.3 Silvana Choo Xinyi — the adaptive-logic observation</h3>
+  <div class="quote">
+    "Fixed number of questions presented regardless of responses. In both attempts, exactly
+    8 questions were presented for each domain regardless of how I responded. Question order
+    does not appear to follow adaptive logic. The sequence in which questions were presented
+    does not appear to reflect adaptive selection. In a correctly functioning CAT, the tool
+    should recognise that a respondent who cannot perform a less demanding activity would not
+    need to be asked about a more demanding one."
+    <span class="who">— Silvana Choo Xinyi (SGH), 12 May 2026</span>
+  </div>
+  <p>
+    Silvana's clinical intuition is exactly right — a CAT-IRT engine should walk down the
+    difficulty ladder when a respondent reports inability. The fact that this isn't visibly
+    happening in your testing is a symptom of the same root cause: θ̂ is being computed in
+    the wrong direction for negative-α items, so the engine's MFI selection at the (wrong)
+    θ̂ doesn't reflect the patient's actual ability level.
+  </p>
+
+  <div class="callout info">
+    <strong>The three observations are the same bug, manifesting differently.</strong>
+    De Zhi sees it as score-direction inversion. Yu Heng sees it as low session-to-session
+    variability. Silvana sees it as item-selection not respecting clinical common sense.
+    All three are downstream symptoms of the engine treating raw negative-α items without
+    sign normalisation.
+  </div>
+</section>
+
+<!-- ============ 2. TEST DESIGN ============ -->
+<section id="design">
+  <h2><span class="num">02</span> How we tested today</h2>
+  <p class="lede">
+    To validate your team's concerns rigorously and produce evidence usable by both
+    psychometric and engineering teams, we ran two complementary CAT sessions. The
+    methodology mirrors your team's worst-case Consistency-2 protocol, plus its mirror —
+    a Consistency-1 (best-case) profile.
+  </p>
+
+  <h3>2.1 Two consistency profiles, run on the same form</h3>
+  <table>
+    <thead><tr><th>Profile</th><th>Response rule</th><th>Expected θ̂ direction</th><th>Why this design</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Worst-case</b> (Consistency-2)</td>
+        <td>For every item, select the lowest-trait response option ("Unable to do" / "Never" / "Not at all")</td>
+        <td>Negative for every section</td>
+        <td>Reproduces the protocol from your 81-cell QA matrix. Drives θ̂ to the low-trait end</td>
+      </tr>
+      <tr>
+        <td><b>Best-case</b> (Consistency-1)</td>
+        <td>For every item, select the highest-trait response option ("Without any difficulty" / "Always")</td>
+        <td>Positive for every section</td>
+        <td>The mirror profile. With a correctly-functioning engine, results should be ~mirror reflections of the worst-case run across θ = 0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 Why the mirror design is diagnostic</h3>
+  <p>
+    A correctly-functioning CAT engine produces approximately mirror-symmetric θ̂ values for
+    the two profiles. A bugged engine that inverts direction will produce <strong>the same
+    sign</strong> for both profiles, or a <strong>cross-inverted</strong> pattern (worst-case
+    positive, best-case negative). The two-run design produces an unambiguous direction
+    signal that a single run cannot give.
+  </p>
+
+  <h3>2.3 What was held constant</h3>
+  <ul>
+    <li><b>Environment</b> — Dev 2 (<span class="mono">https://internal-dev-2-patient.zedoc.dev/</span>)</li>
+    <li><b>Form</b> — the same patient-facing form your team is currently testing against</li>
+    <li><b>Calibration</b> — your unmodified SHAW-CAT calibration as deployed in that form (α, β unchanged)</li>
+    <li><b>Engine</b> — the deployed CAT engine version for that form</li>
+  </ul>
+  <p>
+    Only the response pattern differed between the two runs. Any difference in θ̂ output
+    therefore reflects the engine's response-to-θ̂ mapping behaviour, not a configuration
+    difference.
+  </p>
+</section>
+
+<!-- ============ 3. WORST-CASE RUN ============ -->
+<section id="worst">
+  <h2><span class="num">03</span> Worst-case profile run — results</h2>
+  <p class="lede">
+    23 items administered across PQ (7), MQ (8), SQ (8) sections. All responses
+    "Unable to do" / "Never". Final section scores:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Section</th>
+        <th>θ̂</th>
+        <th>SE(θ̂)</th>
+        <th>T-score</th>
+        <th>Items</th>
+        <th>Direction vs expected</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>PQ</b> — Physical Functioning</td>
+        <td class="num">−0.759</td>
+        <td class="num">0.265</td>
+        <td class="num">42.41</td>
+        <td class="num center">5</td>
+        <td class="good">✓ Correct (negative as expected)</td>
+      </tr>
+      <tr>
+        <td><b>MQ</b> — Positive Mindset</td>
+        <td class="num">−2.922</td>
+        <td class="num">0.776</td>
+        <td class="num">20.78</td>
+        <td class="num center">8</td>
+        <td class="good">✓ Correct direction (more extreme than expected magnitude)</td>
+      </tr>
+      <tr>
+        <td><b>SQ</b> — Social Relations</td>
+        <td class="num bad">+4.609</td>
+        <td class="num">1.281</td>
+        <td class="num">96.09</td>
+        <td class="num center">8</td>
+        <td class="bad">✗ Inverted — saturates at the positive bound for "no social support" profile</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout danger">
+    <strong>SQ T-score = 96.09 for a respondent who said they have no social support, no family
+    contact, no friends.</strong> This is the bug Chin De Zhi reported. A clinician reading
+    this score would conclude the patient has exceptional social wellbeing — the opposite of
+    the truth.
+  </div>
+
+  <h3>3.1 The SQ section item-by-item</h3>
+  <table>
+    <thead><tr><th>#</th><th>Item</th><th>α (raw)</th><th>α-sign</th><th>Response</th></tr></thead>
+    <tbody>
+      <tr><td class="center">1</td><td>SQ32 — "I have someone to talk to about my problems"</td><td class="num">−0.39</td><td class="bad">negative</td><td>Never</td></tr>
+      <tr><td class="center">2</td><td>SQ47 — "Overall, I am satisfied with the support I get from my family"</td><td class="num">−0.57</td><td class="bad">negative</td><td>Never</td></tr>
+      <tr><td class="center">3</td><td>SQ46 — "Overall, I am happy with my family relationships"</td><td class="num">−0.64</td><td class="bad">negative</td><td>Never</td></tr>
+      <tr><td class="center">4</td><td>SQ08 — "My family is willing to give me information when I need it"</td><td class="num">−0.64</td><td class="bad">negative</td><td>Never</td></tr>
+      <tr><td class="center">5</td><td>SQ19 — "People turn up when I organize social activities and gatherings"</td><td class="num">+0.64</td><td class="good">positive</td><td>Never</td></tr>
+      <tr><td class="center">6</td><td>SQ12 — "I keep in touch with my family"</td><td class="num">−1.07</td><td class="bad">negative</td><td>Never</td></tr>
+      <tr><td class="center">7</td><td>SQ39 — "I live harmoniously with others"</td><td class="num">−0.88</td><td class="bad">negative</td><td>Never</td></tr>
+      <tr><td class="center">8</td><td>SQ10 — "I take care of my family"</td><td class="num">−0.80</td><td class="bad">negative</td><td>Never</td></tr>
+    </tbody>
+  </table>
+  <p class="small">7 of 8 SQ items have raw α &lt; 0. The cumulative negative-α α² sum (≈ 4.4) dominates the positive-α α² (≈ 0.4) by an order of magnitude — which is why the inversion is so extreme in this section.</p>
+</section>
+
+<!-- ============ 4. BEST-CASE RUN ============ -->
+<section id="best">
+  <h2><span class="num">04</span> Best-case profile run — the mirror confirms the bug</h2>
+  <p class="lede">
+    Same form, same engine, same calibration. Only the response pattern changed. 18 items
+    administered across PQ (2), MQ (8), SQ (8). All responses "Without any difficulty" /
+    "Always". Final scores:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Section</th>
+        <th>θ̂</th>
+        <th>SE(θ̂)</th>
+        <th>T-score</th>
+        <th>Items</th>
+        <th>Direction vs expected</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>PQ</b> — Physical Functioning</td>
+        <td class="num">+0.262</td>
+        <td class="num">0.220</td>
+        <td class="num">52.62</td>
+        <td class="num center">2</td>
+        <td class="good">✓ Direction correct (positive, though magnitude small)</td>
+      </tr>
+      <tr>
+        <td><b>MQ</b> — Positive Mindset</td>
+        <td class="num bad">−3.562</td>
+        <td class="num">0.844</td>
+        <td class="num">14.38</td>
+        <td class="num center">8</td>
+        <td class="bad">✗ Direction wrong (negative for max-positive-mindset profile)</td>
+      </tr>
+      <tr>
+        <td><b>SQ</b> — Social Relations</td>
+        <td class="num bad">−4.699</td>
+        <td class="num">1.337</td>
+        <td class="num">3.01</td>
+        <td class="num center">8</td>
+        <td class="bad">✗ Inverted — saturates at the negative bound for "full social support" profile</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.1 Two-run comparison — the mirror evidence</h3>
+
+  <div class="plot-card">
+    <h4 style="margin-top:0">θ̂ by section, both profiles</h4>
+    <div class="compare-bars" id="compareBars"></div>
+  </div>
+
+  <div class="callout danger">
+    <strong>The SQ result is the headline.</strong> Worst-case responses → θ̂ = +4.61.
+    Best-case responses → θ̂ = −4.70. These are **mirror reflections across zero** — the
+    engine is computing θ̂ in the literal opposite direction of what the responses indicate.
+    A perfectly-engineered bug.
+  </div>
+
+  <h3>4.2 What this proves</h3>
+  <ul>
+    <li><b>The bug is systematic</b>, not a one-off measurement artefact. Two completely independent response patterns produce mirror-symmetric inverted results.</li>
+    <li><b>The bug affects only direction, not magnitude</b>. The absolute value of θ̂ is approximately right (~4.6 in both cases — appropriate for an extreme respondent profile). Only the sign is flipped.</li>
+    <li><b>PQ is largely unaffected</b> because the PQ items administered are dominated by high-α positive-α items (e.g., PQ42 marathon at α=5.02). Positive-α items work correctly in both engine states. <strong>PQ working should NOT be taken as evidence the engine works overall.</strong></li>
+    <li><b>MQ shows a moderate bug signal</b> — negative θ̂ in both runs — because random-first picks different starting items in the two runs, producing different α-sign mixes in the administered set. The bug is present, but more subtle than in SQ.</li>
+  </ul>
+</section>
+
+<!-- ============ 5. MECHANISM ============ -->
+<section id="mechanism">
+  <h2><span class="num">05</span> The bug mechanism — why this is happening</h2>
+  <p class="lede">
+    The math: when the engine processes a calibration with α &lt; 0 but treats α directly
+    (without sign normalisation), the GRM probability function reverses its monotonicity
+    in θ. The MLE estimator then maximises likelihood in the opposite direction of what
+    the response coding indicates.
+  </p>
+
+  <h3>5.1 The 2PL cumulative function</h3>
+  <p>For a single threshold β with discrimination α:</p>
+  <div class="eq">
+    <span class="label">2PL cumulative</span>
+    P*(θ; α, β) = σ(α · (θ − β)),&nbsp;&nbsp; σ(x) = (1 + e<sup>−x</sup>)<sup>−1</sup>
+  </div>
+  <p>
+    The slope direction is controlled by the sign of α. If α &gt; 0, P* increases as θ rises.
+    If α &lt; 0, P* increases as θ <em>falls</em>. Without normalisation, the engine processes
+    negative-α items with the inverted slope.
+  </p>
+
+  <h3>5.2 Interactive demonstration — drag the slider</h3>
+  <div class="plot-card">
+    <div class="controls">
+      <label>α (discrimination):
+        <input type="range" id="alphaSlider" min="-2.5" max="2.5" step="0.01" value="-1.12">
+        <span class="alpha-display" id="alphaValue">−1.12</span>
+      </label>
+      <button type="button" class="preset bad" id="presetNeg">α = −1.12 (SQ01 as shipped)</button>
+      <button type="button" class="preset good" id="presetPos">α = +1.12 (after normalisation)</button>
+    </div>
+    <svg class="plot-svg" id="plotSvg" viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg" role="img">
+      <rect x="0" y="0" width="800" height="220" fill="white"/>
+      <line x1="60" y1="180" x2="760" y2="180" stroke="#5b6b82"/>
+      <line x1="60" y1="20" x2="60" y2="180" stroke="#5b6b82"/>
+      <g stroke="#e8eef7" stroke-width=".5">
+        <line x1="60" y1="60" x2="760" y2="60"/>
+        <line x1="60" y1="100" x2="760" y2="100"/>
+        <line x1="60" y1="140" x2="760" y2="140"/>
+      </g>
+      <text x="50" y="184" font-size="11" fill="#5b6b82" text-anchor="end">0</text>
+      <text x="50" y="144" font-size="11" fill="#5b6b82" text-anchor="end">0.25</text>
+      <text x="50" y="104" font-size="11" fill="#5b6b82" text-anchor="end">0.5</text>
+      <text x="50" y="64" font-size="11" fill="#5b6b82" text-anchor="end">0.75</text>
+      <text x="50" y="24" font-size="11" fill="#5b6b82" text-anchor="end">1</text>
+      <text x="60" y="200" font-size="11" fill="#5b6b82" text-anchor="middle">−5</text>
+      <text x="410" y="200" font-size="11" fill="#5b6b82" text-anchor="middle">θ = 0</text>
+      <text x="760" y="200" font-size="11" fill="#5b6b82" text-anchor="middle">+5</text>
+      <line id="betaMark" x1="450" y1="20" x2="450" y2="180" stroke="#ffb81c" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="454" y="32" font-size="10" fill="#b88200">β = 0.32</text>
+      <path id="probCurve" d="" fill="none" stroke="#002185" stroke-width="2.5"/>
+    </svg>
+    <div class="plot-explain" id="plotExplain">
+      <strong>α = −1.12 (live SQ calibration).</strong> P*(θ) decreases in θ — the cumulative probability of endorsing higher categories falls as the latent trait rises. The MLE for a high-category response pattern lands on the wrong side of zero. This is the bug.
+    </div>
+  </div>
+
+  <h3>5.3 Why each section behaves differently</h3>
+  <p>Each section's behaviour depends on the α² balance of items administered. We use the squared α (Fisher information weight) because that's what determines the magnitude of each item's pull on θ̂:</p>
+
+  <table>
+    <thead>
+      <tr><th>Section</th><th>Positive-α α² (items pull correct direction)</th><th>Negative-α α² (items pull wrong direction)</th><th>Dominant direction</th><th>Observed behaviour</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>PQ</b> — 5 items administered</td>
+        <td class="num good">~45.9 (PQ42 α=5.02 dominates)</td>
+        <td class="num">~1.3</td>
+        <td>Positive-α overwhelmingly dominates (~35×)</td>
+        <td>Bug invisible — direction looks correct</td>
+      </tr>
+      <tr>
+        <td><b>MQ</b> — 8 items administered, depends on which items</td>
+        <td class="num">1.5 to 4.8 (varies)</td>
+        <td class="num">2.9 to 3.4 (varies)</td>
+        <td>Either can dominate depending on random-first pick</td>
+        <td>Bug partially visible — magnitude inflated, direction sometimes wrong</td>
+      </tr>
+      <tr>
+        <td><b>SQ</b> — 8 items administered</td>
+        <td class="num">~0.4 (only one positive-α item in pool)</td>
+        <td class="num bad">~4.4 (7 negative-α items)</td>
+        <td>Negative-α overwhelmingly dominates (~11×)</td>
+        <td>Bug fully visible — direction fully inverted</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    This α² balance explanation is consistent across both test runs and explains why
+    different patients see different magnitudes of the bug.
+  </p>
+</section>
+
+<!-- ============ 6. PROPOSED FIX ============ -->
+<section id="fix">
+  <h2><span class="num">06</span> Proposed path forward — the recommended fix</h2>
+  <p class="lede">
+    A single, narrowly-scoped change at the calibration-load layer of the engine. No new
+    flags, no new section-level configuration, no <span class="mono">θ × −1</span>
+    post-estimator multiplication. Empirical evidence from a separate Dev 2 test environment
+    earlier today (described in §07) confirms this approach produces correct θ̂ for the
+    SHAW-CAT instrument.
+  </p>
+
+  <h3>6.1 Statement of the fix</h3>
+  <p>Inside <span class="mono">getParamsFromConfig</span> (the function in <span class="mono">utilities.js</span> that translates your calibration JSON into the internal parameter map the estimator uses), apply a pre-pass per item:</p>
+  <div class="eq">
+    <span class="label">Normalisation</span>
+    α<sub>j</sub><sup>*</sup> = |α<sub>j</sub>|,&nbsp;&nbsp; β<sub>j,k</sub><sup>*</sup> = β<sub>j,k</sub>&nbsp; (k = 1, …, K<sub>j</sub>)
+  </div>
+  <p>
+    Every item's α is replaced with its absolute value at load time. β values are left
+    unchanged. The calibration JSON is treated as read-only; the normalisation is in-memory only.
+  </p>
+
+  <h3>6.2 Why this is mathematically correct for SHAW-CAT</h3>
+  <p>
+    Under the GRM, P*(θ; −α, β) = 1 − P*(θ; α, β) by the logistic identity σ(−x) = 1 − σ(x).
+    Negating α reflects the cumulative curve across the P = 0.5 line; this is equivalent
+    (in MLE terms) to reversing the response codes for the item. For SHAW-CAT items, the
+    response codes are calibrated so that high codes = high trait — therefore negating α
+    is the correct sign convention. <strong>Each item gets the same treatment based on its
+    own α sign; no manual flagging is required.</strong>
+  </p>
+
+  <p>
+    Crucially: the SHAW-CAT items with α &lt; 0 in your calibration are all <strong>positively
+    framed</strong> ("I have a good relationship with my family", "I am able to accept who I am",
+    "I feel loved and cared for"). The negative α is therefore a calibration-software
+    sign-convention artefact, not a semantic reversal of the item meaning. The simple
+    α-flip recovers the intended scoring direction. <strong>No θ-level inversion is needed.</strong>
+  </p>
+
+  <h3>6.3 What gets preserved</h3>
+  <div class="grid grid-3">
+    <div class="card tone-good">
+      <h4 style="margin-top:0; color: var(--green-deep)">Item information</h4>
+      <p>Per-item Fisher information <code>I(θ) = α²·P·(1−P)</code> depends only on α². Since |α|² = α², the information ranking is unchanged. <strong>The CAT engine's MFI selection picks the same items before and after the fix.</strong></p>
+    </div>
+    <div class="card tone-good">
+      <h4 style="margin-top:0; color: var(--green-deep)">Item-level β values</h4>
+      <p>β coefficients are untouched. Your calibration's threshold placements remain exactly as your team published.</p>
+    </div>
+    <div class="card tone-good">
+      <h4 style="margin-top:0; color: var(--green-deep)">Calibration file integrity</h4>
+      <p>The normalisation is in-memory only. Your <span class="mono">sq_config.json</span> and equivalent files stay unmodified on disk — preserving provenance and avoiding manual data updates per your client request.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. OPTIONS ============ -->
+<section id="options">
+  <h2><span class="num">07</span> Why this option, not the alternatives</h2>
+  <p class="lede">
+    Today's internal Slack discussion between Slava and Mindy converged on the same
+    conclusion via different paths. For transparency, here are the alternative approaches
+    considered and why each was set aside.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Approach</th><th>Description</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>Auto-normalise α at config load</b> <span class="pill gold">Recommended</span></td>
+        <td>Detect α &lt; 0 and replace with |α| at calibration-load time, per item. No section-level configuration.</td>
+        <td class="good">Adopt. Empirically validated this morning on a separate Dev 2 environment (SQ θ̂ = −4.41 for worst-case responses — correct direction). Mathematically equivalent to the manual workaround your team has used during testing.</td>
+      </tr>
+      <tr>
+        <td>Multiply θ̂ by −1 after estimation</td>
+        <td>Run the estimator with raw α (or after α-flip), then multiply the final θ̂ by −1.</td>
+        <td class="warn">Mathematically equivalent to α-flip when applied <em>alone</em>, but <strong>dangerous to apply on top of α-flip</strong> — would double-invert and re-introduce the bug. Not needed if α-flip is implemented at config load.</td>
+      </tr>
+      <tr>
+        <td>Per-section <span class="mono">invert_theta: true</span> flag</td>
+        <td>Manually flag sections (SQ, MQ) as "wellness-positive" and multiply θ̂ by −1 only for flagged sections.</td>
+        <td class="bad">Reject. Adds configuration burden, doesn't auto-detect new banks, and the per-item α-flip already provides the same logical effect without requiring a section-level decision.</td>
+      </tr>
+      <tr>
+        <td>Manually flip α in calibration files</td>
+        <td>Edit the <span class="mono">sq_config.json</span> to replace α values with their absolute values before the engine reads them.</td>
+        <td class="bad">Reject. Per the client request, calibration files should not be modified. Also creates provenance issues — the team's published α values diverge from the engine's operative α values.</td>
+      </tr>
+      <tr>
+        <td>Bypass CAT for SHAW-CAT, use fixed-form sum scoring</td>
+        <td>Turn off the adaptive engine; administer all items.</td>
+        <td class="bad">Reject. Loses every benefit of CAT-IRT (shorter forms, comparable θ across patients) and is functionally a retreat.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>7.1 The empirical evidence that α-flip alone is sufficient</h3>
+  <p>
+    Earlier today, on a separate Dev 2 deployment with the per-item α-normalisation operating
+    correctly, the same worst-case profile produced:
+  </p>
+  <table>
+    <thead><tr><th>Section</th><th>This morning's Dev 2 (with α-flip operating)</th><th>This afternoon's test environment (fix not operating)</th></tr></thead>
+    <tbody>
+      <tr><td>PQ θ̂ (worst-case)</td><td class="num good">−0.66</td><td class="num">−0.76</td></tr>
+      <tr><td>MQ θ̂ (worst-case)</td><td class="num good">−1.66</td><td class="num">−2.92</td></tr>
+      <tr><td>SQ θ̂ (worst-case)</td><td class="num good">−4.41</td><td class="num bad">+4.61</td></tr>
+    </tbody>
+  </table>
+  <p>
+    With the fix operating (morning Dev 2 run): all three sections produce negative θ̂ for
+    worst-case responses, as expected. Without the fix (current Dev 2 form): SQ inverts to
+    +4.61. <strong>The α-flip alone is sufficient — no additional θ-layer inversion is needed.</strong>
+  </p>
+</section>
+
+<!-- ============ 8. IMPLEMENTATION ============ -->
+<section id="plan">
+  <h2><span class="num">08</span> Implementation plan &amp; timeline</h2>
+
+  <h3>8.1 What needs to happen</h3>
+  <ol class="steps">
+    <li><b>Confirm the diagnostic.</b> Engineering inspects the calibration-load path for the deployed SHAW-CAT form and confirms whether the existing <span class="mono">getParamsFromConfig</span> α-flip code is being called for this form's <span class="mono">irtConfigFormula → variableValue</span> resolution chain. <em>Today's tests strongly indicate it isn't.</em></li>
+    <li><b>Deploy the fix to the form's code path.</b> If the α-flip code is not running for the form, route the calibration load through it. If the code is running but bypassed by a subsequent layer, identify and remove the bypass.</li>
+    <li><b>Add belt-and-braces guards.</b> Post-α-flip, assert β is non-decreasing (per Mindy's earlier review). Throw a named error if the contract is violated. This guards against future calibrations shipped with descending β.</li>
+    <li><b>Add 4 unit tests</b> covering: (i) negative-α normalisation per item, (ii) θ̂-equivalence between (α, β) and (−α, β) parametrisations, (iii) information-invariance under α-sign, (iv) contract assertion on β monotonicity.</li>
+    <li><b>Re-run the two-profile validation</b> (today's worst-case + best-case protocols) on the fixed form. Pass criteria: SQ θ̂ ≈ −4 to −5 for worst-case, ≈ +4 to +5 for best-case (mirror symmetric, correct direction).</li>
+    <li><b>Singapore team independent re-test</b> on the fixed form before final acceptance.</li>
+  </ol>
+
+  <h3>8.2 Indicative timeline</h3>
+  <table>
+    <thead><tr><th>Day</th><th>Activity</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td>Tonight (13 May)</td><td>Joint meeting — agree on approach</td><td>Both teams</td></tr>
+      <tr><td>14 May</td><td>Engineering diagnoses why α-flip isn't running on the deployed form</td><td>TheClinician engineering</td></tr>
+      <tr><td>14–15 May</td><td>Deploy fix to Dev 2 form; internal two-profile validation re-run</td><td>TheClinician engineering</td></tr>
+      <tr><td>16 May</td><td>Singapore team re-tests on fixed form; sign-off</td><td>SingHealth / MOHH teams</td></tr>
+      <tr><td>+ 1 week post-sign-off</td><td>Staged rollout to PQSS staging → PQSS production</td><td>TheClinician engineering</td></tr>
+    </tbody>
+  </table>
+
+  <h3>8.3 What we'll deliver alongside the fix</h3>
+  <ul>
+    <li>Updated engineering brief — file-by-file diff, design rationale, references</li>
+    <li>Updated customer-facing methodology brief — psychometric framing for your team's records</li>
+    <li>Updated live-validation report — covering both today's bug-reproduction runs and the post-fix validation re-run</li>
+    <li>Test fixtures for independent verification in <em>catR</em> or <em>mirtCAT</em> if your team wishes to validate in your preferred R-based stack</li>
+  </ul>
+</section>
+
+<!-- ============ 9. MEETING ============ -->
+<section id="meeting">
+  <h2><span class="num">09</span> Discussion points for tonight's meeting</h2>
+  <p class="lede">
+    Four questions we'd value alignment on during tonight's discussion. None requires a
+    decision in the meeting if it isn't ready — these are framings to help the conversation
+    converge.
+  </p>
+
+  <details open>
+    <summary>1. Do we agree on the diagnosis?</summary>
+    <p>
+      The two-run mirror evidence (SQ θ̂ = +4.61 worst-case, −4.70 best-case) and the
+      cross-environment comparison (same form configuration on a separate Dev 2 deployment
+      producing the correct −4.41 with α-flip operating) together point at a single
+      diagnosis: the per-item α-normalisation is not being applied in the calibration-load
+      path of the form your team is currently testing. <strong>Is this diagnosis your
+      psychometric team's read as well?</strong>
+    </p>
+  </details>
+
+  <details open>
+    <summary>2. Do we agree on the proposed fix?</summary>
+    <p>
+      Per-item auto-flip of α at calibration load time (Slava's existing approach), no
+      additional θ-level inversion, no section-level flags. Mathematically equivalent to the
+      manual workaround your team has been using during testing, and to Mindy's
+      auto-detect-by-α-sign proposal. <strong>Any psychometric concerns from your side?</strong>
+    </p>
+  </details>
+
+  <details>
+    <summary>3. Randomesque pool size — top-5, top-3, or weighted?</summary>
+    <p>
+      Yu Heng and Silvana's observations about non-adaptive behaviour have a second component
+      independent of the α-sign bug: the top-5 randomesque selection introduces noise into
+      MFI ordering. Mindy's earlier review suggested reducing to top-2 or 3, or implementing
+      information-weighting (e.g., #1 item gets 70% probability). <strong>What's your team's
+      preference for the production deployment — keep top-5, narrow to top-3, or move to
+      weighted selection?</strong>
+    </p>
+  </details>
+
+  <details>
+    <summary>4. SE-threshold and maxItems calibration</summary>
+    <p>
+      With the bug operating, today's MQ section terminated at 8 items with SE = 0.84
+      (well above the 0.30 threshold). Once the fix lands, we'd expect MQ to terminate
+      earlier and within-threshold for typical profiles. <strong>Should we plan a follow-up
+      session to verify the SE ≤ 0.30 threshold is achievable within 8 items across the
+      three banks after the fix is live?</strong> If not, options are to widen to 10 items
+      or relax the threshold to 0.40.
+    </p>
+  </details>
+</section>
+
+<!-- ============ 10. REFERENCES ============ -->
+<section id="refs">
+  <h2><span class="num">10</span> References</h2>
+  <ol style="font-size:13.5px; color:var(--navy-2);">
+    <li><b>Chalmers, R. P. (2016).</b> Generating Adaptive and Non-Adaptive Test Interfaces for Multidimensional Item Response Theory Applications. <em>Journal of Statistical Software</em>, 71(5), 1–39. doi:10.18637/jss.v071.i05.</li>
+    <li><b>Magis, D., &amp; Barrada, J. R. (2017).</b> Computerized Adaptive Testing with R: Recent Updates of the Package catR. <em>Journal of Statistical Software</em>, 76, Code Snippet 1.</li>
+    <li><b>Samejima, F. (1969).</b> Estimation of latent ability using a response pattern of graded scores. <em>Psychometrika Monograph</em> 34.</li>
+    <li><b>Samejima, F. (1996).</b> The graded response model. In van der Linden &amp; Hambleton (eds.), <em>Handbook of Modern Item Response Theory</em>. Springer.</li>
+    <li><b>Kingsbury, G. G., &amp; Zara, A. R. (1989).</b> Procedures for selecting items for computerized adaptive tests. <em>Applied Measurement in Education</em>, 2(4), 359–375.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>Prepared by <b>TheClinician</b> for the Singapore Healthy Ageing &amp; Wellbeing (SHAW-CAT) programme team. Report ref TC-SHAW-2026-05-MTG. Issued 13 May 2026 ahead of the evening review meeting. Test runs conducted 12 May 2026.</p>
+  <p>All numerical results in this brief are exact engine outputs from the two test sessions conducted on Dev 2 on 12 May 2026. Items administered, their α and β values, displayed text, and response-option labels were captured as the tests progressed through the patient-app UI.</p>
+</footer>
+
+</div>
+
+<script>
+(function() {
+  "use strict";
+  document.getElementById("btnPrint").addEventListener("click", () => window.print());
+
+  document.querySelectorAll('a[href^="#"]').forEach(el => {
+    el.addEventListener("click", (e) => {
+      const t = el.getAttribute("href");
+      if (!t || t === "#") return;
+      const n = document.querySelector(t);
+      if (!n) return;
+      e.preventDefault();
+      n.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  // 2PL plot
+  const slider = document.getElementById("alphaSlider");
+  const display = document.getElementById("alphaValue");
+  const path = document.getElementById("probCurve");
+  const plotExplain = document.getElementById("plotExplain");
+  const presetNeg = document.getElementById("presetNeg");
+  const presetPos = document.getElementById("presetPos");
+  const BETA = 0.32;
+  const PLOT = { x0: 60, x1: 760, y0: 180, y1: 20, thetaMin: -5, thetaMax: 5 };
+
+  function sigmoid(theta, alpha, beta) { return 1 / (1 + Math.exp(-alpha * (theta - beta))); }
+
+  function drawCurve(alpha) {
+    const N = 200;
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      const theta = PLOT.thetaMin + (i / N) * (PLOT.thetaMax - PLOT.thetaMin);
+      const p = sigmoid(theta, alpha, BETA);
+      const x = PLOT.x0 + (i / N) * (PLOT.x1 - PLOT.x0);
+      const y = PLOT.y0 - p * (PLOT.y0 - PLOT.y1);
+      pts.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    path.setAttribute("d", pts.join(" "));
+    if (alpha < 0) {
+      path.setAttribute("stroke", "#b8312a");
+      plotExplain.innerHTML = `<strong>α = ${alpha.toFixed(2)} (negative, as shipped in SQ calibration).</strong> P*(θ) decreases in θ — high-category responses are <em>more</em> likely at low θ. The MLE for a response pattern of high categories falls in the negative θ region. <strong>This is the bug behaviour observed today.</strong>`;
+      plotExplain.style.background = "var(--red-soft)";
+      plotExplain.style.color = "var(--navy-2)";
+    } else if (alpha > 0) {
+      path.setAttribute("stroke", "#0f8a5f");
+      plotExplain.innerHTML = `<strong>α = +${alpha.toFixed(2)} (after α-flip normalisation).</strong> P*(θ) increases in θ — the standard GRM form. The MLE falls in the correct direction. Item information I(θ) = α²·P·(1−P) is unchanged from the negative-α case (depends only on α²).`;
+      plotExplain.style.background = "var(--green-soft)";
+      plotExplain.style.color = "var(--green-deep)";
+    } else {
+      path.setAttribute("stroke", "#5b6b82");
+      plotExplain.innerHTML = `<strong>α = 0.</strong> Uninformative item.`;
+      plotExplain.style.background = "var(--ice-soft)";
+      plotExplain.style.color = "var(--navy-2)";
+    }
+  }
+
+  function setAlpha(a) {
+    slider.value = a;
+    const n = parseFloat(a);
+    display.textContent = (n >= 0 ? "+" : "") + n.toFixed(2);
+    drawCurve(n);
+  }
+
+  slider.addEventListener("input", () => setAlpha(slider.value));
+  presetNeg.addEventListener("click", () => setAlpha(-1.12));
+  presetPos.addEventListener("click", () => setAlpha(1.12));
+  setAlpha(-1.12);
+
+  // Comparison bars
+  const bars = document.getElementById("compareBars");
+  const data = [
+    { label: "PQ θ̂ — worst-case", sub: '"Unable to do" on every PQ item', value: -0.76 },
+    { label: "PQ θ̂ — best-case", sub: '"Without difficulty" on every PQ item', value: +0.26 },
+    { label: "MQ θ̂ — worst-case", sub: '"Never" on every MQ item', value: -2.92 },
+    { label: "MQ θ̂ — best-case", sub: '"Always" on every MQ item', value: -3.56, bad: true },
+    { label: "SQ θ̂ — worst-case", sub: 'Should be strongly negative', value: +4.61, bad: true },
+    { label: "SQ θ̂ — best-case", sub: 'Should be strongly positive', value: -4.70, bad: true },
+  ];
+  const minV = -5, maxV = 5;
+  const range = maxV - minV;
+  const zeroPos = (-minV / range) * 100;
+
+  data.forEach(d => {
+    const row = document.createElement("div");
+    row.className = "compare-bar-row";
+    const fillW = (Math.abs(d.value) / range) * 100;
+    const fillL = d.value >= 0 ? zeroPos : zeroPos - fillW;
+    const fillBg = d.bad ? "var(--red)" : (d.value >= 0 ? "var(--green)" : "var(--navy)");
+    row.innerHTML = `
+      <div class="label-cell">${d.label}<small>${d.sub}</small></div>
+      <div class="compare-bar-bg">
+        <div class="axis-zero" style="left:${zeroPos}%"></div>
+        <div class="compare-bar-fill" style="left:${fillL}%;width:${fillW}%;background:${fillBg}"></div>
+      </div>
+      <div class="compare-bar-value">${d.value >= 0 ? "+" : ""}${d.value.toFixed(2)}</div>
+    `;
+    bars.appendChild(row);
+  });
+})();
+</script>
+
+</body>
+</html>
