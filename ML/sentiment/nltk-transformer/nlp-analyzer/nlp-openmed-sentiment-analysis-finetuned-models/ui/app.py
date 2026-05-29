@@ -4954,6 +4954,76 @@ def _build_topic_pie_chart(topics, top_n, topic_model_label):
     return fig
 
 
+def _build_monthly_topic_chart(sections, topic_model_key, topic_model_label):
+    from concurrent.futures import ThreadPoolExecutor
+
+    _palette = [
+        "#8e44ad", "#3498db", "#27ae60", "#e67e22", "#e74c3c",
+        "#1abc9c", "#f39c12", "#2980b9", "#c0392b", "#16a085",
+        "#d35400", "#7f8c8d", "#2c3e50", "#8e44ad", "#27ae60",
+    ]
+
+    def _fetch(args):
+        label, body = args
+        try:
+            r = requests.post(
+                f"{_TOPIC_API_BASE}/classify",
+                headers={"x-api-key": _TOPIC_API_KEY, "Content-Type": "application/json"},
+                json={"text": body, "models": [topic_model_key], "top_n": 1},
+                timeout=20,
+            )
+            r.raise_for_status()
+            cls = r.json()["results"][0]["classifications"].get(topic_model_key, {})
+            return label, cls.get("topic_name", "Unknown"), round(cls.get("confidence", 0) * 100, 1)
+        except Exception:
+            return label, "Error", 0.0
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        results = list(ex.map(_fetch, sections))
+
+    # Shorten month label to "Month N" for readability
+    def _short(lbl):
+        m = re.match(r'(Month\s*\d+)', lbl, re.IGNORECASE)
+        return m.group(1) if m else lbl.split("—")[0].strip()
+
+    months     = [_short(r[0]) for r in results]
+    top_topics = [r[1] for r in results]
+    top_scores = [r[2] for r in results]
+
+    # Assign a stable color to each unique topic
+    unique_topics = list(dict.fromkeys(top_topics))
+    color_map = {t: _palette[i % len(_palette)] for i, t in enumerate(unique_topics)}
+
+    fig = go.Figure()
+    for topic in unique_topics:
+        idxs = [i for i, t in enumerate(top_topics) if t == topic]
+        fig.add_trace(go.Bar(
+            name=topic,
+            x=[months[i] for i in idxs],
+            y=[top_scores[i] for i in idxs],
+            marker_color=color_map[topic],
+            hovertemplate=(
+                "<b>%{x}</b><br>"
+                f"<b>Topic:</b> {topic}<br>"
+                "<b>Score:</b> %{y:.1f}%"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.update_layout(
+        title=dict(text=f"Monthly Topic Distribution — {topic_model_label}", x=0.5, font=dict(size=14)),
+        xaxis=dict(title="Month", tickangle=-30),
+        yaxis=dict(title="Confidence Score (%)", range=[0, 110]),
+        barmode="group",
+        legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5),
+        height=420,
+        margin=dict(l=20, r=20, t=60, b=100),
+        paper_bgcolor="white",
+        plot_bgcolor="#fdf9ff",
+    )
+    return fig
+
+
 def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
     topic_names = [t["topic_name"] for t in topics[:top_n]]
     all_probs   = []
@@ -5060,12 +5130,12 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ No text loaded — please load patient data first</span>')
-        return err, "", "", None, None
+        return err, "", "", None, None, None
     if len(text_input.strip().split()) < 4:
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ Text too short (minimum 4 words)</span>')
-        return err, "", "", None, None
+        return err, "", "", None, None, None
 
     topic_model_key  = _TOPIC_DISPLAY_TO_KEY.get(topic_model_label, "bertopic_mini")
     sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
@@ -5084,7 +5154,7 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         err = (f'<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                f'⚠ API error: {str(exc)[:120]}</span>')
-        return err, "", "", None, None
+        return err, "", "", None, None, None, None
 
     classifications = data["results"][0]["classifications"]
     elapsed  = data.get("elapsed_sec", 0)
@@ -5125,7 +5195,15 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
         text_input, topics, top1, sentiment_model_label,
         topic_model_label, sentiment_labels, all_probs, int(top_n), elapsed,
     )
-    return status_html, consensus_html, table_html, fig, report
+
+    # Monthly topic distribution — only when ≥2 month sections are present
+    sections = _parse_month_sections(text_input)
+    monthly_fig = (
+        _build_monthly_topic_chart(sections, topic_model_key, topic_model_label)
+        if len(sections) >= 2 else None
+    )
+
+    return status_html, consensus_html, table_html, fig, report, monthly_fig
 
 
 def update_months(patient):
@@ -5331,6 +5409,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 topic_table = gr.Plot(show_label=False)
                 topic_chart = gr.Plot(show_label=False)
             with gr.Row():
+                topic_monthly_chart = gr.Plot(show_label=False)
+            with gr.Row():
                 topic_report = gr.File(label="Download Topic Report (.html)", interactive=False)
 
         # ── Tab 4: About ──────────────────────────────────────────────────
@@ -5419,7 +5499,7 @@ examples/
                  ner_out, pos_out]
     _plot_out  = [prob_plot, wc_plot, dist_plot]
     _file_out  = [report_file, report_file_pdf, report_file_html]
-    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report]
+    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report, topic_monthly_chart]
 
     topic_run_btn.click(
         fn=run_topic_analysis,
@@ -5428,7 +5508,7 @@ examples/
     )
 
     _shared_reset  = [text_input, file_input, sample_dd, load_status]
-    _topic_reset   = ["", "", None, None, None]
+    _topic_reset   = ["", "", None, None, None, None]
 
     clear_btn.click(
         fn=lambda: ("", None, [], "",
