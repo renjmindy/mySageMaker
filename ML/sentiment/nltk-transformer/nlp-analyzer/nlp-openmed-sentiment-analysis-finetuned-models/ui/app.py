@@ -4353,24 +4353,36 @@ def _build_pdf_report(text, sentiment, model_label, probabilities, labels, prepr
 
     # ── Word distribution ─────────────────────────────────────────────────────
     story += section("Word-level Distribution")
-    dist_data = [[Paragraph("<b>Category</b>", body), Paragraph("<b>Count</b>", body), Paragraph("<b>Words</b>", body)]]
-    for label, words in word_dist.word_lists.items():
-        dist_data.append([
-            Paragraph(label.upper(), body),
-            Paragraph(str(len(words)), body),
-            Paragraph(", ".join(words) or "—", mono),
-        ])
-    dist_tbl = Table(dist_data, colWidths=[1.2 * inch, 0.7 * inch, 5.0 * inch], splitByRow=1)
-    dist_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#8e44ad")),
-        ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
-        ("GRID",       (0, 0), (-1, -1), 0.3, colors.HexColor("#bdc3c7")),
-        ("VALIGN",     (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
+    # Header row as its own table
+    hdr_tbl = Table(
+        [[Paragraph("<b>Category</b>", body), Paragraph("<b>Count</b>", body), Paragraph("<b>Words</b>", body)]],
+        colWidths=[1.2 * inch, 0.7 * inch, 5.0 * inch],
+    )
+    hdr_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, 0), colors.HexColor("#8e44ad")),
+        ("TEXTCOLOR",     (0, 0), (-1, 0), colors.white),
+        ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#bdc3c7")),
+        ("TOPPADDING",    (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
     ]))
-    story.append(dist_tbl)
+    story.append(hdr_tbl)
+    # One mini-table per category row so each is an independent flowable
+    dist_row_style = TableStyle([
+        ("GRID",          (0, 0), (-1, -1), 0.3, colors.HexColor("#bdc3c7")),
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+    ])
+    for label, words in word_dist.word_lists.items():
+        word_str = _tok_str(words, max_n=50) if words else "—"
+        row_tbl = Table(
+            [[Paragraph(label.upper(), body), Paragraph(str(len(words)), body), Paragraph(word_str, mono)]],
+            colWidths=[1.2 * inch, 0.7 * inch, 5.0 * inch],
+        )
+        row_tbl.setStyle(dist_row_style)
+        story.append(row_tbl)
 
     doc.build(story)
     buf.seek(0)
