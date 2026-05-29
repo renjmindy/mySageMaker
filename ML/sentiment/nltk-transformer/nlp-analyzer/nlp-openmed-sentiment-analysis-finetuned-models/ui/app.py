@@ -4900,12 +4900,23 @@ def update_months(patient):
 
 def load_sample(patient, names):
     if not patient or not names:
-        return ""
+        return "", (
+            '<span style="background:#e67e22;color:#fff;border-radius:20px;'
+            'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
+            '⚠ No months selected</span>'
+        )
     if isinstance(names, str):
         names = [names]
     samples = PATIENT_SAMPLES.get(patient, {})
     parts = [f"[{n}]\n{samples[n]}" for n in names if n in samples]
-    return "\n\n".join(parts)
+    text = "\n\n".join(parts)
+    n = len(parts)
+    status = (
+        f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
+        f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
+        f'✓ {n} month{"s" if n != 1 else ""} loaded for {patient}</span>'
+    )
+    return text, status
 
 
 # ── Gradio layout ─────────────────────────────────────────────────────────────
@@ -4941,6 +4952,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
         )
     with gr.Row():
         load_btn = gr.Button("Load selected month(s)", variant="secondary")
+    load_status = gr.HTML()
 
     gr.Markdown("---")
 
@@ -5117,7 +5129,7 @@ examples/
 
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
-    load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input])
+    load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
     ts_btn.click(
         fn=run_timeseries,
         inputs=[text_input, ts_model_dd],
@@ -5144,16 +5156,16 @@ examples/
     _plot_out  = [prob_plot, wc_plot, dist_plot]
     _file_out  = [report_file, report_file_pdf, report_file_html]
     clear_btn.click(
-        fn=lambda: ("", None, [],
+        fn=lambda: ("", None, [], "",
                     *[""] * len(_html_out),
                     *[None] * len(_plot_out),
                     *[None] * len(_file_out)),
-        outputs=[text_input, file_input, sample_dd] + _html_out + _plot_out + _file_out,
+        outputs=[text_input, file_input, sample_dd, load_status] + _html_out + _plot_out + _file_out,
     )
 
     ts_clear_btn.click(
-        fn=lambda: ("", None, [], "", None, None, None, None),
-        outputs=[text_input, file_input, sample_dd,
+        fn=lambda: ("", None, [], "", "", None, None, None, None),
+        outputs=[text_input, file_input, sample_dd, load_status,
                  ts_summary, ts_line_plot, ts_cat_plot, ts_delta_plot, ts_report_file],
     )
 
