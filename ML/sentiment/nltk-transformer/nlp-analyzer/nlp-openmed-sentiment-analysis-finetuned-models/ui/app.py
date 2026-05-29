@@ -5085,10 +5085,11 @@ def run_topic_analysis(text_input, topic_model_label, sentiment_model_label, top
     consensus_html = (
         f'<div style="margin:10px 0;">'
         f'<span style="font-size:0.85rem;color:#6b7280;margin-right:8px;font-weight:600;">Top topic:</span>'
-        f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
+        f'<span style="background:#27ae60;color:#fff !important;border-radius:20px;'
         f'padding:5px 18px;font-size:1rem;font-weight:700;">{top1}</span>'
-        f'<span style="font-size:0.82rem;color:#6b7280;margin-left:10px;">'
-        f'({topics[0]["score"]*100:.1f}% confidence)</span></div>'
+        f'<span style="font-size:0.82rem;color:#fff !important;margin-left:10px;'
+        f'background:#27ae60;border-radius:12px;padding:2px 10px;">'
+        f'{topics[0]["score"]*100:.1f}% confidence</span></div>'
         if topics else ""
     )
 
