@@ -4938,7 +4938,9 @@ def _build_topic_pie_chart(topics, top_n, topic_model_label):
         hole=0.35,
         marker=dict(colors=colors, line=dict(color="#fff", width=2)),
         textinfo="label+percent",
-        textfont=dict(size=12, color="#000"),
+        textposition="outside",
+        textfont=dict(size=11, color="#000000"),
+        outsidetextfont=dict(size=11, color="#000000"),
         hovertemplate="<b>%{label}</b><br>Score: %{value:.1f}%<br>Portion: %{percent}<extra></extra>",
     ))
     fig.update_layout(
