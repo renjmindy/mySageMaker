@@ -47,13 +47,40 @@ for pkg in ["punkt", "punkt_tab", "wordnet", "averaged_perceptron_tagger"]:
     nltk.download(pkg, download_dir=os.environ["NLTK_DATA"], quiet=True)
 PY
 
-# Pre-download all three HuggingFace models (faster cold starts)
+# Pre-download all 13 HuggingFace models (faster cold starts)
 RUN mkdir -p ${HF_HOME} && python - <<'PY'
-from transformers import pipeline
-pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment")
-pipeline("sentiment-analysis", model="j-hartmann/emotion-english-distilroberta-base")
-print("All models pre-loaded.")
+from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, pipeline
+
+# ── 11 direct AutoModel models ────────────────────────────────────────────────
+direct = [
+    # Fine-tuned healthcare models (cjen1008)
+    ("cjen1008/bert-healthcare-sentiment_v2",          None),
+    ("cjen1008/distilroberta-healthcare-sentiment_v2", None),
+    ("cjen1008/distilbert-healthcare-sentiment_v2",    None),
+    ("cjen1008/bert-healthcare-sentiment",             None),
+    ("cjen1008/distilbert-healthcare-sentiment",       None),
+    ("cjen1008/distilroberta-healthcare-sentiment",    None),
+    # General-purpose pretrained models
+    ("distilbert-base-uncased-finetuned-sst-2-english",    None),
+    ("nlptown/bert-base-multilingual-uncased-sentiment",   None),
+    ("sohan-ai/sentiment-analysis-model-amazon-reviews",   "distilbert-base-uncased"),
+    ("cardiffnlp/twitter-roberta-base-sentiment-latest",   None),
+    ("textattack/bert-base-uncased-SST-2",                 "bert-base-uncased"),
+]
+for hf_id, tokenizer_id in direct:
+    tok_id = tokenizer_id or hf_id
+    print(f"Downloading {hf_id} …")
+    AutoTokenizer.from_pretrained(tok_id)
+    AutoConfig.from_pretrained(hf_id)
+    AutoModelForSequenceClassification.from_pretrained(hf_id)
+
+# ── 2 pipeline models ─────────────────────────────────────────────────────────
+print("Downloading j-hartmann/emotion-english-distilroberta-base …")
+pipeline("sentiment-analysis", model="j-hartmann/emotion-english-distilroberta-base", top_k=None)
+print("Downloading facebook/bart-large-mnli …")
+pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+print("All 13 models pre-loaded.")
 PY
 
 # Create matplotlib config dir
