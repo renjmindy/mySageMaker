@@ -5240,6 +5240,36 @@ def _compute_risk_label(sentiment, score):
     return "🟢 Low"
 
 
+def _build_monthly_summary_table(months, wards, sentiments, scores, risk_labels):
+    """HTML table showing Month, Ward, Sentiment, Score, Risk as separate columns."""
+    _risk_bg = {"🔴 High": "#fdecea", "🟠 Medium": "#fff3e0", "🟢 Low": "#e8f5e9"}
+    rows = ""
+    for i, (m, w, s, sc, r) in enumerate(zip(months, wards, sentiments, scores, risk_labels)):
+        bg = "#f9f9f9" if i % 2 == 0 else "#ffffff"
+        rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:8px 12px;font-weight:700;color:#000;">{m}</td>'
+            f'<td style="padding:8px 12px;color:#000;">{w}</td>'
+            f'<td style="padding:8px 12px;color:#000;">{s}</td>'
+            f'<td style="padding:8px 12px;text-align:center;font-weight:700;color:#000;">{sc:.1f}</td>'
+            f'<td style="padding:8px 12px;text-align:center;background:{_risk_bg.get(r,"#fff")};'
+            f'font-weight:700;color:#000;">{r}</td>'
+            f'</tr>'
+        )
+    header_style = "padding:8px 12px;background:#2c3e50;color:#fff;text-align:left;"
+    return (
+        '<div style="overflow-x:auto;margin-top:12px;">'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{header_style}">Month</th>'
+        f'<th style="{header_style}">Ward</th>'
+        f'<th style="{header_style}">Sentiment</th>'
+        f'<th style="{header_style}text-align:center;">Score (1–10)</th>'
+        f'<th style="{header_style}text-align:center;">Risk</th>'
+        f'</tr></thead><tbody>{rows}</tbody></table></div>'
+    )
+
+
 def _build_quality_score_chart(months, scores, risk_labels, wards, sentiment_model_label):
     _risk_color = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
     bar_colors  = [_risk_color[r] for r in risk_labels]
@@ -5474,12 +5504,12 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ No text loaded — please load patient data first</span>')
-        return err, "", "", None, None, None, None
+        return err, "", "", None, None, None, None, ""
     if len(text_input.strip().split()) < 4:
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ Text too short (minimum 4 words)</span>')
-        return err, "", "", None, None, None, None
+        return err, "", "", None, None, None, None, ""
 
     topic_model_key  = _TOPIC_DISPLAY_TO_KEY.get(topic_model_label, "bertopic_mini")
     sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
@@ -5498,7 +5528,7 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
         err = (f'<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                f'⚠ API error: {str(exc)[:120]}</span>')
-        return err, "", "", None, None, None, None, None
+        return err, "", "", None, None, None, None, "", None
 
     classifications = data["results"][0]["classifications"]
     elapsed  = data.get("elapsed_sec", 0)
@@ -5555,6 +5585,7 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
         month_labels   = [_short_m(s[0]) for s in sections]
         quality_scores = []
         risk_labels    = []
+        sentiments     = []
         wards          = [get_ward(patient_name, s[0]) for s in sections]
         for _, body in sections:
             try:
@@ -5563,14 +5594,19 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
                 score = _compute_quality_score(month_probs, sentiment_labels)
                 quality_scores.append(score)
                 risk_labels.append(_compute_risk_label(dominant_sent, score))
+                sentiments.append(dominant_sent)
             except Exception:
                 quality_scores.append(5.0)
                 risk_labels.append("🟢 Low")
-        quality_fig = _build_quality_score_chart(
+                sentiments.append("—")
+        quality_fig   = _build_quality_score_chart(
             month_labels, quality_scores, risk_labels, wards, sentiment_model_label
         )
+        summary_table = _build_monthly_summary_table(
+            month_labels, wards, sentiments, quality_scores, risk_labels
+        )
 
-    return status_html, consensus_html, table_html, fig, report, monthly_fig, quality_fig
+    return status_html, consensus_html, table_html, fig, report, monthly_fig, quality_fig, summary_table if len(sections) >= 2 else ""
 
 
 def update_months(patient):
@@ -5779,6 +5815,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 topic_monthly_chart = gr.Plot(show_label=False)
             with gr.Row():
                 topic_score_chart = gr.Plot(show_label=False)
+            topic_summary_table = gr.HTML(label="Monthly Summary")
             with gr.Row():
                 topic_report = gr.File(label="Download Topic Report (.html)", interactive=False)
 
@@ -5868,7 +5905,7 @@ examples/
                  ner_out, pos_out]
     _plot_out  = [prob_plot, wc_plot, dist_plot]
     _file_out  = [report_file, report_file_pdf, report_file_html]
-    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report, topic_monthly_chart, topic_score_chart]
+    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report, topic_monthly_chart, topic_score_chart, topic_summary_table]
 
     topic_run_btn.click(
         fn=run_topic_analysis,
@@ -5877,7 +5914,7 @@ examples/
     )
 
     _shared_reset  = [text_input, file_input, sample_dd, load_status]
-    _topic_reset   = ["", "", None, None, None, None, None]
+    _topic_reset   = ["", "", None, None, None, None, None, ""]
 
     clear_btn.click(
         fn=lambda: ("", None, [], "",
