@@ -7,3 +7,6 @@ nltk_data/
 *.jpg
 *.jpeg
 .env
+instance/
+*.db
+snapshot/
