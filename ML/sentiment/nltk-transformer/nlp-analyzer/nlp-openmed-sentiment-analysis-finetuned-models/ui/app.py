@@ -5270,6 +5270,53 @@ def _build_monthly_summary_table(months, wards, sentiments, scores, risk_labels)
     )
 
 
+def _build_ward_risk_chart(wards, risk_labels):
+    """Horizontal stacked bar: risk_label distribution across unique wards."""
+    from collections import defaultdict
+    _risk_order  = ["🔴 High", "🟠 Medium", "🟢 Low"]
+    _risk_colors = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
+
+    ward_risk = defaultdict(lambda: defaultdict(int))
+    for w, r in zip(wards, risk_labels):
+        ward_risk[w][r] += 1
+
+    unique_wards = list(dict.fromkeys(wards))
+
+    fig = go.Figure()
+    for risk in _risk_order:
+        counts = [ward_risk[w][risk] for w in unique_wards]
+        fig.add_trace(go.Bar(
+            name=risk,
+            y=unique_wards,
+            x=counts,
+            orientation="h",
+            marker_color=_risk_colors[risk],
+            text=[str(c) if c > 0 else "" for c in counts],
+            textposition="inside",
+            insidetextanchor="middle",
+            textfont=dict(color="white", size=11),
+            hovertemplate=(
+                "<b>%{y}</b><br>"
+                f"Risk: {risk}<br>"
+                "Months: %{x}"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.update_layout(
+        barmode="stack",
+        title=dict(text="Risk Distribution Across Wards", x=0.5, font=dict(size=14)),
+        xaxis=dict(title="Number of Months", dtick=1),
+        yaxis=dict(title=""),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        height=max(300, len(unique_wards) * 65 + 140),
+        margin=dict(l=20, r=20, t=80, b=40),
+        paper_bgcolor="#f0fff4",
+        plot_bgcolor="#f0fff4",
+    )
+    return fig
+
+
 def _build_quality_score_chart(months, scores, risk_labels, wards, sentiment_model_label):
     _risk_color = {"🔴 High": "#e74c3c", "🟠 Medium": "#e67e22", "🟢 Low": "#27ae60"}
     bar_colors  = [_risk_color[r] for r in risk_labels]
@@ -5504,12 +5551,12 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ No text loaded — please load patient data first</span>')
-        return err, "", "", None, None, None, None, ""
+        return err, "", "", None, None, None, None, None, ""
     if len(text_input.strip().split()) < 4:
         err = ('<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                '⚠ Text too short (minimum 4 words)</span>')
-        return err, "", "", None, None, None, None, ""
+        return err, "", "", None, None, None, None, None, ""
 
     topic_model_key  = _TOPIC_DISPLAY_TO_KEY.get(topic_model_label, "bertopic_mini")
     sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
@@ -5528,7 +5575,7 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
         err = (f'<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                f'⚠ API error: {str(exc)[:120]}</span>')
-        return err, "", "", None, None, None, None, "", None
+        return err, "", "", None, None, None, None, None, "", None
 
     classifications = data["results"][0]["classifications"]
     elapsed  = data.get("elapsed_sec", 0)
@@ -5606,7 +5653,10 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
             month_labels, wards, sentiments, quality_scores, risk_labels
         )
 
-    return status_html, consensus_html, table_html, fig, report, monthly_fig, quality_fig, summary_table if len(sections) >= 2 else ""
+    ward_risk_fig = (
+        _build_ward_risk_chart(wards, risk_labels) if len(sections) >= 2 else None
+    )
+    return status_html, consensus_html, table_html, fig, ward_risk_fig, report, monthly_fig, quality_fig, summary_table if len(sections) >= 2 else ""
 
 
 def update_months(patient):
@@ -5812,6 +5862,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 topic_table = gr.Plot(show_label=False)
                 topic_chart = gr.Plot(show_label=False)
             with gr.Row():
+                topic_ward_risk_chart = gr.Plot(show_label=False)
+            with gr.Row():
                 topic_monthly_chart = gr.Plot(show_label=False)
             with gr.Row():
                 topic_score_chart = gr.Plot(show_label=False)
@@ -5905,7 +5957,7 @@ examples/
                  ner_out, pos_out]
     _plot_out  = [prob_plot, wc_plot, dist_plot]
     _file_out  = [report_file, report_file_pdf, report_file_html]
-    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_report, topic_monthly_chart, topic_score_chart, topic_summary_table]
+    _topic_outputs = [topic_status, topic_consensus, topic_table, topic_chart, topic_ward_risk_chart, topic_report, topic_monthly_chart, topic_score_chart, topic_summary_table]
 
     topic_run_btn.click(
         fn=run_topic_analysis,
@@ -5914,7 +5966,7 @@ examples/
     )
 
     _shared_reset  = [text_input, file_input, sample_dd, load_status]
-    _topic_reset   = ["", "", None, None, None, None, None, ""]
+    _topic_reset   = ["", "", None, None, None, None, None, None, ""]
 
     clear_btn.click(
         fn=lambda: ("", None, [], "",
