@@ -5845,45 +5845,83 @@ def _build_per_patient_chart(patient_pcts, model_label=""):
     return fig
 
 
+def _build_ward_table_html(ward_data):
+    """HTML table: Ward | Comments | Positive% | Negative% | Mixed% | Neutral% | Red Flags."""
+    th_style = ("padding:10px 14px;text-align:left;font-size:0.78rem;font-weight:700;"
+                "letter-spacing:0.06em;color:#1a3a5c;background:#eaf1fb;border-bottom:2px solid #c3d4e8;")
+    # Sort by Red Flags descending
+    rows_data = sorted(ward_data.items(), key=lambda x: x[1]["red_flags"], reverse=True)
+    rows = ""
+    for i, (ward, d) in enumerate(rows_data):
+        bg = "#f8fbff" if i % 2 == 0 else "#ffffff"
+        rf_color = "#c0392b" if d["red_flags"] > 0 else "#27ae60"
+        rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:500;">{ward}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#333;">{d["total"]:,}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#27ae60;font-weight:600;">{d["pos_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#c0392b;font-weight:600;">{d["neg_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#2980b9;font-weight:600;">{d["mix_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#7f8c8d;font-weight:600;">{d["neu_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:{rf_color};font-weight:700;">{d["red_flags"]}</td>'
+            f'</tr>'
+        )
+    return (
+        '<div style="overflow-x:auto;margin-top:16px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#1a3a5c;margin-bottom:8px;">'
+        'Ward-level sentiment profile (statewide)</h3>'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{th_style}">WARD</th>'
+        f'<th style="{th_style}text-align:right;">COMMENTS</th>'
+        f'<th style="{th_style}text-align:right;">POSITIVE %</th>'
+        f'<th style="{th_style}text-align:right;">NEGATIVE %</th>'
+        f'<th style="{th_style}text-align:right;">MIXED %</th>'
+        f'<th style="{th_style}text-align:right;">NEUTRAL %</th>'
+        f'<th style="{th_style}text-align:right;">RED FLAGS</th>'
+        f'</tr></thead><tbody>{rows}</tbody></table></div>'
+    )
+
+
 def run_statewide_analysis(sentiment_model_label):
     """Run selected model across all months × all 36 patients and aggregate Pos/Neg/Neu."""
     from concurrent.futures import ThreadPoolExecutor
-    from collections import Counter
+    from collections import Counter, defaultdict
 
-    sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
+    sentiment_type = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
+    n_months = len(list(PATIENT_SAMPLES.values())[0])
 
-    # Flatten: (patient_idx, month_text)
+    # Flatten: (patient_idx, month_idx, month_key, text)
     tasks = []
     for pidx, pname in enumerate(PATIENT_NAMES):
-        for text in PATIENT_SAMPLES.get(pname, {}).values():
-            tasks.append((pidx, text[:400].strip()))
-
-    n_months = len(list(PATIENT_SAMPLES.values())[0])
-    total_tasks = len(tasks)
+        month_items = list(PATIENT_SAMPLES.get(pname, {}).items())
+        for m_idx, (month_key, text) in enumerate(month_items):
+            tasks.append((pidx, m_idx, month_key, text[:400].strip()))
 
     def _infer(args):
-        pidx, text = args
+        pidx, m_idx, month_key, text = args
         if not text:
-            return pidx, "Neutral"
+            return pidx, m_idx, month_key, "Neutral"
         try:
             dominant, _ = analyze_sentiment(text, sentiment_type)
             cat = _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
-            return pidx, cat
+            return pidx, m_idx, month_key, cat
         except Exception:
-            return pidx, "Neutral"
+            return pidx, m_idx, month_key, "Neutral"
 
     with ThreadPoolExecutor(max_workers=12) as ex:
         results = list(ex.map(_infer, tasks))
 
-    # Global aggregate
-    global_counts = Counter(cat for _, cat in results)
     total = len(results)
-    pcts  = {k: round(global_counts.get(k, 0) / total * 100) for k in ["Positive", "Negative", "Neutral"]}
+
+    # Global aggregate
+    global_counts = Counter(cat for _, _, _, cat in results)
+    pcts = {k: round(global_counts.get(k, 0) / total * 100) for k in ["Positive", "Negative", "Neutral"]}
 
     # Per-patient percentages
     patient_counts = [Counter() for _ in PATIENT_NAMES]
     patient_totals = [0] * len(PATIENT_NAMES)
-    for pidx, cat in results:
+    for pidx, _, _, cat in results:
         patient_counts[pidx][cat] += 1
         patient_totals[pidx] += 1
     patient_pcts = [
@@ -5891,6 +5929,39 @@ def run_statewide_analysis(sentiment_model_label):
          for k in ["Positive", "Negative", "Neutral"]}
         for i in range(len(PATIENT_NAMES))
     ]
+
+    # Per-ward aggregation — months from a patient who showed BOTH Positive AND Negative
+    # in the same ward are reclassified as "Mixed".
+    ward_patient_months = defaultdict(lambda: defaultdict(list))
+    for pidx, m_idx, month_key, cat in results:
+        pname = PATIENT_NAMES[pidx]
+        ward  = get_ward(pname, month_key)
+        ward_patient_months[ward][pidx].append(cat)
+
+    ward_data = {}
+    for ward, patient_months in ward_patient_months.items():
+        pos_c = neg_c = neu_c = mix_c = 0
+        for _, cats in patient_months.items():
+            cat_set = set(cats)
+            if "Positive" in cat_set and "Negative" in cat_set:
+                mix_c += len(cats)
+            else:
+                for cat in cats:
+                    if cat == "Positive":
+                        pos_c += 1
+                    elif cat == "Negative":
+                        neg_c += 1
+                    else:
+                        neu_c += 1
+        wt = pos_c + neg_c + neu_c + mix_c
+        ward_data[ward] = {
+            "total":    wt,
+            "pos_pct":  round(pos_c / wt * 100) if wt else 0,
+            "neg_pct":  round(neg_c / wt * 100) if wt else 0,
+            "mix_pct":  round(mix_c / wt * 100) if wt else 0,
+            "neu_pct":  round(neu_c / wt * 100) if wt else 0,
+            "red_flags": neg_c + mix_c,
+        }
 
     done_status = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
@@ -5901,8 +5972,9 @@ def run_statewide_analysis(sentiment_model_label):
     kpi_html        = _build_statewide_kpi_html(pcts, total)
     statewide_fig   = _build_statewide_bar_chart(pcts, sentiment_model_label)
     per_patient_fig = _build_per_patient_chart(patient_pcts, sentiment_model_label)
+    ward_table_html = _build_ward_table_html(ward_data)
 
-    return done_status, kpi_html, statewide_fig, per_patient_fig
+    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html
 
 
 def update_months(patient):
@@ -6132,10 +6204,11 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                     label="Sentiment model", scale=4,
                 )
                 sw_run_btn = gr.Button("Run Statewide Analysis", variant="primary", scale=1)
-            sw_status       = gr.HTML()
-            sw_kpi          = gr.HTML()
-            sw_bar_chart    = gr.Plot(show_label=False)
+            sw_status        = gr.HTML()
+            sw_kpi           = gr.HTML()
+            sw_bar_chart     = gr.Plot(show_label=False)
             sw_patient_chart = gr.Plot(show_label=False)
+            sw_ward_table    = gr.HTML()
 
         # ── Tab 5: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
@@ -6201,7 +6274,7 @@ examples/
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
-        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart],
+        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table],
     )
     ts_btn.click(
         fn=run_timeseries,
