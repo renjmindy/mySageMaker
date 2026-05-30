@@ -5229,14 +5229,14 @@ def _compute_quality_score(probs, labels):
 
 
 def _compute_risk_label(sentiment, score):
-    """Assign risk level based on dominant sentiment and quality score."""
-    s = sentiment.upper()
-    _neg_labels = {"NEGATIVE", "ANGER", "DISGUST", "FEAR", "SADNESS", "1 STAR", "2 STARS"}
-    if s in _neg_labels and score <= 4.0:
+    """Assign risk level based solely on quality score."""
+    if score <= 3.0:
         return "High"
-    if 4.0 < score <= 7.0:
+    if 4.0 <= score <= 7.0:
         return "Medium"
-    return "Low"
+    if score >= 8.0:
+        return "Low"
+    return "Medium"  # fallback for 3.0 < score < 4.0 or 7.0 < score < 8.0
 
 
 def _build_monthly_summary_table(months, wards, sentiments, scores, risk_labels):
