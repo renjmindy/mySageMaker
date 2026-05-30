@@ -5630,7 +5630,7 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
         err = (f'<span style="background:#e74c3c;color:#fff;border-radius:20px;'
                f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
                f'⚠ API error: {str(exc)[:120]}</span>')
-        return err, "", "", None, None, None, None, None, None, "", None
+        return err, "", "", None, None, None, None, None, None, ""
 
     classifications = data["results"][0]["classifications"]
     elapsed  = data.get("elapsed_sec", 0)
