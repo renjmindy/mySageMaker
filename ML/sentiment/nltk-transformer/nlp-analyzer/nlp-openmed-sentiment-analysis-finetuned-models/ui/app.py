@@ -5728,24 +5728,14 @@ _SENTIMENT_CATEGORY = {
     "FEAR": "Negative", "SADNESS": "Negative", "1 STAR": "Negative", "2 STARS": "Negative",
     "NEUTRAL": "Neutral", "SURPRISE": "Neutral", "3 STARS": "Neutral",
 }
-_CAT_COLORS = {"Positive": "#27ae60", "Negative": "#c0392b", "Mixed": "#e67e22", "Neutral": "#7f8c8d"}
+_CAT_COLORS = {"Positive": "#27ae60", "Negative": "#c0392b", "Neutral": "#7f8c8d"}
+_ALL_MODEL_TYPES = list(ModelType)
 
 
-def _patient_sentiment_category(dominant, probs, labels):
-    """Map model output to Positive / Negative / Mixed / Neutral."""
-    lu = [l.upper() for l in labels]
-    pos = sum(p for l, p in zip(lu, probs) if _SENTIMENT_CATEGORY.get(l) == "Positive")
-    neg = sum(p for l, p in zip(lu, probs) if _SENTIMENT_CATEGORY.get(l) == "Negative")
-    if pos > 0.2 and neg > 0.2 and abs(pos - neg) < 0.2:
-        return "Mixed"
-    return _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
-
-
-def _build_statewide_kpi_html(pcts):
+def _build_statewide_kpi_html(pcts, total):
     cards = [
         ("Positive", pcts.get("Positive", 0), "#27ae60"),
         ("Negative", pcts.get("Negative", 0), "#c0392b"),
-        ("Mixed",    pcts.get("Mixed",    0), "#e67e22"),
         ("Neutral",  pcts.get("Neutral",  0), "#7f8c8d"),
     ]
     items = ""
@@ -5758,13 +5748,20 @@ def _build_statewide_kpi_html(pcts):
             f'color:{color};margin-top:6px;">{label.upper()}</div>'
             f'</div>'
         )
+    subtitle = (
+        f'<div style="font-size:0.78rem;color:#888;margin-top:4px;">'
+        f'Based on {total:,} sentiment classifications '
+        f'({len(PATIENT_NAMES)} patients × {len(list(PATIENT_SAMPLES.values())[0])} months × {len(_ALL_MODEL_TYPES)} models)'
+        f'</div>'
+    )
     return (
         f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">{items}</div>'
+        f'{subtitle}'
     )
 
 
-def _build_statewide_bar_chart(pcts, model_label):
-    cats   = ["Positive", "Negative", "Mixed", "Neutral"]
+def _build_statewide_bar_chart(pcts):
+    cats   = ["Positive", "Negative", "Neutral"]
     values = [pcts.get(c, 0) for c in cats]
     colors = [_CAT_COLORS[c] for c in cats]
     fig = go.Figure()
@@ -5774,7 +5771,7 @@ def _build_statewide_bar_chart(pcts, model_label):
             x=[val], y=["Statewide"],
             orientation="h",
             marker_color=col,
-            text=f"{val}%" if val >= 5 else "",
+            text=f"{val}%" if val >= 4 else "",
             textposition="inside",
             insidetextanchor="middle",
             textfont=dict(color="white", size=13, family="Arial Black"),
@@ -5782,118 +5779,112 @@ def _build_statewide_bar_chart(pcts, model_label):
         ))
     fig.update_layout(
         barmode="stack",
-        title=dict(text=f"Statewide Sentiment Distribution  ·  {model_label}", x=0.5, font=dict(size=14)),
+        title=dict(
+            text=f"Statewide Sentiment Distribution — All 13 Models · All Months · All {len(PATIENT_NAMES)} Patients",
+            x=0.5, font=dict(size=13),
+        ),
         xaxis=dict(range=[0, 100], showticklabels=False, showgrid=False),
         yaxis=dict(showticklabels=False),
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
         height=200,
-        margin=dict(l=20, r=20, t=60, b=60),
+        margin=dict(l=20, r=20, t=60, b=70),
         paper_bgcolor="#f8f9fa",
         plot_bgcolor="#f8f9fa",
     )
     return fig
 
 
-def _build_per_patient_chart(patient_categories):
-    """Horizontal stacked bar: one row per patient showing sentiment category."""
-    from collections import defaultdict
-    cats   = ["Positive", "Negative", "Mixed", "Neutral"]
+def _build_per_patient_chart(patient_pcts):
+    """Horizontal stacked bar per anonymised HHS showing Pos/Neg/Neu %."""
+    cats   = ["Positive", "Negative", "Neutral"]
     colors = [_CAT_COLORS[c] for c in cats]
-
-    # Anonymise: map patient name → "HHS A", "HHS B", ...
-    hhs_labels = []
-    letter_map = {}
-    letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + [f"A{c}" for c in "ABCDEFGHIJKLMNOP"]
-    idx = 0
-    for pname, _ in patient_categories:
-        if pname not in letter_map:
-            letter_map[pname] = f"HHS {letters[idx % len(letters)]}"
-            idx += 1
-        hhs_labels.append(letter_map[pname])
-
-    cat_list = [cat for _, cat in patient_categories]
+    letters = (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                + [f"A{c}" for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"])
+    hhs_labels = [f"HHS {letters[i]}" for i in range(len(patient_pcts))]
 
     fig = go.Figure()
     for cat, col in zip(cats, colors):
-        x_vals = [100 if c == cat else 0 for c in cat_list]
+        x_vals = [pp.get(cat, 0) for pp in patient_pcts]
         fig.add_trace(go.Bar(
             name=cat,
             y=hhs_labels,
             x=x_vals,
             orientation="h",
             marker_color=col,
-            text=[cat if v == 100 else "" for v in x_vals],
+            text=[f"{v}%" if v >= 8 else "" for v in x_vals],
             textposition="inside",
             insidetextanchor="middle",
             textfont=dict(color="white", size=10),
-            hovertemplate="<b>%{y}</b><br>" + cat + "<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>" + cat + ": %{x}%<extra></extra>",
         ))
     fig.update_layout(
         barmode="stack",
-        title=dict(text="Sentiment Profile by HHS (Anonymised)", x=0.5, font=dict(size=14)),
-        xaxis=dict(showticklabels=False, showgrid=False, range=[0, 100]),
+        title=dict(text="Sentiment Profile by HHS (Anonymised) — All 13 Models", x=0.5, font=dict(size=14)),
+        xaxis=dict(title="% of model×month classifications", range=[0, 100]),
         yaxis=dict(autorange="reversed"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        height=max(400, len(patient_categories) * 28 + 120),
-        margin=dict(l=20, r=20, t=80, b=20),
+        height=max(500, len(patient_pcts) * 26 + 140),
+        margin=dict(l=20, r=20, t=80, b=40),
         paper_bgcolor="#f8f9fa",
         plot_bgcolor="#f8f9fa",
     )
     return fig
 
 
-def run_statewide_analysis(sentiment_model_label):
+def run_statewide_analysis():
+    """Run all 13 models × all months × all 36 patients and aggregate Pos/Neg/Neu."""
     from concurrent.futures import ThreadPoolExecutor
     from collections import Counter
-    sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
-    sentiment_labels = SUPPORTED_MODELS[sentiment_type]["labels"]
 
-    def _analyze_patient(patient_name):
-        samples = PATIENT_SAMPLES.get(patient_name, {})
-        if not samples:
-            return patient_name, "Neutral"
-        monthly_cats = []
-        for text in samples.values():
-            short = text[:600].strip()
-            if not short:
-                continue
-            try:
-                redacted, _ = redact_pii(short)
-                dominant, _ = analyze_sentiment(redacted, sentiment_type)
-                cat = _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
-                monthly_cats.append(cat)
-            except Exception:
-                monthly_cats.append("Neutral")
-        if not monthly_cats:
-            return patient_name, "Neutral"
-        # Mixed: patient has BOTH Negative AND Neutral months
-        if "Negative" in monthly_cats and "Neutral" in monthly_cats:
-            return patient_name, "Mixed"
-        return patient_name, Counter(monthly_cats).most_common(1)[0][0]
+    # Flatten: (patient_idx, month_text, model_type)
+    tasks = []
+    for pidx, pname in enumerate(PATIENT_NAMES):
+        months_texts = list(PATIENT_SAMPLES.get(pname, {}).values())
+        for text in months_texts:
+            for mtype in _ALL_MODEL_TYPES:
+                tasks.append((pidx, text[:400].strip(), mtype))
 
-    sw_status = (
-        '<span style="background:#3498db;color:#fff;border-radius:20px;'
-        'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
-        f'⏳ Analysing {len(PATIENT_NAMES)} patients…</span>'
-    )
+    def _infer(args):
+        pidx, text, mtype = args
+        if not text:
+            return pidx, "Neutral"
+        try:
+            redacted, _ = redact_pii(text)
+            dominant, _ = analyze_sentiment(redacted, mtype)
+            cat = _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
+            return pidx, cat
+        except Exception:
+            return pidx, "Neutral"
 
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        results = list(ex.map(_analyze_patient, PATIENT_NAMES))
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        results = list(ex.map(_infer, tasks))
 
-    counts = {"Positive": 0, "Negative": 0, "Mixed": 0, "Neutral": 0}
-    for _, cat in results:
-        counts[cat] = counts.get(cat, 0) + 1
+    # Aggregate globally
+    global_counts = Counter(cat for _, cat in results)
     total = len(results)
-    pcts  = {k: round(v / total * 100) for k, v in counts.items()}
+    pcts  = {k: round(global_counts.get(k, 0) / total * 100) for k in ["Positive", "Negative", "Neutral"]}
+
+    # Per-patient percentages
+    patient_counts = [Counter() for _ in PATIENT_NAMES]
+    patient_totals = [0] * len(PATIENT_NAMES)
+    for pidx, cat in results:
+        patient_counts[pidx][cat] += 1
+        patient_totals[pidx] += 1
+    patient_pcts = [
+        {k: round(patient_counts[i].get(k, 0) / max(patient_totals[i], 1) * 100)
+         for k in ["Positive", "Negative", "Neutral"]}
+        for i in range(len(PATIENT_NAMES))
+    ]
 
     done_status = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
         f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
-        f'✓ {total} patients analysed  ·  {sentiment_model_label}</span>'
+        f'✓ {total:,} classifications — {len(PATIENT_NAMES)} patients × '
+        f'{len(list(PATIENT_SAMPLES.values())[0])} months × {len(_ALL_MODEL_TYPES)} models</span>'
     )
-    kpi_html       = _build_statewide_kpi_html(pcts)
-    statewide_fig  = _build_statewide_bar_chart(pcts, sentiment_model_label)
-    per_patient_fig = _build_per_patient_chart(results)
+    kpi_html        = _build_statewide_kpi_html(pcts, total)
+    statewide_fig   = _build_statewide_bar_chart(pcts)
+    per_patient_fig = _build_per_patient_chart(patient_pcts)
 
     return done_status, kpi_html, statewide_fig, per_patient_fig
 
@@ -6120,11 +6111,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "**Run Statewide Analysis** to compute."
             )
             with gr.Row():
-                sw_model_dd = gr.Dropdown(
-                    choices=MODEL_CHOICES, value=MODEL_CHOICES[0],
-                    label="Sentiment model", scale=4,
-                )
-                sw_run_btn = gr.Button("Run Statewide Analysis", variant="primary", scale=1)
+                sw_run_btn = gr.Button("Run Statewide Analysis — All 13 Models × All Months × All Patients", variant="primary")
             sw_status       = gr.HTML()
             sw_kpi          = gr.HTML()
             sw_bar_chart    = gr.Plot(show_label=False)
@@ -6193,7 +6180,7 @@ examples/
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
     sw_run_btn.click(
         fn=run_statewide_analysis,
-        inputs=[sw_model_dd],
+        inputs=[],
         outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart],
     )
     ts_btn.click(
