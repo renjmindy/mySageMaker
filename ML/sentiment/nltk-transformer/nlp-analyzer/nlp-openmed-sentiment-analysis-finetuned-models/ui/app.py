@@ -5934,6 +5934,105 @@ def _build_peer_group_table_html(pg_data):
     )
 
 
+def _build_hhs_rollup_table_html(rows_data, sw_neg_pct, sw_q4_neg_pct, sw_red_flags, sw_total):
+    """HHS rollup with peer-group benchmark table (matches screenshot layout)."""
+    th = ("padding:10px 14px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;"
+          "color:#1a3a5c;background:#eaf1fb;border-bottom:2px solid #c3d4e8;")
+    th_r = th + "text-align:right;"
+
+    def _delta_cell(val, favorable_direction="down"):
+        """Render a Δ cell: green if movement is in the favorable direction, red otherwise."""
+        if val is None:
+            return '<td style="padding:9px 14px;text-align:right;color:#888;">—</td>'
+        sign   = "+" if val > 0 else ""
+        color  = ("#27ae60" if (favorable_direction == "down" and val < 0)
+                             or (favorable_direction == "up"   and val > 0)
+                  else "#c0392b" if val != 0 else "#888")
+        return (f'<td style="padding:9px 14px;text-align:right;'
+                f'font-weight:600;color:{color};">{sign}{val:.1f}</td>')
+
+    # Identify outliers: |Δ vs peer| > 3.5 pp
+    outliers_above = [r["hhs"] for r in rows_data if r["delta_peer"] is not None and r["delta_peer"] >  3.5]
+    outliers_below = [r["hhs"] for r in rows_data if r["delta_peer"] is not None and r["delta_peer"] < -3.5]
+
+    html_rows = ""
+    for i, r in enumerate(rows_data):
+        bg = "#f8fbff" if i % 2 == 0 else "#ffffff"
+        rf_color = "#c0392b" if r["red_flags"] > 0 else "#27ae60"
+        peer_med_cell = (f'<td style="padding:9px 14px;text-align:right;color:#555;">'
+                         f'{r["peer_median"]:.1f}</td>'
+                         if r["peer_median"] is not None
+                         else '<td style="padding:9px 14px;text-align:right;color:#888;">—</td>')
+        html_rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:600;">{r["hhs"]}</td>'
+            f'<td style="padding:9px 14px;color:#555;">{r["peer_group"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#333;">{r["total"]:,}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#c0392b;font-weight:600;">{r["neg_pct"]:.0f}</td>'
+            + peer_med_cell
+            + _delta_cell(r["delta_peer"], "down")
+            + _delta_cell(r["delta_q4"],   "down")
+            + f'<td style="padding:9px 14px;text-align:right;color:{rf_color};font-weight:700;">{r["red_flags"]}</td>'
+            f'</tr>'
+        )
+
+    # Statewide summary row
+    sw_q4_delta = round(sw_neg_pct - sw_q4_neg_pct, 1) if sw_q4_neg_pct is not None else None
+    html_rows += (
+        '<tr style="background:#1a3a5c;font-weight:700;">'
+        '<td style="padding:10px 14px;color:#fff;">Statewide</td>'
+        '<td style="padding:10px 14px;color:#aac;">—</td>'
+        f'<td style="padding:10px 14px;text-align:right;color:#fff;">{sw_total:,}</td>'
+        f'<td style="padding:10px 14px;text-align:right;color:#f8a;">{sw_neg_pct:.0f}</td>'
+        '<td style="padding:10px 14px;text-align:right;color:#aac;">—</td>'
+        '<td style="padding:10px 14px;text-align:right;color:#aac;">—</td>'
+        + (f'<td style="padding:10px 14px;text-align:right;color:{"#6f6" if sw_q4_delta is not None and sw_q4_delta < 0 else "#f88"};">'
+           f'{"+" if sw_q4_delta and sw_q4_delta > 0 else ""}{sw_q4_delta:.1f}</td>'
+           if sw_q4_delta is not None else
+           '<td style="padding:10px 14px;text-align:right;color:#aac;">—</td>')
+        + f'<td style="padding:10px 14px;text-align:right;color:#f88;">{sw_red_flags}</td>'
+        '</tr>'
+    )
+
+    # Footnote
+    outlier_parts = []
+    if outliers_above:
+        outlier_parts.append(f"{', '.join(outliers_above)} above peer median")
+    if outliers_below:
+        outlier_parts.append(f"{', '.join(outliers_below)} below peer median")
+    footnote_body = (
+        f"HHSs more than ±3.5 pp from peer median are visual outliers this period"
+        + (f" ({'; '.join(outlier_parts)})" if outlier_parts else "")
+        + ". Below-median Negative % is the favourable direction. "
+        "Outliers warrant local context before any inference."
+    )
+
+    return (
+        '<div style="overflow-x:auto;margin-top:28px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:4px;">'
+        'HHS rollup with peer-group benchmark</h3>'
+        '<p style="font-size:0.76rem;color:#ccc;margin:0 0 10px;">'
+        'HHSs are anonymised. Peer groups: Large metro (4), Outer metro (3), Regional (4), '
+        'Outer regional / rural / remote (5). '
+        'Negative % is the share of months classified as negative sentiment. '
+        'Δ VS Q4 2025 uses the first half of each patient\'s journey as baseline.</p>'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{th}">HHS</th>'
+        f'<th style="{th}">PEER GROUP</th>'
+        f'<th style="{th_r}">COMMENTS</th>'
+        f'<th style="{th_r}">NEGATIVE %</th>'
+        f'<th style="{th_r}">PEER MEDIAN</th>'
+        f'<th style="{th_r}">Δ VS PEER</th>'
+        f'<th style="{th_r}">Δ VS Q4 2025</th>'
+        f'<th style="{th_r}">RED FLAGS</th>'
+        '</tr></thead>'
+        f'<tbody>{html_rows}</tbody></table>'
+        f'<p style="font-size:0.73rem;color:#aaa;margin-top:8px;font-style:italic;">{footnote_body}</p>'
+        '</div>'
+    )
+
+
 def run_statewide_analysis(sentiment_model_label):
     """Run selected model across all months × all 36 patients and aggregate Pos/Neg/Neu."""
     from concurrent.futures import ThreadPoolExecutor
@@ -6050,6 +6149,67 @@ def run_statewide_analysis(sentiment_model_label):
             "red_flags":  neg_c + mix_c,
         }
 
+    # ── HHS rollup with peer-group benchmark ─────────────────────────────────
+    # Per-patient: collect (m_idx, cat) to compute overall and Q4-baseline neg%.
+    patient_month_results = defaultdict(list)   # pidx → [(m_idx, cat), ...]
+    for pidx, m_idx, _, cat in results:
+        patient_month_results[pidx].append((m_idx, cat))
+
+    letters = (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+               + [f"A{c}" for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"])
+
+    hhs_rows = []
+    for pidx, pname in enumerate(PATIENT_NAMES):
+        month_cats = sorted(patient_month_results[pidx], key=lambda x: x[0])
+        n_m = len(month_cats)
+        if n_m == 0:
+            continue
+        all_neg  = sum(1 for _, c in month_cats if c == "Negative")
+        neg_pct  = all_neg / n_m * 100
+        red_flags = all_neg
+
+        # Q4 2025 baseline = first half of the journey
+        half     = max(1, n_m // 2)
+        q4_cats  = month_cats[:half]
+        cur_cats = month_cats[half:]
+        q4_neg_pct  = sum(1 for _, c in q4_cats  if c == "Negative") / len(q4_cats)  * 100
+        cur_neg_pct = sum(1 for _, c in cur_cats if c == "Negative") / len(cur_cats) * 100 if cur_cats else None
+        delta_q4 = round(cur_neg_pct - q4_neg_pct, 1) if cur_neg_pct is not None else None
+
+        hhs_rows.append({
+            "hhs":        f"HHS {letters[pidx]}",
+            "peer_group": PATIENT_PEER_GROUP.get(pname, "Unknown"),
+            "total":      n_m,
+            "neg_pct":    neg_pct,
+            "q4_neg_pct": q4_neg_pct,
+            "delta_q4":   delta_q4,
+            "red_flags":  red_flags,
+            "peer_median": None,   # filled in below
+            "delta_peer":  None,
+        })
+
+    # Compute peer-group medians and per-HHS Δ vs peer
+    import statistics
+    for pg_label in _PG_LABELS:
+        pg_negs = [r["neg_pct"] for r in hhs_rows if r["peer_group"] == pg_label]
+        if not pg_negs:
+            continue
+        median_neg = statistics.median(pg_negs)
+        for r in hhs_rows:
+            if r["peer_group"] == pg_label:
+                r["peer_median"] = round(median_neg, 1)
+                r["delta_peer"]  = round(r["neg_pct"] - median_neg, 1)
+
+    # Sort by peer group order, then by neg_pct descending within group
+    pg_order = {pg: i for i, pg in enumerate(_PG_LABELS)}
+    hhs_rows.sort(key=lambda r: (pg_order.get(r["peer_group"], 99), -r["neg_pct"]))
+
+    # Statewide aggregates for summary row
+    sw_total_comments = sum(r["total"]    for r in hhs_rows)
+    sw_neg_pct_all    = sum(r["neg_pct"] * r["total"] for r in hhs_rows) / sw_total_comments if sw_total_comments else 0
+    sw_q4_neg_pct_all = sum(r["q4_neg_pct"] * r["total"] for r in hhs_rows) / sw_total_comments if sw_total_comments else None
+    sw_red_flags_all  = sum(r["red_flags"] for r in hhs_rows)
+
     done_status = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
         f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
@@ -6061,8 +6221,11 @@ def run_statewide_analysis(sentiment_model_label):
     per_patient_fig    = _build_per_patient_chart(patient_pcts, sentiment_model_label)
     ward_table_html    = _build_ward_table_html(ward_data)
     pg_table_html      = _build_peer_group_table_html(pg_data)
+    hhs_rollup_html    = _build_hhs_rollup_table_html(
+                             hhs_rows, sw_neg_pct_all, sw_q4_neg_pct_all,
+                             sw_red_flags_all, sw_total_comments)
 
-    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html, pg_table_html
+    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html, pg_table_html, hhs_rollup_html
 
 
 def update_months(patient):
@@ -6298,6 +6461,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             sw_patient_chart    = gr.Plot(show_label=False)
             sw_ward_table       = gr.HTML()
             sw_peer_group_table = gr.HTML()
+            sw_hhs_rollup_table = gr.HTML()
 
         # ── Tab 5: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
@@ -6363,7 +6527,7 @@ examples/
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
-        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table],
+        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table, sw_hhs_rollup_table],
     )
     ts_btn.click(
         fn=run_timeseries,
