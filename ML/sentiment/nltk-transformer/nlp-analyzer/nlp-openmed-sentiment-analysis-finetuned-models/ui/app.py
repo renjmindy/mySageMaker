@@ -5232,10 +5232,9 @@ def _compute_risk_label(sentiment, score):
     """Assign risk level based on dominant sentiment and quality score."""
     s = sentiment.upper()
     _neg_labels = {"NEGATIVE", "ANGER", "DISGUST", "FEAR", "SADNESS", "1 STAR", "2 STARS"}
-    _neu_labels = {"NEUTRAL", "SURPRISE", "3 STARS"}
     if s in _neg_labels and score <= 4.0:
         return "High"
-    if s in _neu_labels and score <= 7.0:
+    if 4.0 < score <= 7.0:
         return "Medium"
     return "Low"
 
