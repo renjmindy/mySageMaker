@@ -5758,7 +5758,7 @@ def _build_statewide_kpi_html(pcts, total):
             f'</div>'
         )
     subtitle = (
-        f'<div style="font-size:0.78rem;color:#888;margin-top:4px;">'
+        f'<div style="font-size:0.78rem;color:#fff;margin-top:4px;">'
         f'Based on {total:,} sentiment classifications '
         f'({len(PATIENT_NAMES)} patients × {len(list(PATIENT_SAMPLES.values())[0])} months)'
         f'</div>'
@@ -5830,7 +5830,7 @@ def _build_per_patient_chart(patient_pcts, model_label=""):
         ))
     fig.update_layout(
         barmode="stack",
-        title=dict(text="Sentiment Profile by HHS (Anonymised)", x=0.5, font=dict(size=14)),
+        title=dict(text=f"Sentiment Profile by HHS (Anonymised)  ·  {model_label}", x=0.5, font=dict(size=14)),
         xaxis=dict(title="% of model×month classifications", range=[0, 100]),
         yaxis=dict(autorange="reversed"),
         showlegend=False,
