@@ -3958,6 +3958,14 @@ def get_ward(patient_name, month_key):
 
 PATIENT_NAMES = list(PATIENT_SAMPLES.keys())
 
+# Peer group: Queensland HHS classification (4 : 3 : 4 : 5 over 16 HHSs).
+# Proportionally expanded to 36 patients as 9 : 7 : 9 : 11 with a fixed seed.
+_PG_LABELS  = ["Large metro", "Outer metro", "Regional", "Outer regional / rural / remote"]
+_PG_COUNTS  = [9, 7, 9, 11]
+_pg_pool    = [lbl for lbl, n in zip(_PG_LABELS, _PG_COUNTS) for _ in range(n)]
+import random as _rng; _rng.seed(42); _rng.shuffle(_pg_pool)
+PATIENT_PEER_GROUP: dict[str, str] = dict(zip(PATIENT_NAMES, _pg_pool))
+
 MODEL_CHOICES = list(MODEL_LABEL_TO_TYPE.keys())
 
 SENTIMENT_COLORS = {
@@ -5883,6 +5891,49 @@ def _build_ward_table_html(ward_data):
     )
 
 
+def _build_peer_group_table_html(pg_data):
+    """HTML table: Peer Group | Patients | Positive% | Negative% | Mixed% | Neutral% | Red Flags."""
+    th_style = ("padding:10px 14px;text-align:left;font-size:0.78rem;font-weight:700;"
+                "letter-spacing:0.06em;color:#1a3a5c;background:#eaf1fb;border-bottom:2px solid #c3d4e8;")
+    # Fixed display order matching peer-group hierarchy
+    order = _PG_LABELS
+    rows = ""
+    for i, pg in enumerate(order):
+        if pg not in pg_data:
+            continue
+        d   = pg_data[pg]
+        bg  = "#f8fbff" if i % 2 == 0 else "#ffffff"
+        rf_color = "#c0392b" if d["red_flags"] > 0 else "#27ae60"
+        rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:500;">{pg}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#333;">{d["n_patients"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#333;">{d["total"]:,}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#27ae60;font-weight:600;">{d["pos_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#c0392b;font-weight:600;">{d["neg_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#2980b9;font-weight:600;">{d["mix_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#7f8c8d;font-weight:600;">{d["neu_pct"]}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:{rf_color};font-weight:700;">{d["red_flags"]}</td>'
+            f'</tr>'
+        )
+    return (
+        '<div style="overflow-x:auto;margin-top:24px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:8px;">'
+        'Peer-group sentiment profile (statewide)</h3>'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{th_style}">PEER GROUP</th>'
+        f'<th style="{th_style}text-align:right;">PATIENTS</th>'
+        f'<th style="{th_style}text-align:right;">COMMENTS</th>'
+        f'<th style="{th_style}text-align:right;">POSITIVE %</th>'
+        f'<th style="{th_style}text-align:right;">NEGATIVE %</th>'
+        f'<th style="{th_style}text-align:right;">MIXED %</th>'
+        f'<th style="{th_style}text-align:right;">NEUTRAL %</th>'
+        f'<th style="{th_style}text-align:right;">RED FLAGS</th>'
+        f'</tr></thead><tbody>{rows}</tbody></table></div>'
+    )
+
+
 def run_statewide_analysis(sentiment_model_label):
     """Run selected model across all months × all 36 patients and aggregate Pos/Neg/Neu."""
     from concurrent.futures import ThreadPoolExecutor
@@ -5963,18 +6014,55 @@ def run_statewide_analysis(sentiment_model_label):
             "red_flags": neg_c + mix_c,
         }
 
+    # Per-peer-group aggregation — Mixed defined at patient level:
+    # if a patient has BOTH Positive AND Negative across ALL their months, all
+    # their months count as Mixed for the peer group breakdown.
+    pg_patient_months = defaultdict(lambda: defaultdict(list))
+    for pidx, _, _, cat in results:
+        pname = PATIENT_NAMES[pidx]
+        pg    = PATIENT_PEER_GROUP.get(pname, "Unknown")
+        pg_patient_months[pg][pidx].append(cat)
+
+    pg_data = {}
+    for pg, patient_months in pg_patient_months.items():
+        pos_c = neg_c = neu_c = mix_c = 0
+        for pidx, cats in patient_months.items():
+            cat_set = set(cats)
+            if "Positive" in cat_set and "Negative" in cat_set:
+                mix_c += len(cats)
+            else:
+                for cat in cats:
+                    if cat == "Positive":
+                        pos_c += 1
+                    elif cat == "Negative":
+                        neg_c += 1
+                    else:
+                        neu_c += 1
+        wt = pos_c + neg_c + neu_c + mix_c
+        n_pat = sum(1 for p in PATIENT_NAMES if PATIENT_PEER_GROUP.get(p) == pg)
+        pg_data[pg] = {
+            "n_patients": n_pat,
+            "total":      wt,
+            "pos_pct":    round(pos_c / wt * 100) if wt else 0,
+            "neg_pct":    round(neg_c / wt * 100) if wt else 0,
+            "mix_pct":    round(mix_c / wt * 100) if wt else 0,
+            "neu_pct":    round(neu_c / wt * 100) if wt else 0,
+            "red_flags":  neg_c + mix_c,
+        }
+
     done_status = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
         f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
         f'✓ {total:,} classifications — {len(PATIENT_NAMES)} patients × {n_months} months'
         f'  ·  {sentiment_model_label}</span>'
     )
-    kpi_html        = _build_statewide_kpi_html(pcts, total)
-    statewide_fig   = _build_statewide_bar_chart(pcts, sentiment_model_label)
-    per_patient_fig = _build_per_patient_chart(patient_pcts, sentiment_model_label)
-    ward_table_html = _build_ward_table_html(ward_data)
+    kpi_html           = _build_statewide_kpi_html(pcts, total)
+    statewide_fig      = _build_statewide_bar_chart(pcts, sentiment_model_label)
+    per_patient_fig    = _build_per_patient_chart(patient_pcts, sentiment_model_label)
+    ward_table_html    = _build_ward_table_html(ward_data)
+    pg_table_html      = _build_peer_group_table_html(pg_data)
 
-    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html
+    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html, pg_table_html
 
 
 def update_months(patient):
@@ -6204,11 +6292,12 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                     label="Sentiment model", scale=4,
                 )
                 sw_run_btn = gr.Button("Run Statewide Analysis", variant="primary", scale=1)
-            sw_status        = gr.HTML()
-            sw_kpi           = gr.HTML()
-            sw_bar_chart     = gr.Plot(show_label=False)
-            sw_patient_chart = gr.Plot(show_label=False)
-            sw_ward_table    = gr.HTML()
+            sw_status           = gr.HTML()
+            sw_kpi              = gr.HTML()
+            sw_bar_chart        = gr.Plot(show_label=False)
+            sw_patient_chart    = gr.Plot(show_label=False)
+            sw_ward_table       = gr.HTML()
+            sw_peer_group_table = gr.HTML()
 
         # ── Tab 5: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
@@ -6274,7 +6363,7 @@ examples/
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
-        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table],
+        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table],
     )
     ts_btn.click(
         fn=run_timeseries,
