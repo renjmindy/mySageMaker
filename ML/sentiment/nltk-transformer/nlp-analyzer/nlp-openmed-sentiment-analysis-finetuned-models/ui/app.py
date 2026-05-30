@@ -5317,17 +5317,21 @@ def _build_ward_risk_chart(wards, risk_labels):
     return fig
 
 
-def _build_topic_risk_chart(monthly_top_topics, risk_labels):
-    """Horizontal stacked bar: risk_label distribution across top-1 topics per month."""
+def _build_topic_risk_chart(monthly_top_topics, risk_labels, top_n_names):
+    """Horizontal stacked bar: risk distribution restricted to the Top-N topics only."""
     from collections import defaultdict
     _risk_order  = ["High", "Medium", "Low"]
     _risk_colors = {"High": "#e74c3c", "Medium": "#e67e22", "Low": "#27ae60"}
 
     topic_risk = defaultdict(lambda: defaultdict(int))
     for topic, risk in zip(monthly_top_topics, risk_labels):
-        topic_risk[topic][risk] += 1
+        if topic in top_n_names:
+            topic_risk[topic][risk] += 1
 
-    unique_topics = list(dict.fromkeys(monthly_top_topics))
+    # Preserve Top-N order; skip topics with no monthly matches
+    unique_topics = [t for t in top_n_names if any(topic_risk[t].values())]
+    if not unique_topics:
+        unique_topics = list(top_n_names)
 
     fig = go.Figure()
     for risk in _risk_order:
@@ -5631,7 +5635,8 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
 
     classifications = data["results"][0]["classifications"]
     elapsed  = data.get("elapsed_sec", 0)
-    topics   = classifications.get(topic_model_key, {}).get("top_topics", [])[:int(top_n)]
+    topics       = classifications.get(topic_model_key, {}).get("top_topics", [])[:int(top_n)]
+    top_n_names  = [t["topic_name"] for t in topics]
 
     status_html = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
@@ -5713,7 +5718,7 @@ def run_topic_analysis(text_input, patient_name, topic_model_label, sentiment_mo
 
     has_months     = len(sections) >= 2
     ward_risk_fig  = _build_ward_risk_chart(wards, risk_labels) if has_months else None
-    topic_risk_fig = _build_topic_risk_chart(monthly_top_topics, risk_labels) if has_months else None
+    topic_risk_fig = _build_topic_risk_chart(monthly_top_topics, risk_labels, top_n_names) if has_months else None
     return status_html, consensus_html, table_html, fig, ward_risk_fig, topic_risk_fig, report, monthly_fig, quality_fig, summary_table if len(sections) >= 2 else ""
 
 
