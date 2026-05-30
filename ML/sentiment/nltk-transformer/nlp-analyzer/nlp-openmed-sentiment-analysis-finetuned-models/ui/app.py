@@ -5844,23 +5844,32 @@ def _build_per_patient_chart(patient_categories):
 
 def run_statewide_analysis(sentiment_model_label):
     from concurrent.futures import ThreadPoolExecutor
+    from collections import Counter
     sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
     sentiment_labels = SUPPORTED_MODELS[sentiment_type]["labels"]
 
     def _analyze_patient(patient_name):
-        samples  = PATIENT_SAMPLES.get(patient_name, {})
-        # Use last month's text for speed
-        texts    = list(samples.values())
-        text     = texts[-1][:1500] if texts else ""
-        if not text.strip():
+        samples = PATIENT_SAMPLES.get(patient_name, {})
+        if not samples:
             return patient_name, "Neutral"
-        try:
-            redacted, _ = redact_pii(text)
-            dominant, probs = analyze_sentiment(redacted, sentiment_type)
-            cat = _patient_sentiment_category(dominant, probs, sentiment_labels)
-            return patient_name, cat
-        except Exception:
+        monthly_cats = []
+        for text in samples.values():
+            short = text[:600].strip()
+            if not short:
+                continue
+            try:
+                redacted, _ = redact_pii(short)
+                dominant, _ = analyze_sentiment(redacted, sentiment_type)
+                cat = _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
+                monthly_cats.append(cat)
+            except Exception:
+                monthly_cats.append("Neutral")
+        if not monthly_cats:
             return patient_name, "Neutral"
+        # Mixed: patient has BOTH Negative AND Neutral months
+        if "Negative" in monthly_cats and "Neutral" in monthly_cats:
+            return patient_name, "Mixed"
+        return patient_name, Counter(monthly_cats).most_common(1)[0][0]
 
     sw_status = (
         '<span style="background:#3498db;color:#fff;border-radius:20px;'
