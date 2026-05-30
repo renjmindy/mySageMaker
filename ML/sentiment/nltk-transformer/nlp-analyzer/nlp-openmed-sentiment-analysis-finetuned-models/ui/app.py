@@ -6254,6 +6254,164 @@ def load_sample(patient, names):
     return text, status
 
 
+# ── Recurring Semantic Themes ─────────────────────────────────────────────────
+
+_SEMANTIC_THEMES = {
+    "ED waiting and updates": [
+        "wait", "waiting", "emergency department", " ed ", "triage",
+        "hours", "delay", "queue", "update", "informed us", "told us",
+    ],
+    "Discharge and post-discharge care": [
+        "discharg", "discharge", "sent home", "follow-up", "follow up",
+        "aftercare", "after care", "post-discharge", "leaving hospital",
+        "community care", "transition", "handover",
+    ],
+    "Night-time noise and sleep": [
+        "noise", "noisy", "sleep", "night-time", "night time", " night ",
+        "loud", "disturb", "rest", "awake", "woken", "beeping", "alarm",
+    ],
+    "Medication information": [
+        "medication", "medicine", "drug", "prescription", "dosage",
+        "side effect", "pharmacy", "pharmacist", "tablet", "dose",
+        "medication error", "reconciliation",
+    ],
+    "Cleanliness and infection prevention": [
+        "clean", "cleanliness", "hygiene", "infection", "sterile",
+        "dirty", "hand washing", "hand wash", "sanitise", "sanitize",
+        "tidy", "germ", "bacteria",
+    ],
+    "Communication and explanations": [
+        "explain", "explanation", "communicated", "communication",
+        "told me", "informed", "understand", "understanding",
+        "information", "clarity", "question", "listen", "discuss",
+    ],
+    "Cultural safety, accessibility and language": [
+        "interpreter", "interpretation", "cultural", "culture",
+        "language", "accessibility", "ndis", "disability",
+        "translation", "indigenous", "religious", "diverse",
+    ],
+    "Food and hydration": [
+        "food", "meal", "water", "hydration", "nutrition", "diet",
+        "hungry", "thirst", "eat ", "drink", "breakfast", "lunch",
+        "dinner", "snack",
+    ],
+    "Administration and appointments": [
+        "appointment", "admin", "schedule", "scheduling", "booking",
+        "referral", "paperwork", "form", "waiting list", "waitlist",
+        "outpatient", "reception", "registration", "billing",
+    ],
+    "Family and carer involvement": [
+        "family", "carer", "partner", "spouse", "relative", "visitor",
+        "support person", "husband", "wife", " parent", "child",
+        "involve", "inclusion",
+    ],
+}
+
+_THEME_NEG_WORDS = {
+    "pain", "concern", "problem", "issue", "worse", "bad", "poor",
+    "difficult", "frustrat", "angry", "disappoint", "fail", "lack",
+    "neglect", "error", "mistake", "confusion", "unclear", "delay",
+    "long wait", "inadequate", "insufficient", "missing", "ignored",
+    "dismissed", "rude", "unhelpful", "overcrowded", "under-staffed",
+}
+_THEME_POS_WORDS = {
+    "good", "excellent", "great", "wonderful", "helpful", "kind",
+    "professional", "thorough", "responsive", "fantastic",
+    "appreciate", "thank", "satisfied", "happy", "impressed",
+    "supportive", "caring", "attentive", "prompt",
+}
+
+
+def _compute_theme_impact():
+    """Score each AHPEQS-aligned theme by volume × severity × trend, normalised to 0–100."""
+    # Flatten all patient-months with positional index (used for trend split)
+    all_months = []
+    for pname, months in PATIENT_SAMPLES.items():
+        month_items = list(months.items())
+        n = len(month_items)
+        for m_idx, (_, text) in enumerate(month_items):
+            all_months.append({"m_idx": m_idx, "n": n, "text": text.lower()})
+    total = len(all_months)
+    if total == 0:
+        return {}
+
+    results = {}
+    for theme, keywords in _SEMANTIC_THEMES.items():
+        # Volume: months that mention at least one keyword
+        mentions = [m for m in all_months if any(kw in m["text"] for kw in keywords)]
+        volume   = len(mentions) / total * 100
+
+        # Severity: ratio of negative-word hits to total sentiment-word hits
+        neg_hits = sum(sum(1 for w in _THEME_NEG_WORDS if w in m["text"]) for m in mentions)
+        pos_hits = sum(sum(1 for w in _THEME_POS_WORDS if w in m["text"]) for m in mentions)
+        severity = neg_hits / max(neg_hits + pos_hits, 1)   # 0 = all positive, 1 = all negative
+
+        # Trend: is this theme mentioned MORE in the second half of journeys?
+        early  = [m for m in mentions if m["m_idx"] <  m["n"] // 2]
+        recent = [m for m in mentions if m["m_idx"] >= m["n"] // 2]
+        denom  = max(total / 2, 1)
+        trend  = (len(recent) - len(early)) / denom   # positive = growing concern
+        trend_factor = 1.0 + 0.25 * max(trend, 0)
+
+        raw = volume * (0.4 + 0.6 * severity) * trend_factor
+        results[theme] = {"raw": raw, "volume": volume, "severity": severity, "trend": trend}
+
+    # Normalise so the highest score = 100
+    max_raw = max(s["raw"] for s in results.values()) or 1
+    for theme in results:
+        results[theme]["impact"] = round(results[theme]["raw"] / max_raw * 100)
+
+    return results
+
+
+def _build_theme_impact_chart(theme_scores):
+    """Horizontal bar chart matching the screenshot style."""
+    sorted_themes = sorted(theme_scores.items(), key=lambda x: x[1]["impact"], reverse=True)
+    labels  = [t for t, _ in sorted_themes]
+    scores  = [s["impact"] for _, s in sorted_themes]
+
+    def _color(score):
+        if score >= 75: return "#8B1A1A"   # dark red
+        if score >= 65: return "#B5651D"   # dark orange-brown
+        return "#1a3a5c"                    # dark blue
+
+    colors = [_color(s) for s in scores]
+
+    fig = go.Figure(go.Bar(
+        x=scores, y=labels, orientation="h",
+        marker_color=colors,
+        text=[str(s) for s in scores],
+        textposition="outside",
+        textfont=dict(size=12, color="#222"),
+        hovertemplate="<b>%{y}</b><br>Impact score: %{x}<extra></extra>",
+        cliponaxis=False,
+    ))
+    fig.update_layout(
+        title=dict(
+            text="Impact score by semantic theme — statewide, Q1 2026",
+            x=0.5, font=dict(size=14, family="Arial"),
+        ),
+        xaxis=dict(
+            range=[0, 115],
+            title="Impact score = f(volume × severity × trend)",
+            showgrid=True, gridcolor="#e0e0e0",
+            zeroline=False,
+        ),
+        yaxis=dict(autorange="reversed"),
+        height=500,
+        margin=dict(l=320, r=80, t=60, b=70),
+        paper_bgcolor="#f8f9fa",
+        plot_bgcolor="#ffffff",
+        showlegend=False,
+    )
+    return fig
+
+
+def run_theme_impact_analysis():
+    scores = _compute_theme_impact()
+    return _build_theme_impact_chart(scores)
+
+
 # ── Gradio layout ─────────────────────────────────────────────────────────────
 
 _CSS = """
@@ -6463,7 +6621,20 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             sw_peer_group_table = gr.HTML()
             sw_hhs_rollup_table = gr.HTML()
 
-        # ── Tab 5: About ──────────────────────────────────────────────────
+        # ── Tab 5: Recurring Semantic Themes ──────────────────────────────
+        with gr.TabItem("Recurring Semantic Themes"):
+            gr.Markdown(
+                "Themes are derived from aspect-level keyword classification across all "
+                f"**{len(PATIENT_NAMES)} patients**. A single comment may map to multiple themes; "
+                "theme prevalence is therefore reported as *share of comments that mention this theme* "
+                "and values do not sum to 100%. Each theme is anchored to relevant **AHPEQS** items "
+                "and **NSQHS** standards where applicable. "
+                "Impact score = f(volume × severity × trend)."
+            )
+            theme_run_btn    = gr.Button("Run Theme Analysis", variant="primary")
+            theme_impact_plot = gr.Plot(show_label=False)
+
+        # ── Tab 6: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
             gr.Markdown("""
 ## Models (13 total)
@@ -6524,6 +6695,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[], outputs=[theme_impact_plot])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
