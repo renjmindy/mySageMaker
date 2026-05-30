@@ -5327,10 +5327,8 @@ def _build_topic_risk_chart(monthly_top_topics, risk_labels, top_n_names):
         if topic in top_n_names:
             topic_risk[topic][risk] += 1
 
-    # Preserve Top-N order; skip topics with no monthly matches
-    unique_topics = [t for t in top_n_names if any(topic_risk[t].values())]
-    if not unique_topics:
-        unique_topics = list(top_n_names)
+    # Always show all Top-N topics in order, even if they have 0 monthly matches
+    unique_topics = list(top_n_names)
 
     fig = go.Figure()
     for risk in _risk_order:
