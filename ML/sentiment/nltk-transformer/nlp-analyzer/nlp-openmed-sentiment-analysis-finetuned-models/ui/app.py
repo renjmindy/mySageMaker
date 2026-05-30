@@ -5760,7 +5760,7 @@ def _build_statewide_kpi_html(pcts, total):
     )
 
 
-def _build_statewide_bar_chart(pcts):
+def _build_statewide_bar_chart(pcts, model_label=""):
     cats   = ["Positive", "Negative", "Neutral"]
     values = [pcts.get(c, 0) for c in cats]
     colors = [_CAT_COLORS[c] for c in cats]
@@ -5777,10 +5777,11 @@ def _build_statewide_bar_chart(pcts):
             textfont=dict(color="white", size=13, family="Arial Black"),
             hovertemplate=f"<b>{cat}</b>: {val}%<extra></extra>",
         ))
+    model_str = f"  ·  {model_label}" if model_label else ""
     fig.update_layout(
         barmode="stack",
         title=dict(
-            text=f"Statewide Sentiment Distribution — All 13 Models · All Months · All {len(PATIENT_NAMES)} Patients",
+            text=f"Statewide Sentiment Distribution — All Months · All {len(PATIENT_NAMES)} Patients{model_str}",
             x=0.5, font=dict(size=13),
         ),
         xaxis=dict(range=[0, 100], showticklabels=False, showgrid=False),
@@ -5831,26 +5832,29 @@ def _build_per_patient_chart(patient_pcts):
     return fig
 
 
-def run_statewide_analysis():
-    """Run all 13 models × all months × all 36 patients and aggregate Pos/Neg/Neu."""
+def run_statewide_analysis(sentiment_model_label):
+    """Run selected model across all months × all 36 patients and aggregate Pos/Neg/Neu."""
     from concurrent.futures import ThreadPoolExecutor
     from collections import Counter
 
-    # Flatten: (patient_idx, month_text, model_type)
+    sentiment_type   = MODEL_LABEL_TO_TYPE.get(sentiment_model_label, "bert_hc_v2")
+
+    # Flatten: (patient_idx, month_text)
     tasks = []
     for pidx, pname in enumerate(PATIENT_NAMES):
-        months_texts = list(PATIENT_SAMPLES.get(pname, {}).values())
-        for text in months_texts:
-            for mtype in _ALL_MODEL_TYPES:
-                tasks.append((pidx, text[:400].strip(), mtype))
+        for text in PATIENT_SAMPLES.get(pname, {}).values():
+            tasks.append((pidx, text[:400].strip()))
+
+    n_months = len(list(PATIENT_SAMPLES.values())[0])
+    total_tasks = len(tasks)
 
     def _infer(args):
-        pidx, text, mtype = args
+        pidx, text = args
         if not text:
             return pidx, "Neutral"
         try:
             redacted, _ = redact_pii(text)
-            dominant, _ = analyze_sentiment(redacted, mtype)
+            dominant, _ = analyze_sentiment(redacted, sentiment_type)
             cat = _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
             return pidx, cat
         except Exception:
@@ -5859,7 +5863,7 @@ def run_statewide_analysis():
     with ThreadPoolExecutor(max_workers=12) as ex:
         results = list(ex.map(_infer, tasks))
 
-    # Aggregate globally
+    # Global aggregate
     global_counts = Counter(cat for _, cat in results)
     total = len(results)
     pcts  = {k: round(global_counts.get(k, 0) / total * 100) for k in ["Positive", "Negative", "Neutral"]}
@@ -5879,11 +5883,11 @@ def run_statewide_analysis():
     done_status = (
         f'<span style="background:#27ae60;color:#fff;border-radius:20px;'
         f'padding:4px 14px;font-size:0.85rem;font-weight:600;">'
-        f'✓ {total:,} classifications — {len(PATIENT_NAMES)} patients × '
-        f'{len(list(PATIENT_SAMPLES.values())[0])} months × {len(_ALL_MODEL_TYPES)} models</span>'
+        f'✓ {total:,} classifications — {len(PATIENT_NAMES)} patients × {n_months} months'
+        f'  ·  {sentiment_model_label}</span>'
     )
     kpi_html        = _build_statewide_kpi_html(pcts, total)
-    statewide_fig   = _build_statewide_bar_chart(pcts)
+    statewide_fig   = _build_statewide_bar_chart(pcts, sentiment_model_label)
     per_patient_fig = _build_per_patient_chart(patient_pcts)
 
     return done_status, kpi_html, statewide_fig, per_patient_fig
@@ -6111,7 +6115,11 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "**Run Statewide Analysis** to compute."
             )
             with gr.Row():
-                sw_run_btn = gr.Button("Run Statewide Analysis — All 13 Models × All Months × All Patients", variant="primary")
+                sw_model_dd = gr.Dropdown(
+                    choices=MODEL_CHOICES, value=MODEL_CHOICES[0],
+                    label="Sentiment model", scale=4,
+                )
+                sw_run_btn = gr.Button("Run Statewide Analysis", variant="primary", scale=1)
             sw_status       = gr.HTML()
             sw_kpi          = gr.HTML()
             sw_bar_chart    = gr.Plot(show_label=False)
@@ -6180,7 +6188,7 @@ examples/
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
     sw_run_btn.click(
         fn=run_statewide_analysis,
-        inputs=[],
+        inputs=[sw_model_dd],
         outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart],
     )
     ts_btn.click(
