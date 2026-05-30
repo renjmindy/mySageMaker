@@ -5508,10 +5508,21 @@ def _build_topic_stacked_chart(topics, sentiment_model_type, labels, top_n):
         except Exception:
             all_probs.append([0.0] * len(labels))
 
+    # Reorder labels: Positive → Neutral → Negative (left to right)
+    _pos_l = {"POSITIVE", "JOY", "4 STARS", "5 STARS"}
+    _neu_l = {"NEUTRAL", "SURPRISE", "3 STARS"}
+    def _rank(lbl):
+        u = lbl.upper()
+        if u in _pos_l: return 0
+        if u in _neu_l: return 1
+        return 2
+    ordered_idx = sorted(range(len(labels)), key=lambda i: _rank(labels[i]))
+
     # Build stacked horizontal bars — reverse so rank #1 is at the top
     y_names = topic_names[::-1]
     fig = go.Figure()
-    for i, label in enumerate(labels):
+    for i in ordered_idx:
+        label = labels[i]
         x_vals = [all_probs[j][i] for j in range(len(topic_names))][::-1]
         color      = _SENTIMENT_LABEL_COLORS.get(label, f"hsl({i*45},65%,50%)")
         raw_scores = [v / 100 for v in x_vals]
