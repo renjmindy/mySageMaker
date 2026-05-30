@@ -5356,7 +5356,7 @@ def _build_topic_risk_chart(monthly_top_topics, risk_labels, top_n_names):
 
     fig.update_layout(
         barmode="stack",
-        title=dict(text="Risk Distribution Across Topics", x=0.5, font=dict(size=14)),
+        title=dict(text="Risk Distribution Across Top Topics", x=0.5, font=dict(size=14)),
         xaxis=dict(title="Number of Months", dtick=1),
         yaxis=dict(title=""),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
