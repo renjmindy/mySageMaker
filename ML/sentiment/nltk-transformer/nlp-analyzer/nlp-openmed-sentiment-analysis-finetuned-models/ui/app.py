@@ -5760,7 +5760,7 @@ def _build_statewide_kpi_html(pcts, total):
     subtitle = (
         f'<div style="font-size:0.78rem;color:#888;margin-top:4px;">'
         f'Based on {total:,} sentiment classifications '
-        f'({len(PATIENT_NAMES)} patients × {len(list(PATIENT_SAMPLES.values())[0])} months × {len(_ALL_MODEL_TYPES)} models)'
+        f'({len(PATIENT_NAMES)} patients × {len(list(PATIENT_SAMPLES.values())[0])} months)'
         f'</div>'
     )
     return (
