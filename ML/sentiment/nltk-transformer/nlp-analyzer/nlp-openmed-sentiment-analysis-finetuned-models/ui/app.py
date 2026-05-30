@@ -5804,10 +5804,11 @@ def _build_statewide_bar_chart(pcts, model_label=""):
     return fig
 
 
-def _build_per_patient_chart(patient_pcts):
+def _build_per_patient_chart(patient_pcts, model_label=""):
     """Horizontal stacked bar per anonymised HHS showing Pos/Neu/Neg %."""
     cats   = ["Positive", "Neutral", "Negative"]
     colors = [_CAT_COLORS[c] for c in cats]
+    suffix = f"  ({model_label})" if model_label else ""
     letters = (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
                 + [f"A{c}" for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"])
     hhs_labels = [f"HHS {letters[i]}" for i in range(len(patient_pcts))]
@@ -5816,7 +5817,7 @@ def _build_per_patient_chart(patient_pcts):
     for cat, col in zip(cats, colors):
         x_vals = [pp.get(cat, 0) for pp in patient_pcts]
         fig.add_trace(go.Bar(
-            name=cat,
+            name=cat + suffix,
             y=hhs_labels,
             x=x_vals,
             orientation="h",
@@ -5896,7 +5897,7 @@ def run_statewide_analysis(sentiment_model_label):
     )
     kpi_html        = _build_statewide_kpi_html(pcts, total)
     statewide_fig   = _build_statewide_bar_chart(pcts, sentiment_model_label)
-    per_patient_fig = _build_per_patient_chart(patient_pcts)
+    per_patient_fig = _build_per_patient_chart(patient_pcts, sentiment_model_label)
 
     return done_status, kpi_html, statewide_fig, per_patient_fig
 
