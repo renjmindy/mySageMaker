@@ -5868,7 +5868,7 @@ def _build_ward_table_html(ward_data):
         )
     return (
         '<div style="overflow-x:auto;margin-top:16px;">'
-        '<h3 style="font-size:1rem;font-weight:700;color:#1a3a5c;margin-bottom:8px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:8px;">'
         'Ward-level sentiment profile (statewide)</h3>'
         '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
         '<thead><tr>'
