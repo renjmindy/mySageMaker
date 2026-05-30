@@ -5823,7 +5823,7 @@ def _build_per_patient_chart(patient_pcts):
         title=dict(text="Sentiment Profile by HHS (Anonymised) — All 13 Models", x=0.5, font=dict(size=14)),
         xaxis=dict(title="% of model×month classifications", range=[0, 100]),
         yaxis=dict(autorange="reversed"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        showlegend=False,
         height=max(500, len(patient_pcts) * 26 + 140),
         margin=dict(l=20, r=20, t=80, b=40),
         paper_bgcolor="#f8f9fa",
