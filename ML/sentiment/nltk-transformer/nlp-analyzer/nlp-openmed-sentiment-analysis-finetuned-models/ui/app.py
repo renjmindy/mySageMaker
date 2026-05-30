@@ -5853,8 +5853,7 @@ def run_statewide_analysis(sentiment_model_label):
         if not text:
             return pidx, "Neutral"
         try:
-            redacted, _ = redact_pii(text)
-            dominant, _ = analyze_sentiment(redacted, sentiment_type)
+            dominant, _ = analyze_sentiment(text, sentiment_type)
             cat = _SENTIMENT_CATEGORY.get(dominant.upper(), "Neutral")
             return pidx, cat
         except Exception:
