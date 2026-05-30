@@ -5794,8 +5794,8 @@ def _build_statewide_bar_chart(pcts, model_label=""):
 
 
 def _build_per_patient_chart(patient_pcts):
-    """Horizontal stacked bar per anonymised HHS showing Pos/Neg/Neu %."""
-    cats   = ["Positive", "Negative", "Neutral"]
+    """Horizontal stacked bar per anonymised HHS showing Pos/Neu/Neg %."""
+    cats   = ["Positive", "Neutral", "Negative"]
     colors = [_CAT_COLORS[c] for c in cats]
     letters = (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
                 + [f"A{c}" for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"])
@@ -5818,7 +5818,7 @@ def _build_per_patient_chart(patient_pcts):
         ))
     fig.update_layout(
         barmode="stack",
-        title=dict(text="Sentiment Profile by HHS (Anonymised) — All 13 Models", x=0.5, font=dict(size=14)),
+        title=dict(text="Sentiment Profile by HHS (Anonymised)", x=0.5, font=dict(size=14)),
         xaxis=dict(title="% of model×month classifications", range=[0, 100]),
         yaxis=dict(autorange="reversed"),
         showlegend=False,
