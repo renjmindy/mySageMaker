@@ -7131,7 +7131,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                     choices=MODEL_CHOICES, value=MODEL_CHOICES[0],
                     label="Sentiment model", scale=4,
                 )
-                sw_run_btn = gr.Button("Run Statewide Analysis", variant="primary", scale=1)
+                sw_run_btn   = gr.Button("Run Statewide Analysis", variant="primary", scale=2)
+                sw_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
             sw_status           = gr.HTML()
             sw_download         = gr.File(label="Download Report (.html)", visible=True)
             sw_kpi              = gr.HTML()
@@ -7156,7 +7157,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                     choices=_TOPIC_MODEL_CHOICES, value=_TOPIC_MODEL_CHOICES[0],
                     label="Topic model", scale=4,
                 )
-                theme_run_btn = gr.Button("Run Theme Analysis", variant="primary", scale=1)
+                theme_run_btn   = gr.Button("Run Theme Analysis", variant="primary", scale=2)
+                theme_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
             theme_download       = gr.File(label="Download Report (.html)", interactive=False)
             theme_impact_plot    = gr.Plot(show_label=False)
             theme_top6_cards     = gr.HTML()
@@ -7229,6 +7231,14 @@ examples/
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
         outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table, sw_hhs_rollup_table, sw_download],
+    )
+    sw_clear_btn.click(
+        fn=lambda: ("", "", None, None, "", "", "", None),
+        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table, sw_hhs_rollup_table, sw_download],
+    )
+    theme_clear_btn.click(
+        fn=lambda: (None, "", "", "", None),
+        outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download],
     )
     ts_btn.click(
         fn=run_timeseries,
