@@ -6799,6 +6799,7 @@ def _build_top6_impact_cards_html(theme_scores):
     top6 = sorted_themes[:6]
 
     def _extract_quote(keywords):
+        """Return the highest keyword-density sentence as raw (unescaped) text."""
         best, best_score = "", 0
         for months in PATIENT_SAMPLES.values():
             for text in months.values():
@@ -6811,8 +6812,20 @@ def _build_top6_impact_cards_html(theme_scores):
         if not best:
             return "No representative comment found."
         words = best.split()
-        raw = (" ".join(words[:40]) + "…") if len(words) > 40 else best
-        return _html_mod.escape(raw)
+        return (" ".join(words[:40]) + "…") if len(words) > 40 else best
+
+    def _redact_and_render(raw_text):
+        """Redact PII via OpenMed API, HTML-escape, then style [TOKEN] placeholders."""
+        redacted, _ = redact_pii(raw_text)
+        escaped = _html_mod.escape(redacted)
+        # render [TOKEN] placeholders as blue badge spans
+        return _re.sub(
+            r'\[([A-Z_]+)\]',
+            r'<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
+            r'padding:1px 7px;font-size:0.78rem;font-weight:600;font-family:monospace;">'
+            r'[\1]</span>',
+            escaped,
+        )
 
     def _tags_html(keywords):
         shown = [kw.strip() for kw in keywords[:5] if len(kw.strip()) > 2]
@@ -6826,7 +6839,7 @@ def _build_top6_impact_cards_html(theme_scores):
     cards = ""
     for theme, s in top6:
         keywords   = _SEMANTIC_THEMES.get(theme, [])
-        quote      = _extract_quote(keywords)
+        quote      = _redact_and_render(_extract_quote(keywords))
         tags       = _tags_html(keywords)
         pct        = f'{s["volume"]:.0f}'
         relevance  = _THEME_CLINICAL_RELEVANCE.get(theme, "")
