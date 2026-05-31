@@ -6467,7 +6467,7 @@ def _compute_theme_impact():
     return results
 
 
-def _build_theme_impact_chart(theme_scores):
+def _build_theme_impact_chart(theme_scores, topic_model_label=""):
     """Horizontal bar chart matching the screenshot style."""
     sorted_themes = sorted(theme_scores.items(), key=lambda x: x[1]["impact"], reverse=True)
     labels  = [t for t, _ in sorted_themes]
@@ -6491,7 +6491,8 @@ def _build_theme_impact_chart(theme_scores):
     ))
     fig.update_layout(
         title=dict(
-            text="Impact score by semantic theme — statewide, Q1 2026",
+            text=("Impact score by semantic theme — statewide, Q1 2026"
+                  + (f"  ·  {topic_model_label}" if topic_model_label else "")),
             x=0.5, font=dict(size=14, family="Arial"),
         ),
         xaxis=dict(
@@ -6693,9 +6694,9 @@ def _build_theme_prevalence_table_html(theme_scores):
     )
 
 
-def run_theme_impact_analysis():
+def run_theme_impact_analysis(topic_model_label=""):
     scores     = _compute_theme_impact()
-    chart      = _build_theme_impact_chart(scores)
+    chart      = _build_theme_impact_chart(scores, topic_model_label)
     table      = _build_theme_breakdown_table_html(scores)
     prevalence = _build_theme_prevalence_table_html(scores)
     return chart, table, prevalence
@@ -6919,7 +6920,12 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "and **NSQHS** standards where applicable. "
                 "Impact score = f(volume × severity × trend)."
             )
-            theme_run_btn        = gr.Button("Run Theme Analysis", variant="primary")
+            with gr.Row():
+                theme_topic_model_dd = gr.Dropdown(
+                    choices=_TOPIC_MODEL_CHOICES, value=_TOPIC_MODEL_CHOICES[0],
+                    label="Topic model", scale=4,
+                )
+                theme_run_btn = gr.Button("Run Theme Analysis", variant="primary", scale=1)
             theme_impact_plot    = gr.Plot(show_label=False)
             theme_breakdown_tbl  = gr.HTML()
             theme_prevalence_tbl = gr.HTML()
@@ -6985,7 +6991,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
-    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[], outputs=[theme_impact_plot, theme_breakdown_tbl, theme_prevalence_tbl])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd], outputs=[theme_impact_plot, theme_breakdown_tbl, theme_prevalence_tbl])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
