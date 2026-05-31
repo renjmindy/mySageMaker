@@ -7162,11 +7162,9 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             theme_download       = gr.File(label="Download Report (.html)", interactive=False)
             theme_impact_plot    = gr.Plot(show_label=False)
             theme_top6_cards     = gr.HTML()
-            theme_breakdown_tbl  = gr.HTML()
-            theme_prevalence_tbl = gr.HTML()
             gr.HTML(
                 '<div style="border-left:4px solid #4a90d9;background:#f0f6ff;'
-                'border-radius:6px;padding:14px 18px;margin-top:28px;">'
+                'border-radius:6px;padding:14px 18px;margin-top:16px;">'
                 '<p style="margin:0;font-size:0.86rem;color:#222;line-height:1.65;">'
                 '<strong>About the redaction tokens in quotes.</strong> '
                 'Patterns such as&nbsp;'
@@ -7185,6 +7183,8 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 'Quotes used in external publications are subject to a secondary quote-review step.'
                 '</p></div>'
             )
+            theme_breakdown_tbl  = gr.HTML()
+            theme_prevalence_tbl = gr.HTML()
 
         # ── Tab 6: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
