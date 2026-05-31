@@ -6740,6 +6740,7 @@ def _build_theme_prevalence_table_html(theme_scores):
 def _build_top6_impact_cards_html(theme_scores):
     """3×2 grid of detail cards for the top-6 impact-score themes."""
     import re as _re
+    import html as _html_mod
 
     sorted_themes = sorted(theme_scores.items(), key=lambda x: x[1]["impact"], reverse=True)
     top6 = sorted_themes[:6]
@@ -6757,7 +6758,8 @@ def _build_top6_impact_cards_html(theme_scores):
         if not best:
             return "No representative comment found."
         words = best.split()
-        return (" ".join(words[:40]) + "…") if len(words) > 40 else best
+        raw = (" ".join(words[:40]) + "…") if len(words) > 40 else best
+        return _html_mod.escape(raw)
 
     def _tags_html(keywords):
         shown = [kw.strip() for kw in keywords[:5] if len(kw.strip()) > 2]
@@ -6812,9 +6814,12 @@ def _build_top6_impact_cards_html(theme_scores):
 
 
 def run_theme_impact_analysis(topic_model_label=""):
-    scores     = _compute_theme_impact()
-    chart      = _build_theme_impact_chart(scores, topic_model_label)
-    top6_cards = _build_top6_impact_cards_html(scores)
+    scores = _compute_theme_impact()
+    chart  = _build_theme_impact_chart(scores, topic_model_label)
+    try:
+        top6_cards = _build_top6_impact_cards_html(scores)
+    except Exception:
+        top6_cards = ""
     table      = _build_theme_breakdown_table_html(scores)
     prevalence = _build_theme_prevalence_table_html(scores)
     return chart, top6_cards, table, prevalence
