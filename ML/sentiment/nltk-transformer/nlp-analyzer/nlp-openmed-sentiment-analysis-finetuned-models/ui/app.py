@@ -6407,9 +6407,103 @@ def _build_theme_impact_chart(theme_scores):
     return fig
 
 
+def _build_theme_breakdown_table_html(theme_scores):
+    """HTML table: THEME | VOLUME % | SEVERITY | TREND FACTOR | NORM. IMPACT SCORE."""
+    th = ("padding:10px 14px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;"
+          "color:#1a3a5c;background:#eaf1fb;border-bottom:2px solid #c3d4e8;")
+    th_r = th + "text-align:right;"
+
+    sorted_themes = sorted(theme_scores.items(), key=lambda x: x[1]["impact"], reverse=True)
+
+    def _impact_badge(score):
+        if score >= 75:
+            color = "#8B1A1A"
+        elif score >= 65:
+            color = "#B5651D"
+        else:
+            color = "#1a3a5c"
+        return (f'<span style="background:{color};color:#fff;border-radius:4px;'
+                f'padding:2px 10px;font-weight:700;">{score}</span>')
+
+    def _bar_mini(pct, color):
+        """Inline mini progress bar for Volume %."""
+        return (f'<div style="display:flex;align-items:center;gap:6px;">'
+                f'<div style="width:80px;background:#e8edf3;border-radius:3px;height:8px;">'
+                f'<div style="width:{min(pct,100):.0f}%;background:{color};height:8px;border-radius:3px;"></div>'
+                f'</div>'
+                f'<span style="font-size:0.82rem;color:#333;">{pct:.1f}%</span>'
+                f'</div>')
+
+    def _severity_bar(sev):
+        """Inline severity bar: 0=green → 1=red."""
+        pct = sev * 100
+        color = ("#c0392b" if sev >= 0.6 else "#e67e22" if sev >= 0.4 else "#27ae60")
+        return (f'<div style="display:flex;align-items:center;gap:6px;">'
+                f'<div style="width:80px;background:#e8edf3;border-radius:3px;height:8px;">'
+                f'<div style="width:{pct:.0f}%;background:{color};height:8px;border-radius:3px;"></div>'
+                f'</div>'
+                f'<span style="font-size:0.82rem;color:#333;">{sev:.2f}</span>'
+                f'</div>')
+
+    def _trend_cell(trend, tf):
+        arrow = "▲" if trend > 0.01 else ("▼" if trend < -0.01 else "→")
+        t_color = "#c0392b" if trend > 0.01 else ("#27ae60" if trend < -0.01 else "#888")
+        return (f'<span style="color:{t_color};font-weight:600;">{arrow}</span>'
+                f'&nbsp;<span style="color:#333;font-size:0.82rem;">{tf:.3f}</span>')
+
+    rows = ""
+    for i, (theme, s) in enumerate(sorted_themes):
+        bg = "#f8fbff" if i % 2 == 0 else "#ffffff"
+        vol_color = ("#8B1A1A" if s["impact"] >= 75 else
+                     "#B5651D" if s["impact"] >= 65 else "#1a3a5c")
+        tf = 1.0 + 0.25 * max(s["trend"], 0)
+        rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:500;">{theme}</td>'
+            f'<td style="padding:9px 14px;">{_bar_mini(s["volume"], vol_color)}</td>'
+            f'<td style="padding:9px 14px;">{_severity_bar(s["severity"])}</td>'
+            f'<td style="padding:9px 14px;">{_trend_cell(s["trend"], tf)}</td>'
+            f'<td style="padding:9px 14px;text-align:center;">{_impact_badge(s["impact"])}</td>'
+            f'</tr>'
+        )
+
+    footnote = (
+        "<b>Volume %</b>: share of all patient-months containing at least one theme keyword. "
+        "<b>Severity</b>: negative-word hits ÷ (negative + positive word hits) in theme-matching texts "
+        "(0&nbsp;=&nbsp;all positive, 1&nbsp;=&nbsp;all negative). "
+        "<b>Trend factor</b>: 1&nbsp;+&nbsp;0.25&nbsp;×&nbsp;max(trend,&nbsp;0) where trend compares "
+        "second-half vs first-half journey mention rates "
+        "(▲&nbsp;growing concern adds penalty, ▼&nbsp;declining gets no bonus). "
+        "<b>Norm. Impact</b>: raw&nbsp;=&nbsp;volume&nbsp;×&nbsp;(0.4&nbsp;+&nbsp;0.6&nbsp;×&nbsp;severity)&nbsp;"
+        "×&nbsp;trend_factor, then rescaled so the top theme&nbsp;=&nbsp;100."
+    )
+
+    return (
+        '<div style="overflow-x:auto;margin-top:24px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:4px;">'
+        'Theme impact — component breakdown</h3>'
+        '<p style="font-size:0.76rem;color:#ccc;margin:0 0 10px;">'
+        'Sorted by normalised impact score (descending). '
+        'Bars scale to the maximum observed value within each column.</p>'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{th}">THEME</th>'
+        f'<th style="{th}">VOLUME %</th>'
+        f'<th style="{th}">SEVERITY</th>'
+        f'<th style="{th}">TREND FACTOR</th>'
+        f'<th style="{th_r}">NORM. IMPACT SCORE</th>'
+        f'</tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        f'<p style="font-size:0.73rem;color:#aaa;margin-top:10px;">{footnote}</p>'
+        '</div>'
+    )
+
+
 def run_theme_impact_analysis():
     scores = _compute_theme_impact()
-    return _build_theme_impact_chart(scores)
+    chart  = _build_theme_impact_chart(scores)
+    table  = _build_theme_breakdown_table_html(scores)
+    return chart, table
 
 
 # ── Gradio layout ─────────────────────────────────────────────────────────────
@@ -6631,8 +6725,9 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "and **NSQHS** standards where applicable. "
                 "Impact score = f(volume × severity × trend)."
             )
-            theme_run_btn    = gr.Button("Run Theme Analysis", variant="primary")
-            theme_impact_plot = gr.Plot(show_label=False)
+            theme_run_btn       = gr.Button("Run Theme Analysis", variant="primary")
+            theme_impact_plot   = gr.Plot(show_label=False)
+            theme_breakdown_tbl = gr.HTML()
 
         # ── Tab 6: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
@@ -6695,7 +6790,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
-    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[], outputs=[theme_impact_plot])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[], outputs=[theme_impact_plot, theme_breakdown_tbl])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
