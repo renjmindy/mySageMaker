@@ -6911,7 +6911,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             sw_hhs_rollup_table = gr.HTML()
 
         # ── Tab 5: Recurring Semantic Themes ──────────────────────────────
-        with gr.TabItem("Recurring Semantic Themes"):
+        with gr.TabItem("Recurring Semantic Themes (MpMq)"):
             gr.Markdown(
                 "Themes are derived from aspect-level keyword classification across all "
                 f"**{len(PATIENT_NAMES)} patients**. A single comment may map to multiple themes; "
