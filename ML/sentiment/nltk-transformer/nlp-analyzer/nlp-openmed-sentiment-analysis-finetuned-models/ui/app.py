@@ -6225,7 +6225,84 @@ def run_statewide_analysis(sentiment_model_label):
                              hhs_rows, sw_neg_pct_all, sw_q4_neg_pct_all,
                              sw_red_flags_all, sw_total_comments)
 
-    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html, pg_table_html, hhs_rollup_html
+    report_path = _write_statewide_report(
+        model_label      = sentiment_model_label,
+        total            = total,
+        statewide_fig    = statewide_fig,
+        per_patient_fig  = per_patient_fig,
+        kpi_html         = kpi_html,
+        ward_table_html  = ward_table_html,
+        pg_table_html    = pg_table_html,
+        hhs_rollup_html  = hhs_rollup_html,
+    )
+
+    return done_status, kpi_html, statewide_fig, per_patient_fig, ward_table_html, pg_table_html, hhs_rollup_html, report_path
+
+
+def _write_statewide_report(model_label, total,
+                             statewide_fig, per_patient_fig,
+                             kpi_html, ward_table_html, pg_table_html, hhs_rollup_html):
+    """Build a self-contained HTML report and write it to a temp file; return the path."""
+    import re, tempfile
+    import plotly.io as pio
+    from datetime import date as _date
+
+    today = _date.today().strftime("%d %B %Y")
+
+    chart1 = pio.to_html(statewide_fig,   full_html=False, include_plotlyjs="cdn",
+                          config={"displayModeBar": False})
+    chart2 = pio.to_html(per_patient_fig, full_html=False, include_plotlyjs=False,
+                          config={"displayModeBar": False})
+
+    def _patch(html):
+        """Recolour dark-UI elements so they read on a white background."""
+        html = re.sub(r'(<h3\b[^>]*style="[^"]*?)color:#ffffff', r'\1color:#1a3a5c', html)
+        html = re.sub(r'(<p\b[^>]*style="[^"]*?)color:#ccc\b',   r'\1color:#555',   html)
+        html = re.sub(r'(<p\b[^>]*style="[^"]*?)color:#aaa\b',   r'\1color:#666',   html)
+        html = html.replace('font-size:0.78rem;color:#fff;margin-top:4px;',
+                            'font-size:0.78rem;color:#555;margin-top:4px;')
+        return html
+
+    report = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Statewide Sentiment Report — Q1 2026</title>
+  <style>
+    *,*::before,*::after{{box-sizing:border-box}}
+    body{{font-family:Arial,Helvetica,sans-serif;background:#f0f4f8;margin:0;padding:32px 16px;color:#222}}
+    .rpt{{max-width:1120px;margin:0 auto;background:#fff;border-radius:14px;
+          padding:36px 40px;box-shadow:0 4px 24px rgba(0,0,0,.10)}}
+    .rpt-header{{border-bottom:2px solid #c3d4e8;padding-bottom:16px;margin-bottom:28px}}
+    .rpt-header h1{{color:#1a3a5c;font-size:1.55rem;margin:0 0 4px}}
+    .rpt-header p{{color:#666;font-size:0.84rem;margin:0}}
+    section{{margin-bottom:36px}}
+    h3{{color:#1a3a5c !important}}
+  </style>
+</head>
+<body>
+<div class="rpt">
+  <div class="rpt-header">
+    <h1>Statewide Sentiment &amp; HHS Profile</h1>
+    <p>Generated: {today} &nbsp;·&nbsp; Model: {model_label} &nbsp;·&nbsp;
+       {total:,} classifications across {len(PATIENT_NAMES)} patients</p>
+  </div>
+  <section>{_patch(kpi_html)}</section>
+  <section>{chart1}</section>
+  <section>{chart2}</section>
+  <section>{_patch(ward_table_html)}</section>
+  <section>{_patch(pg_table_html)}</section>
+  <section>{_patch(hhs_rollup_html)}</section>
+</div>
+</body>
+</html>"""
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".html",
+                                      prefix="statewide_report_")
+    tmp.write(report.encode("utf-8"))
+    tmp.close()
+    return tmp.name
 
 
 def update_months(patient):
@@ -6826,6 +6903,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 )
                 sw_run_btn = gr.Button("Run Statewide Analysis", variant="primary", scale=1)
             sw_status           = gr.HTML()
+            sw_download         = gr.File(label="Download Report (.html)", visible=True)
             sw_kpi              = gr.HTML()
             sw_bar_chart        = gr.Plot(show_label=False)
             sw_patient_chart    = gr.Plot(show_label=False)
@@ -6913,7 +6991,7 @@ examples/
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
-        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table, sw_hhs_rollup_table],
+        outputs=[sw_status, sw_kpi, sw_bar_chart, sw_patient_chart, sw_ward_table, sw_peer_group_table, sw_hhs_rollup_table, sw_download],
     )
     ts_btn.click(
         fn=run_timeseries,
