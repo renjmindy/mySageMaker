@@ -6307,6 +6307,32 @@ _SEMANTIC_THEMES = {
     ],
 }
 
+_THEME_AHPEQS_ANCHOR = {
+    "ED waiting and updates":                     "AHPEQS Q4, Q8 · NSQHS 6",
+    "Discharge and post-discharge care":           "AHPEQS Q4, Q5 · NSQHS 6",
+    "Night-time noise and sleep":                 "AHPEQS Q2 · NSQHS 5",
+    "Medication information":                      "AHPEQS Q4, Q9 · NSQHS 4",
+    "Cleanliness and infection prevention":        "NSQHS 3",
+    "Communication and explanations":              "AHPEQS Q1, Q4, Q5 · NSQHS 6",
+    "Cultural safety, accessibility and language": "AHPEQS Q1 · NSQHS 1, 2",
+    "Food and hydration":                          "NSQHS 5",
+    "Administration and appointments":             "—",
+    "Family and carer involvement":                "AHPEQS Q5 · NSQHS 2",
+}
+
+_THEME_CLINICAL_SEVERITY = {
+    "ED waiting and updates":                     "Medium",
+    "Discharge and post-discharge care":           "Medium",
+    "Night-time noise and sleep":                 "Medium",
+    "Medication information":                      "High",
+    "Cleanliness and infection prevention":        "High",
+    "Communication and explanations":              "Medium",
+    "Cultural safety, accessibility and language": "Medium",
+    "Food and hydration":                          "Low",
+    "Administration and appointments":             "Low",
+    "Family and carer involvement":                "Low",
+}
+
 _THEME_NEG_WORDS = {
     "pain", "concern", "problem", "issue", "worse", "bad", "poor",
     "difficult", "frustrat", "angry", "disappoint", "fail", "lack",
@@ -6499,11 +6525,103 @@ def _build_theme_breakdown_table_html(theme_scores):
     )
 
 
+def _build_theme_prevalence_table_html(theme_scores):
+    """HTML table matching the 'Theme prevalence and characteristics' screenshot."""
+    all_months = []
+    for months in PATIENT_SAMPLES.values():
+        for text in months.values():
+            all_months.append(text.lower())
+    total = max(len(all_months), 1)
+
+    stats = {}
+    for theme, keywords in _SEMANTIC_THEMES.items():
+        mentions = [t for t in all_months if any(kw in t for kw in keywords)]
+        n = len(mentions)
+        neg_ratios, mixed_count = [], 0
+        for text in mentions:
+            neg = sum(1 for w in _THEME_NEG_WORDS if w in text)
+            pos = sum(1 for w in _THEME_POS_WORDS if w in text)
+            if neg + pos > 0:
+                neg_ratios.append(neg / (neg + pos))
+            if neg > 0 and pos > 0:
+                mixed_count += 1
+        stats[theme] = {
+            "n":        n,
+            "neg_pct":  round(sum(neg_ratios) / max(len(neg_ratios), 1) * 100),
+            "mixed_pct": round(mixed_count / max(n, 1) * 100),
+        }
+
+    sorted_themes = sorted(theme_scores.items(), key=lambda x: x[1]["impact"], reverse=True)
+
+    def _severity_badge(label):
+        color = {"High": "#c0392b", "Medium": "#e67e22", "Low": "#27ae60"}.get(label, "#888")
+        return (f'<span style="background:{color};color:#fff;border-radius:12px;'
+                f'padding:3px 13px;font-size:0.78rem;font-weight:600;">{label}</span>')
+
+    def _delta_cell(trend):
+        pp = round(trend * 100)
+        if pp > 0:
+            return f'<span style="color:#27ae60;font-weight:600;">+{pp}</span>'
+        if pp < 0:
+            return f'<span style="color:#c0392b;font-weight:600;">{pp}</span>'
+        return '<span style="color:#888;">0</span>'
+
+    th   = ("padding:10px 14px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;"
+            "color:#1a3a5c;background:#eaf1fb;border-bottom:2px solid #c3d4e8;white-space:nowrap;")
+    th_r = th + "text-align:right;"
+    th_c = th + "text-align:center;"
+
+    rows = ""
+    for i, (theme, s) in enumerate(sorted_themes):
+        bg  = "#f8fbff" if i % 2 == 0 else "#ffffff"
+        st  = stats.get(theme, {})
+        rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:500;">{theme}</td>'
+            f'<td style="padding:9px 14px;text-align:right;">{st.get("n", 0):,}</td>'
+            f'<td style="padding:9px 14px;text-align:right;">{s["volume"]:.0f}%</td>'
+            f'<td style="padding:9px 14px;text-align:right;">{st.get("neg_pct", 0)}</td>'
+            f'<td style="padding:9px 14px;text-align:right;">{st.get("mixed_pct", 0)}</td>'
+            f'<td style="padding:9px 14px;text-align:center;">'
+            f'{_severity_badge(_THEME_CLINICAL_SEVERITY.get(theme, "Medium"))}</td>'
+            f'<td style="padding:9px 14px;text-align:center;">{_delta_cell(s["trend"])}</td>'
+            f'<td style="padding:9px 14px;color:#555;font-size:0.82rem;">'
+            f'{_THEME_AHPEQS_ANCHOR.get(theme, "—")}</td>'
+            f'</tr>'
+        )
+
+    footnote = (
+        "Themes are non-exclusive; the % of comments column does not sum to 100%. "
+        "Impact score is computed from volume × severity × directional trend and is reported in Section 4 above."
+    )
+
+    return (
+        '<div style="overflow-x:auto;margin-top:28px;">'
+        '<h3 style="font-size:1.05rem;font-weight:700;color:#1a3a5c;margin-bottom:6px;">'
+        'Theme prevalence and characteristics</h3>'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{th}">THEME</th>'
+        f'<th style="{th_r}">COMMENTS</th>'
+        f'<th style="{th_r}">% OF COMMENTS</th>'
+        f'<th style="{th_r}">NEGATIVE %</th>'
+        f'<th style="{th_r}">MIXED %</th>'
+        f'<th style="{th_c}">SEVERITY</th>'
+        f'<th style="{th_c}">Δ VS Q4 (PP)</th>'
+        f'<th style="{th}">AHPEQS / NSQHS ANCHOR</th>'
+        '</tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        f'<p style="font-size:0.73rem;color:#aaa;margin-top:10px;">{footnote}</p>'
+        '</div>'
+    )
+
+
 def run_theme_impact_analysis():
-    scores = _compute_theme_impact()
-    chart  = _build_theme_impact_chart(scores)
-    table  = _build_theme_breakdown_table_html(scores)
-    return chart, table
+    scores     = _compute_theme_impact()
+    chart      = _build_theme_impact_chart(scores)
+    table      = _build_theme_breakdown_table_html(scores)
+    prevalence = _build_theme_prevalence_table_html(scores)
+    return chart, table, prevalence
 
 
 # ── Gradio layout ─────────────────────────────────────────────────────────────
@@ -6725,9 +6843,10 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "and **NSQHS** standards where applicable. "
                 "Impact score = f(volume × severity × trend)."
             )
-            theme_run_btn       = gr.Button("Run Theme Analysis", variant="primary")
-            theme_impact_plot   = gr.Plot(show_label=False)
-            theme_breakdown_tbl = gr.HTML()
+            theme_run_btn        = gr.Button("Run Theme Analysis", variant="primary")
+            theme_impact_plot    = gr.Plot(show_label=False)
+            theme_breakdown_tbl  = gr.HTML()
+            theme_prevalence_tbl = gr.HTML()
 
         # ── Tab 6: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
@@ -6790,7 +6909,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
-    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[], outputs=[theme_impact_plot, theme_breakdown_tbl])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[], outputs=[theme_impact_plot, theme_breakdown_tbl, theme_prevalence_tbl])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
