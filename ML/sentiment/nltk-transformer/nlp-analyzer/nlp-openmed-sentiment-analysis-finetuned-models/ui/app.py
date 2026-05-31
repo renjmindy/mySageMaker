@@ -7164,6 +7164,27 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             theme_top6_cards     = gr.HTML()
             theme_breakdown_tbl  = gr.HTML()
             theme_prevalence_tbl = gr.HTML()
+            gr.HTML(
+                '<div style="border-left:4px solid #4a90d9;background:#f0f6ff;'
+                'border-radius:6px;padding:14px 18px;margin-top:28px;">'
+                '<p style="margin:0;font-size:0.86rem;color:#222;line-height:1.65;">'
+                '<strong>About the redaction tokens in quotes.</strong> '
+                'Patterns such as&nbsp;'
+                '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
+                'padding:1px 7px;font-size:0.80rem;font-weight:600;font-family:monospace;">'
+                '[TIME_PERIOD]</span>&nbsp;,&nbsp;'
+                '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
+                'padding:1px 7px;font-size:0.80rem;font-weight:600;font-family:monospace;">'
+                '[STAFF_NAME]</span>&nbsp;and&nbsp;'
+                '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
+                'padding:1px 7px;font-size:0.80rem;font-weight:600;font-family:monospace;">'
+                '[WARD]</span>&nbsp;are not missing data — they are the visible output of '
+                "Q's de-identification engine, which removes potentially identifying entities "
+                'before any human reviewer or downstream consumer sees the text. '
+                'De-identification precision and recall are reported in Section 10. '
+                'Quotes used in external publications are subject to a secondary quote-review step.'
+                '</p></div>'
+            )
 
         # ── Tab 6: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
