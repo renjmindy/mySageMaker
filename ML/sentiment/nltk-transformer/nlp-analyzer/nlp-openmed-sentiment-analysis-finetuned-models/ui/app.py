@@ -6873,6 +6873,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 topic_run_btn   = gr.Button("Run Topic Analysis", variant="primary", scale=3)
                 topic_clear_btn = gr.Button("🔄 New Patient", variant="secondary", scale=1)
             topic_status    = gr.HTML()
+            topic_report    = gr.File(label="Download Topic Report (.html)", interactive=False)
             topic_consensus = gr.HTML()
             with gr.Row():
                 topic_table = gr.Plot(show_label=False)
@@ -6885,8 +6886,6 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             with gr.Row():
                 topic_score_chart = gr.Plot(show_label=False)
             topic_summary_table = gr.HTML(label="Monthly Summary")
-            with gr.Row():
-                topic_report = gr.File(label="Download Topic Report (.html)", interactive=False)
 
         # ── Tab 4: Statewide Sentiment & HHS Profile ──────────────────────
         with gr.TabItem("Statewide Sentiment & HHS Profile"):
