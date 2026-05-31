@@ -6840,16 +6840,15 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 ts_btn       = gr.Button("Run Time-Series Analysis", variant="primary", scale=2)
                 ts_clear_btn = gr.Button("🔄 New Patient", variant="secondary", scale=1)
             ts_summary  = gr.HTML()
+            ts_report_file = gr.File(
+                label="Download Time-Series Report (.html)",
+                interactive=False,
+            )
             with gr.Row():
                 ts_line_plot = gr.Plot(show_label=False)
             with gr.Row():
                 ts_cat_plot   = gr.Plot(show_label=False)
                 ts_delta_plot = gr.Plot(show_label=False)
-            with gr.Row():
-                ts_report_file = gr.File(
-                    label="Download Time-Series Report (.html)",
-                    interactive=False,
-                )
 
         # ── Tab 3: Topic & Theme Analytics ────────────────────────────────
         with gr.TabItem("Topic & Theme Analytics (1pMq)"):
