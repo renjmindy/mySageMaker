@@ -6888,7 +6888,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             topic_summary_table = gr.HTML(label="Monthly Summary")
 
         # ── Tab 4: Statewide Sentiment & HHS Profile ──────────────────────
-        with gr.TabItem("Statewide Sentiment & HHS Profile"):
+        with gr.TabItem("Statewide Sentiment & HHS Profile (MpMq)"):
             gr.Markdown(
                 "The statewide sentiment mix and an anonymised HHS rollup across all "
                 f"**{len(PATIENT_NAMES)} patients**. HHSs are de-identified (HHS A–AJ); "
