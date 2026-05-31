@@ -6410,6 +6410,49 @@ _THEME_CLINICAL_SEVERITY = {
     "Family and carer involvement":                "Low",
 }
 
+_THEME_CLINICAL_RELEVANCE = {
+    "ED waiting and updates": (
+        "The strongest opportunity is to reduce information asymmetry during escalated waits "
+        "rather than focusing solely on reducing wait times."
+    ),
+    "Discharge and post-discharge care": (
+        "A structured discharge checklist and a direct clinical-pharmacist handover can address "
+        "the gap between care provided and care understood."
+    ),
+    "Night-time noise and sleep": (
+        "A ward-level improvement opportunity: targeted quiet-hours protocols have delivered "
+        "measurable reductions in negative sleep-related comments in comparable facilities."
+    ),
+    "Medication information": (
+        "Requires a safety-sensitive workflow. Medication comments should be triaged to pharmacy "
+        "or a clinical pharmacist before being reviewed by the treating physician."
+    ),
+    "Cleanliness and infection prevention": (
+        "Infection-prevention perceptions directly affect patient trust. Visible hand-hygiene "
+        "compliance and proactive ward-cleanliness communication are highest-yield interventions."
+    ),
+    "Communication and explanations": (
+        "Communication is a cross-cutting strategic priority. The report surfaces patient-perceived "
+        "gaps in information-sharing that highlight opportunities for structured bedside rounding."
+    ),
+    "Cultural safety, accessibility and language": (
+        "A concern regardless of volume. The report surfaces disparities for patients from "
+        "culturally and linguistically diverse backgrounds requiring targeted interpreter access."
+    ),
+    "Food and hydration": (
+        "Nutrition and hydration directly affect recovery outcomes. Proactive meal-round "
+        "checks and patient-preference documentation are low-cost, high-impact interventions."
+    ),
+    "Administration and appointments": (
+        "Administrative friction erodes patient trust before clinical contact begins. "
+        "Streamlined booking and clear referral pathways are the highest-yield system improvements."
+    ),
+    "Family and carer involvement": (
+        "Carer exclusion compounds patient anxiety. Structured visiting policies and "
+        "carer-inclusive communication protocols are recommended under NSQHS Standard 2."
+    ),
+}
+
 _THEME_NEG_WORDS = {
     "pain", "concern", "problem", "issue", "worse", "bad", "poor",
     "difficult", "frustrat", "angry", "disappoint", "fail", "lack",
@@ -6694,12 +6737,87 @@ def _build_theme_prevalence_table_html(theme_scores):
     )
 
 
+def _build_top6_impact_cards_html(theme_scores):
+    """3×2 grid of detail cards for the top-6 impact-score themes."""
+    import re as _re
+
+    sorted_themes = sorted(theme_scores.items(), key=lambda x: x[1]["impact"], reverse=True)
+    top6 = sorted_themes[:6]
+
+    def _extract_quote(keywords):
+        best, best_score = "", 0
+        for months in PATIENT_SAMPLES.values():
+            for text in months.values():
+                for sent in _re.split(r"(?<=[.!?])\s+", text):
+                    s = sent.lower()
+                    score = sum(1 for kw in keywords if kw.strip() in s)
+                    word_count = len(sent.split())
+                    if score > best_score and 8 <= word_count <= 55:
+                        best_score, best = score, sent.strip()
+        if not best:
+            return "No representative comment found."
+        words = best.split()
+        return (" ".join(words[:40]) + "…") if len(words) > 40 else best
+
+    def _tags_html(keywords):
+        shown = [kw.strip() for kw in keywords[:5] if len(kw.strip()) > 2]
+        return "".join(
+            f'<span style="background:#e8f2fc;color:#1a6fa8;border-radius:20px;'
+            f'padding:2px 10px;font-size:0.74rem;font-weight:600;white-space:nowrap;">'
+            f'{kw}</span>'
+            for kw in shown
+        )
+
+    cards = ""
+    for theme, s in top6:
+        keywords   = _SEMANTIC_THEMES.get(theme, [])
+        quote      = _extract_quote(keywords)
+        tags       = _tags_html(keywords)
+        pct        = f'{s["volume"]:.0f}'
+        relevance  = _THEME_CLINICAL_RELEVANCE.get(theme, "")
+        anchor     = _THEME_AHPEQS_ANCHOR.get(theme, "—")
+        cards += (
+            '<div style="border:1px solid #d1e5f7;border-radius:10px;padding:16px;'
+            'background:#fafcff;display:flex;flex-direction:column;">'
+
+            '<div style="display:flex;justify-content:space-between;'
+            'align-items:flex-start;margin-bottom:10px;">'
+            f'<span style="font-weight:700;color:#1a3a5c;font-size:0.95rem;">{theme}</span>'
+            f'<span style="color:#1a6fa8;font-size:0.81rem;font-weight:600;'
+            f'white-space:nowrap;margin-left:8px;">{pct}% of comments</span>'
+            '</div>'
+
+            f'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">{tags}</div>'
+
+            f'<p style="font-style:italic;color:#444;font-size:0.83rem;margin:0 0 10px;'
+            f'border-left:3px solid #c3d4e8;padding-left:10px;">"{quote}"</p>'
+
+            f'<p style="font-size:0.81rem;color:#333;margin:0 0 10px;flex-grow:1;">'
+            f'<span style="font-weight:700;">Clinical or operational relevance:</span> '
+            f'{relevance}</p>'
+
+            f'<div style="font-size:0.74rem;color:#1a6fa8;border-top:1px solid #e0eaf5;'
+            f'padding-top:8px;margin-top:auto;">{anchor}</div>'
+            '</div>'
+        )
+
+    return (
+        '<div style="margin-top:24px;">'
+        '<h3 style="font-size:1.05rem;font-weight:700;color:#ffffff;margin-bottom:12px;">'
+        'Top-6 Impact Score Topics</h3>'
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">'
+        + cards +
+        '</div></div>'
+    )
+
+
 def run_theme_impact_analysis(topic_model_label=""):
     scores     = _compute_theme_impact()
     chart      = _build_theme_impact_chart(scores, topic_model_label)
+    top6_cards = _build_top6_impact_cards_html(scores)
     table      = _build_theme_breakdown_table_html(scores)
     prevalence = _build_theme_prevalence_table_html(scores)
-    return chart, table, prevalence
+    return chart, top6_cards, table, prevalence
 
 
 # ── Gradio layout ─────────────────────────────────────────────────────────────
@@ -6927,6 +7045,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 )
                 theme_run_btn = gr.Button("Run Theme Analysis", variant="primary", scale=1)
             theme_impact_plot    = gr.Plot(show_label=False)
+            theme_top6_cards     = gr.HTML()
             theme_breakdown_tbl  = gr.HTML()
             theme_prevalence_tbl = gr.HTML()
 
@@ -6991,7 +7110,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
-    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd], outputs=[theme_impact_plot, theme_breakdown_tbl, theme_prevalence_tbl])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd], outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
