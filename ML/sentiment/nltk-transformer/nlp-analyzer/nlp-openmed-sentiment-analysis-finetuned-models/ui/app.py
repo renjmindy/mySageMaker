@@ -6334,122 +6334,175 @@ def load_sample(patient, names):
 # ── Recurring Semantic Themes ─────────────────────────────────────────────────
 
 _SEMANTIC_THEMES = {
-    "ED waiting and updates": [
-        "wait", "waiting", "emergency department", " ed ", "triage",
-        "hours", "delay", "queue", "update", "informed us", "told us",
+    "Clinical Staff": [
+        "doctor", "nurse", "gp", "specialist", "physiotherapist",
+        "psychologist", "midwife", "physician", "surgeon", "clinician",
     ],
-    "Discharge and post-discharge care": [
-        "discharg", "discharge", "sent home", "follow-up", "follow up",
-        "aftercare", "after care", "post-discharge", "leaving hospital",
-        "community care", "transition", "handover",
+    "Administrative Staff": [
+        "reception", "receptionist", "booking", "billing", "front desk",
+        "admin", "administration", "registration", "check-in",
     ],
-    "Night-time noise and sleep": [
-        "noise", "noisy", "sleep", "night-time", "night time", " night ",
-        "loud", "disturb", "rest", "awake", "woken", "beeping", "alarm",
+    "Efficiency and Flow": [
+        "waiting", "waited", "queue", "delay", "on time", "late",
+        "slow", "long wait", "hours", "rushed", "held up", "bottleneck",
     ],
-    "Medication information": [
-        "medication", "medicine", "drug", "prescription", "dosage",
-        "side effect", "pharmacy", "pharmacist", "tablet", "dose",
-        "medication error", "reconciliation",
+    "Booking & Access": [
+        "book", "appointment", "portal", "online", "zedoc",
+        "couldn't access", "couldn't book", "hard to get", "access",
+        "booked in", "schedule", "waitlist",
     ],
-    "Cleanliness and infection prevention": [
-        "clean", "cleanliness", "hygiene", "infection", "sterile",
-        "dirty", "hand washing", "hand wash", "sanitise", "sanitize",
-        "tidy", "germ", "bacteria",
+    "Information & Shared Decision-Making": [
+        "explained", "told", "informed", "listened", "dismissed",
+        "didn't listen", "options", "decision", "choice", "understand",
+        "shared", "involve me",
     ],
-    "Communication and explanations": [
-        "explain", "explanation", "communicated", "communication",
-        "told me", "informed", "understand", "understanding",
-        "information", "clarity", "question", "listen", "discuss",
+    "Dignity & Respect": [
+        "respect", "dignity", "rude", "condescending", "ignored",
+        "acknowledged", "dismissed", "privacy", "treated like",
+        "made to feel", "embarrassed", "valued",
     ],
-    "Cultural safety, accessibility and language": [
-        "interpreter", "interpretation", "cultural", "culture",
-        "language", "accessibility", "ndis", "disability",
-        "translation", "indigenous", "religious", "diverse",
+    "Care Quality": [
+        "thorough", "careful", "rushed", "excellent", "poor", "skilled",
+        "professional", "competent", "quality", "standard",
+        "best care", "bad experience",
     ],
-    "Food and hydration": [
-        "food", "meal", "water", "hydration", "nutrition", "diet",
-        "hungry", "thirst", "eat ", "drink", "breakfast", "lunch",
-        "dinner", "snack",
+    "Care Coordination": [
+        "handover", "referral", "transferred", "coordinated",
+        "team communicated", "follow through", "transition",
+        "between departments", "between teams", "nobody told",
     ],
-    "Administration and appointments": [
-        "appointment", "admin", "schedule", "scheduling", "booking",
-        "referral", "paperwork", "form", "waiting list", "waitlist",
-        "outpatient", "reception", "registration", "billing",
+    "Results & Information": [
+        "results", "report", "pathology", "test", "didn't understand",
+        "scan", "biopsy", "blood test", "imaging", "outcome",
+        "never received", "still waiting for results",
     ],
-    "Family and carer involvement": [
-        "family", "carer", "partner", "spouse", "relative", "visitor",
-        "support person", "husband", "wife", " parent", "child",
-        "involve", "inclusion",
+    "Facilities & Environment & Environmental Hygiene": [
+        "parking", "car park", "clean", "comfortable", "building",
+        "facility", "environment", "dirty", "hygiene", "noise",
+        "temperature", "bed", "ward", "bathroom",
+    ],
+    "Telehealth": [
+        "telehealth", "video", "online consult", "remote", "phone",
+        "video call", "virtual", "zoom", "teams call", "phone consult",
+    ],
+    "Emotional Support": [
+        "anxious", "reassured", "felt safe", "valued", "dismissed",
+        "scared", "frightened", "comforted", "alone", "supported",
+        "empathy", "compassion", "kind",
+    ],
+    "Cultural & Accessibility Needs": [
+        "cultural", "language", "disability", "female practitioner",
+        "interpreter", "indigenous", "accessible", "ndis",
+        "translation", "diverse", "religious",
+    ],
+    "Discharge & Follow-up": [
+        "discharge", "follow-up", "home", "after care", "instructions",
+        "follow up", "sent home", "aftercare", "post-discharge",
+        "community care", "next steps",
+    ],
+    "Feeling in Good Hands": [
+        "good hands", "trust", "confident", "well cared",
+        "couldn't be better", "amazing care", "great team",
+        "felt secure", "best hands", "in safe hands",
     ],
 }
 
 _THEME_AHPEQS_ANCHOR = {
-    "ED waiting and updates":                     "AHPEQS Q4, Q8 · NSQHS 6",
-    "Discharge and post-discharge care":           "AHPEQS Q4, Q5 · NSQHS 6",
-    "Night-time noise and sleep":                 "AHPEQS Q2 · NSQHS 5",
-    "Medication information":                      "AHPEQS Q4, Q9 · NSQHS 4",
-    "Cleanliness and infection prevention":        "NSQHS 3",
-    "Communication and explanations":              "AHPEQS Q1, Q4, Q5 · NSQHS 6",
-    "Cultural safety, accessibility and language": "AHPEQS Q1 · NSQHS 1, 2",
-    "Food and hydration":                          "NSQHS 5",
-    "Administration and appointments":             "—",
-    "Family and carer involvement":                "AHPEQS Q5 · NSQHS 2",
+    "Clinical Staff":                              "AHPEQS Q1, Q2 · NSQHS 5, 6",
+    "Administrative Staff":                        "AHPEQS Q7 · NSQHS 1",
+    "Efficiency and Flow":                         "AHPEQS Q4, Q8 · NSQHS 6",
+    "Booking & Access":                            "AHPEQS Q7 · NSQHS 1",
+    "Information & Shared Decision-Making":        "AHPEQS Q4, Q5 · NSQHS 6",
+    "Dignity & Respect":                           "AHPEQS Q1, Q2 · NSQHS 1",
+    "Care Quality":                                "AHPEQS Q2, Q3 · NSQHS 5",
+    "Care Coordination":                           "AHPEQS Q4, Q5 · NSQHS 4, 6",
+    "Results & Information":                       "AHPEQS Q4, Q9 · NSQHS 4",
+    "Facilities & Environment & Environmental Hygiene": "NSQHS 3",
+    "Telehealth":                                  "AHPEQS Q7 · NSQHS 6",
+    "Emotional Support":                           "AHPEQS Q1, Q2 · NSQHS 5",
+    "Cultural & Accessibility Needs":              "AHPEQS Q1 · NSQHS 1, 2",
+    "Discharge & Follow-up":                       "AHPEQS Q4, Q5 · NSQHS 6",
+    "Feeling in Good Hands":                       "AHPEQS Q1 · NSQHS 5",
 }
 
 _THEME_CLINICAL_SEVERITY = {
-    "ED waiting and updates":                     "Medium",
-    "Discharge and post-discharge care":           "Medium",
-    "Night-time noise and sleep":                 "Medium",
-    "Medication information":                      "High",
-    "Cleanliness and infection prevention":        "High",
-    "Communication and explanations":              "Medium",
-    "Cultural safety, accessibility and language": "Medium",
-    "Food and hydration":                          "Low",
-    "Administration and appointments":             "Low",
-    "Family and carer involvement":                "Low",
+    "Clinical Staff":                              "Medium",
+    "Administrative Staff":                        "Low",
+    "Efficiency and Flow":                         "Medium",
+    "Booking & Access":                            "Low",
+    "Information & Shared Decision-Making":        "High",
+    "Dignity & Respect":                           "High",
+    "Care Quality":                                "High",
+    "Care Coordination":                           "High",
+    "Results & Information":                       "High",
+    "Facilities & Environment & Environmental Hygiene": "Low",
+    "Telehealth":                                  "Low",
+    "Emotional Support":                           "Medium",
+    "Cultural & Accessibility Needs":              "Medium",
+    "Discharge & Follow-up":                       "Medium",
+    "Feeling in Good Hands":                       "Low",
 }
 
 _THEME_CLINICAL_RELEVANCE = {
-    "ED waiting and updates": (
-        "The strongest opportunity is to reduce information asymmetry during escalated waits "
-        "rather than focusing solely on reducing wait times."
+    "Clinical Staff": (
+        "Direct interactions with clinical staff are the primary driver of patient experience. "
+        "Specific feedback about individual roles enables targeted workforce development."
     ),
-    "Discharge and post-discharge care": (
-        "A structured discharge checklist and a direct clinical-pharmacist handover can address "
-        "the gap between care provided and care understood."
+    "Administrative Staff": (
+        "Administrative friction is often the first point of failure. Reception and billing issues "
+        "create a negative first impression that colours the entire care experience."
     ),
-    "Night-time noise and sleep": (
-        "A ward-level improvement opportunity: targeted quiet-hours protocols have delivered "
-        "measurable reductions in negative sleep-related comments in comparable facilities."
+    "Efficiency and Flow": (
+        "Waiting-time perceptions depend heavily on communication. Proactive updates during delays "
+        "significantly reduce negative sentiment even when wait times cannot be reduced."
     ),
-    "Medication information": (
-        "Requires a safety-sensitive workflow. Medication comments should be triaged to pharmacy "
-        "or a clinical pharmacist before being reviewed by the treating physician."
+    "Booking & Access": (
+        "Booking friction — particularly for digital portals — is a growing source of frustration. "
+        "Usability improvements to patient-facing systems are highest-yield access interventions."
     ),
-    "Cleanliness and infection prevention": (
-        "Infection-prevention perceptions directly affect patient trust. Visible hand-hygiene "
-        "compliance and proactive ward-cleanliness communication are highest-yield interventions."
+    "Information & Shared Decision-Making": (
+        "Shared decision-making is a core patient right. Comments indicating patients felt uninformed "
+        "or unheard represent opportunities for structured consultation frameworks."
     ),
-    "Communication and explanations": (
-        "Communication is a cross-cutting strategic priority. The report surfaces patient-perceived "
-        "gaps in information-sharing that highlight opportunities for structured bedside rounding."
+    "Dignity & Respect": (
+        "Dignity and respect failures generate the strongest negative sentiment and are most likely "
+        "to be formally escalated. A rapid feedback loop to clinical teams is recommended."
     ),
-    "Cultural safety, accessibility and language": (
-        "A concern regardless of volume. The report surfaces disparities for patients from "
-        "culturally and linguistically diverse backgrounds requiring targeted interpreter access."
+    "Care Quality": (
+        "Clinical quality perceptions drive overall satisfaction more than any other factor. "
+        "Comments about rushed or poor care warrant immediate clinical governance review."
     ),
-    "Food and hydration": (
-        "Nutrition and hydration directly affect recovery outcomes. Proactive meal-round "
-        "checks and patient-preference documentation are low-cost, high-impact interventions."
+    "Care Coordination": (
+        "Fragmented handovers and referral gaps are a leading cause of preventable harm. "
+        "Structured transition-of-care protocols directly address this risk."
     ),
-    "Administration and appointments": (
-        "Administrative friction erodes patient trust before clinical contact begins. "
-        "Streamlined booking and clear referral pathways are the highest-yield system improvements."
+    "Results & Information": (
+        "Patients who don't understand their results are more likely to disengage from follow-up. "
+        "Plain-language result communication should be treated as a patient safety issue."
     ),
-    "Family and carer involvement": (
-        "Carer exclusion compounds patient anxiety. Structured visiting policies and "
-        "carer-inclusive communication protocols are recommended under NSQHS Standard 2."
+    "Facilities & Environment & Environmental Hygiene": (
+        "Environmental cleanliness and comfort directly affect infection-risk perceptions and "
+        "recovery. Visible hygiene practices and patient-friendly environments are key."
+    ),
+    "Telehealth": (
+        "Telehealth access and quality are growing concerns as virtual care expands. "
+        "Technical reliability and clinical equivalence are the two primary improvement levers."
+    ),
+    "Emotional Support": (
+        "Emotional safety is a prerequisite for therapeutic alliance. Patients who feel dismissed "
+        "or anxious are less likely to follow clinical recommendations."
+    ),
+    "Cultural & Accessibility Needs": (
+        "Equity of access is a regulatory and ethical priority. Language and disability "
+        "accommodations are essential to safe, inclusive care for all patients."
+    ),
+    "Discharge & Follow-up": (
+        "The discharge transition is the highest-risk moment in the care journey. Structured "
+        "discharge summaries and follow-up call programs significantly reduce readmission rates."
+    ),
+    "Feeling in Good Hands": (
+        "Positive trust signals drive patient adherence and loyalty. Amplifying what patients "
+        "rate highly creates benchmarks for broader workforce development programs."
     ),
 }
 
