@@ -6866,6 +6866,60 @@ def _build_top6_impact_cards_html(theme_scores):
     )
 
 
+def _write_theme_report(topic_model_label, top6_cards, table, prevalence):
+    """Build a self-contained HTML report for the Recurring Semantic Themes tab."""
+    import tempfile
+    import plotly.io as pio
+    from datetime import date as _date
+
+    today = _date.today().strftime("%d %B %Y")
+
+    def _patch(html):
+        import re
+        html = re.sub(r'(<h3\b[^>]*style="[^"]*?)color:#ffffff', r'\1color:#1a3a5c', html)
+        html = re.sub(r'(<p\b[^>]*style="[^"]*?)color:#ccc\b',   r'\1color:#555',   html)
+        html = re.sub(r'(<p\b[^>]*style="[^"]*?)color:#aaa\b',   r'\1color:#666',   html)
+        return html
+
+    report = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Recurring Semantic Themes Report — Q1 2026</title>
+  <style>
+    *,*::before,*::after{{box-sizing:border-box}}
+    body{{font-family:Arial,Helvetica,sans-serif;background:#f0f4f8;margin:0;padding:32px 16px;color:#222}}
+    .rpt{{max-width:1120px;margin:0 auto;background:#fff;border-radius:14px;
+          padding:36px 40px;box-shadow:0 4px 24px rgba(0,0,0,.10)}}
+    .rpt-header{{border-bottom:2px solid #c3d4e8;padding-bottom:16px;margin-bottom:28px}}
+    .rpt-header h1{{color:#1a3a5c;font-size:1.55rem;margin:0 0 4px}}
+    .rpt-header p{{color:#666;font-size:0.84rem;margin:0}}
+    section{{margin-bottom:36px}}
+    h3{{color:#1a3a5c !important}}
+  </style>
+</head>
+<body>
+<div class="rpt">
+  <div class="rpt-header">
+    <h1>Recurring Semantic Themes</h1>
+    <p>Generated: {today} &nbsp;·&nbsp; Topic model: {topic_model_label} &nbsp;·&nbsp;
+       {len(PATIENT_NAMES)} patients · {len(_SEMANTIC_THEMES)} themes</p>
+  </div>
+  <section>{_patch(top6_cards)}</section>
+  <section>{_patch(table)}</section>
+  <section>{_patch(prevalence)}</section>
+</div>
+</body>
+</html>"""
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".html",
+                                      prefix="theme_report_")
+    tmp.write(report.encode("utf-8"))
+    tmp.close()
+    return tmp.name
+
+
 def run_theme_impact_analysis(topic_model_label=""):
     scores = _compute_theme_impact()
     chart  = _build_theme_impact_chart(scores, topic_model_label)
@@ -6875,7 +6929,8 @@ def run_theme_impact_analysis(topic_model_label=""):
         top6_cards = ""
     table      = _build_theme_breakdown_table_html(scores)
     prevalence = _build_theme_prevalence_table_html(scores)
-    return chart, top6_cards, table, prevalence
+    report_path = _write_theme_report(topic_model_label, top6_cards, table, prevalence)
+    return chart, top6_cards, table, prevalence, report_path
 
 
 # ── Gradio layout ─────────────────────────────────────────────────────────────
@@ -7102,6 +7157,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                     label="Topic model", scale=4,
                 )
                 theme_run_btn = gr.Button("Run Theme Analysis", variant="primary", scale=1)
+            theme_download       = gr.File(label="Download Report (.html)", interactive=False)
             theme_impact_plot    = gr.Plot(show_label=False)
             theme_top6_cards     = gr.HTML()
             theme_breakdown_tbl  = gr.HTML()
@@ -7168,7 +7224,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
-    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd], outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd], outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
