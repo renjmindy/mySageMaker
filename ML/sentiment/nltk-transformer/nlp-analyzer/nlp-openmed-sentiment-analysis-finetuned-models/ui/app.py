@@ -6869,13 +6869,33 @@ def _build_top6_impact_cards_html(theme_scores):
             '</div>'
         )
 
+    _token = ('<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
+              'padding:1px 7px;font-size:0.78rem;font-weight:600;font-family:monospace;">')
+    callout = (
+        '<div style="border-left:4px solid #4a90d9;background:#f0f6ff;'
+        'border-radius:6px;padding:14px 18px;margin-top:16px;">'
+        '<p style="margin:0;font-size:0.86rem;color:#000;line-height:1.65;">'
+        '<strong style="color:#000;">About the redaction tokens in quotes.</strong> '
+        f'Patterns such as&nbsp;{_token}[TIME_PERIOD]</span>&nbsp;,&nbsp;'
+        f'{_token}[STAFF_NAME]</span>&nbsp;and&nbsp;'
+        f'{_token}[WARD]</span>&nbsp;'
+        '<span style="color:#000;">are not missing data — they are the visible output of '
+        "Q's de-identification engine, which removes potentially identifying entities "
+        'before any human reviewer or downstream consumer sees the text. '
+        'De-identification precision and recall are reported in Section 10. '
+        'Quotes used in external publications are subject to a secondary quote-review step.'
+        '</span></p></div>'
+    )
+
     return (
         '<div style="margin-top:24px;">'
         '<h3 style="font-size:1.05rem;font-weight:700;color:#ffffff;margin-bottom:12px;">'
         'Top-6 Impact Score Topics</h3>'
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">'
         + cards +
-        '</div></div>'
+        '</div>'
+        + callout +
+        '</div>'
     )
 
 
@@ -7175,27 +7195,6 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             theme_download       = gr.File(label="Download Report (.html)", interactive=False)
             theme_impact_plot    = gr.Plot(show_label=False)
             theme_top6_cards     = gr.HTML()
-            gr.HTML(
-                '<div style="border-left:4px solid #4a90d9;background:#f0f6ff;'
-                'border-radius:6px;padding:14px 18px;margin-top:16px;">'
-                '<p style="margin:0;font-size:0.86rem;color:#222;line-height:1.65;">'
-                '<strong>About the redaction tokens in quotes.</strong> '
-                'Patterns such as&nbsp;'
-                '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
-                'padding:1px 7px;font-size:0.80rem;font-weight:600;font-family:monospace;">'
-                '[TIME_PERIOD]</span>&nbsp;,&nbsp;'
-                '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
-                'padding:1px 7px;font-size:0.80rem;font-weight:600;font-family:monospace;">'
-                '[STAFF_NAME]</span>&nbsp;and&nbsp;'
-                '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
-                'padding:1px 7px;font-size:0.80rem;font-weight:600;font-family:monospace;">'
-                '[WARD]</span>&nbsp;are not missing data — they are the visible output of '
-                "Q's de-identification engine, which removes potentially identifying entities "
-                'before any human reviewer or downstream consumer sees the text. '
-                'De-identification precision and recall are reported in Section 10. '
-                'Quotes used in external publications are subject to a secondary quote-review step.'
-                '</p></div>'
-            )
             theme_breakdown_tbl  = gr.HTML()
             theme_prevalence_tbl = gr.HTML()
 
