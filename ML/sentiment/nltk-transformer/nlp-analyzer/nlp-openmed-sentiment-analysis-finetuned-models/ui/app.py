@@ -6578,10 +6578,10 @@ def _build_theme_prevalence_table_html(theme_scores):
         rows += (
             f'<tr style="background:{bg};">'
             f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:500;">{theme}</td>'
-            f'<td style="padding:9px 14px;text-align:right;">{st.get("n", 0):,}</td>'
-            f'<td style="padding:9px 14px;text-align:right;">{s["volume"]:.0f}%</td>'
-            f'<td style="padding:9px 14px;text-align:right;">{st.get("neg_pct", 0)}</td>'
-            f'<td style="padding:9px 14px;text-align:right;">{st.get("mixed_pct", 0)}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#000;">{st.get("n", 0):,}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#000;">{s["volume"]:.0f}%</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#000;">{st.get("neg_pct", 0)}</td>'
+            f'<td style="padding:9px 14px;text-align:right;color:#000;">{st.get("mixed_pct", 0)}</td>'
             f'<td style="padding:9px 14px;text-align:center;">'
             f'{_severity_badge(_THEME_CLINICAL_SEVERITY.get(theme, "Medium"))}</td>'
             f'<td style="padding:9px 14px;text-align:center;">{_delta_cell(s["trend"])}</td>'
@@ -6597,7 +6597,7 @@ def _build_theme_prevalence_table_html(theme_scores):
 
     return (
         '<div style="overflow-x:auto;margin-top:28px;">'
-        '<h3 style="font-size:1.05rem;font-weight:700;color:#1a3a5c;margin-bottom:6px;">'
+        '<h3 style="font-size:1.05rem;font-weight:700;color:#ffffff;margin-bottom:6px;">'
         'Theme prevalence and characteristics</h3>'
         '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
         '<thead><tr>'
