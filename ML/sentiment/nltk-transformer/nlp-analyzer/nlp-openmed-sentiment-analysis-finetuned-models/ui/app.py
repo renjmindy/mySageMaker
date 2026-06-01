@@ -6966,6 +6966,173 @@ def run_theme_impact_analysis(topic_model_label=""):
     return chart, top6_cards, table, prevalence, report_path
 
 
+# ── Continuous Quality Improvement ───────────────────────────────────────────
+
+_CQI_MONTHS = [
+    "Jul 25", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan 26", "Feb", "Mar",
+]
+_CQI_NEG_PCT = [21, 21, 20, 19, 18, 17, 16, 16, 18]
+
+_CQI_INTERVENTIONS = [
+    {
+        "label":   "Quiet hours pilot",
+        "month":   "Sep",
+        "theme":   "Facilities & Environment & Environmental Hygiene",
+        "quarter": "Q3 2025",
+        "owner":   "Ward Operations",
+        "status":  "Active",
+        "before":  21,
+        "after":   19,
+    },
+    {
+        "label":   "ED update protocol",
+        "month":   "Dec",
+        "theme":   "Efficiency and Flow",
+        "quarter": "Q4 2025",
+        "owner":   "Emergency Department",
+        "status":  "Active",
+        "before":  19,
+        "after":   17,
+    },
+    {
+        "label":   "Discharge med reconciliation",
+        "month":   "Jan 26",
+        "theme":   "Discharge & Follow-up",
+        "quarter": "Q1 2026",
+        "owner":   "Pharmacy / Inpatient",
+        "status":  "Monitoring",
+        "before":  17,
+        "after":   16,
+    },
+]
+
+
+def _build_cqi_trend_chart():
+    """Line chart: statewide negative-sentiment % with vertical intervention markers."""
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=_CQI_MONTHS,
+        y=_CQI_NEG_PCT,
+        mode="lines+markers",
+        name="Statewide negative-sentiment %",
+        line=dict(color="#c0392b", width=2.5),
+        marker=dict(size=7, color="#c0392b"),
+        hovertemplate="%{x}: <b>%{y}%</b><extra></extra>",
+    ))
+
+    shapes, annotations = [], []
+    interv_colors = ["#B5651D", "#B5651D", "#B5651D"]
+    for interv, color in zip(_CQI_INTERVENTIONS, interv_colors):
+        x_val = interv["month"]
+        shapes.append(dict(
+            type="line", x0=x_val, x1=x_val, y0=0, y1=1,
+            xref="x", yref="paper",
+            line=dict(color=color, width=1.5, dash="dash"),
+        ))
+        annotations.append(dict(
+            x=x_val, y=1.02, xref="x", yref="paper",
+            text=interv["label"],
+            showarrow=False,
+            font=dict(size=11, color="#5a3000"),
+            bgcolor="#fef3e2",
+            bordercolor="#B5651D",
+            borderwidth=1,
+            borderpad=4,
+        ))
+
+    fig.update_layout(
+        title=dict(
+            text="Direction of travel — statewide negative-sentiment % with intervention markers",
+            x=0.5, font=dict(size=13, family="Arial"),
+        ),
+        xaxis=dict(showgrid=False, zeroline=False),
+        yaxis=dict(
+            title="Negative sentiment %",
+            range=[0, 40],
+            ticksuffix="%",
+            showgrid=True, gridcolor="#e8e8e8",
+            zeroline=False,
+        ),
+        shapes=shapes,
+        annotations=annotations,
+        legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="left", x=0),
+        height=420,
+        margin=dict(l=60, r=40, t=100, b=80),
+        paper_bgcolor="#f8f9fa",
+        plot_bgcolor="#ffffff",
+    )
+
+    # Dashed legend entry for intervention lines
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None], mode="lines",
+        name="Improvement intervention",
+        line=dict(color="#B5651D", width=1.5, dash="dash"),
+    ))
+    return fig
+
+
+def _build_cqi_cards_html():
+    """Cards summarising each registered intervention."""
+    status_colors = {"Active": "#27ae60", "Monitoring": "#e67e22", "Closed": "#7f8c8d"}
+
+    def _trend_badge(before, after):
+        delta = after - before
+        if delta < 0:
+            return (f'<span style="background:#e8f8f0;color:#27ae60;border-radius:20px;'
+                    f'padding:3px 10px;font-weight:700;font-size:0.82rem;">▼ {abs(delta)} pp</span>')
+        if delta > 0:
+            return (f'<span style="background:#fde8e8;color:#c0392b;border-radius:20px;'
+                    f'padding:3px 10px;font-weight:700;font-size:0.82rem;">▲ +{delta} pp</span>')
+        return '<span style="color:#888;">— no change</span>'
+
+    cards = ""
+    for interv in _CQI_INTERVENTIONS:
+        sc = status_colors.get(interv["status"], "#888")
+        cards += (
+            '<div style="border:1px solid #d1e5f7;border-radius:10px;padding:18px;background:#fafcff;">'
+
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'
+            f'<span style="font-weight:700;color:#1a3a5c;font-size:0.95rem;">{interv["label"]}</span>'
+            f'<span style="background:{sc};color:#fff;border-radius:20px;padding:2px 12px;'
+            f'font-size:0.76rem;font-weight:600;">{interv["status"]}</span>'
+            f'</div>'
+
+            f'<p style="margin:0 0 6px;font-size:0.82rem;color:#333;">'
+            f'<strong>Theme:</strong> {interv["theme"]}</p>'
+            f'<p style="margin:0 0 6px;font-size:0.82rem;color:#333;">'
+            f'<strong>Quarter:</strong> {interv["quarter"]} &nbsp;·&nbsp; '
+            f'<strong>Owner:</strong> {interv["owner"]}</p>'
+
+            f'<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">'
+            f'<span style="font-size:0.82rem;color:#555;">Before: <strong>{interv["before"]}%</strong></span>'
+            f'<span style="font-size:0.82rem;color:#555;">After: <strong>{interv["after"]}%</strong></span>'
+            f'{_trend_badge(interv["before"], interv["after"])}'
+            f'</div>'
+
+            '</div>'
+        )
+
+    return (
+        '<div style="margin-top:24px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:12px;">'
+        'Registered Interventions</h3>'
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">'
+        + cards +
+        '</div>'
+        '<p style="font-size:0.73rem;color:#aaa;margin-top:10px;">'
+        'Before = avg negative-sentiment % in the two months prior to intervention. '
+        'After = avg in the two months following. Δ in percentage points (pp).'
+        '</p></div>'
+    )
+
+
+def run_cqi_analysis():
+    chart = _build_cqi_trend_chart()
+    cards = _build_cqi_cards_html()
+    return chart, cards
+
+
 # ── Gradio layout ─────────────────────────────────────────────────────────────
 
 _CSS = """
@@ -7198,7 +7365,22 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             theme_breakdown_tbl  = gr.HTML()
             theme_prevalence_tbl = gr.HTML()
 
-        # ── Tab 6: About ──────────────────────────────────────────────────
+        # ── Tab 6: CQI ────────────────────────────────────────────────────
+        with gr.TabItem("CQI — Status of Prior Actions"):
+            gr.Markdown(
+                "A PREM report has limited value if it only ever shows the current snapshot. "
+                "This section closes the CQI loop by reporting on improvement actions implemented "
+                "in earlier quarters and tracking whether the relevant themes are responding. "
+                "Q tags each comment against the themes targeted by each registered intervention, "
+                "so before/after comparisons can be produced automatically."
+            )
+            with gr.Row():
+                cqi_run_btn   = gr.Button("Run CQI Analysis", variant="primary", scale=2)
+                cqi_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
+            cqi_trend_chart = gr.Plot(show_label=False)
+            cqi_cards       = gr.HTML()
+
+        # ── Tab 7: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
             gr.Markdown("""
 ## Models (13 total)
@@ -7273,6 +7455,8 @@ examples/
         fn=lambda: (None, "", "", "", None),
         outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download],
     )
+    cqi_run_btn.click(fn=run_cqi_analysis, inputs=[], outputs=[cqi_trend_chart, cqi_cards])
+    cqi_clear_btn.click(fn=lambda: (None, ""), outputs=[cqi_trend_chart, cqi_cards])
     ts_btn.click(
         fn=run_timeseries,
         inputs=[text_input, ts_model_dd],
