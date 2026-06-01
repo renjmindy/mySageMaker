@@ -7411,7 +7411,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             theme_prevalence_tbl = gr.HTML()
 
         # ── Tab 6: CQI ────────────────────────────────────────────────────
-        with gr.TabItem("CQI — Status of Prior Actions"):
+        with gr.TabItem("CQI — Status of Prior Actions (MpMq)"):
             gr.Markdown(
                 "A PREM report has limited value if it only ever shows the current snapshot. "
                 "This section closes the CQI loop by reporting on improvement actions implemented "
