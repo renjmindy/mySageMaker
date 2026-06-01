@@ -6975,76 +6975,125 @@ _CQI_NEG_PCT = [21, 21, 20, 19, 18, 17, 16, 16, 17, 16, 15]
 
 _CQI_INTERVENTIONS = [
     {
-        "label":   "Clinical communication skills workshop",
-        "month":   "Sep",
-        "theme":   "Clinical Staff",
-        "quarter": "Q3 2025",
-        "owner":   "Workforce Development",
-        "status":  "Active",
-        "before":  21,
-        "after":   18,
-        "desc":    "Structured communication skills training rolled out to all clinical staff, "
-                   "covering active listening, shared decision-making language, and dignity in care.",
+        "label":        "Clinical communication skills workshop",
+        "month":        "Sep",
+        "theme":        "Clinical Staff",
+        "quarter":      "Q3 2025",
+        "owner":        "Workforce Development",
+        "status":       "Effective",
+        "before":       21,
+        "after":        18,
+        "desc":         "Implemented Q3 2025 across HHS A, B, F and H. Structured communication "
+                        "skills training for all clinical staff covering active listening, "
+                        "shared decision-making language, and dignity in care.",
+        "pilot_metric": "Negative clinical-staff comments",
+        "pilot_before": 21, "pilot_after": 18,
+        "comp_before":  20, "comp_after":  19,
+        "metric_unit":  "%",
+        "status_text":  "Effective. Communication scores improved significantly in pilot HHSs. "
+                        "Recommend rollout to remaining HHSs with workforce development funding.",
+        "nsqhs":        "NSQHS 5, 6",
     },
     {
-        "label":   "Zedoc patient portal onboarding",
-        "month":   "Dec",
-        "theme":   "Booking & Access",
-        "quarter": "Q4 2025",
-        "owner":   "Digital Health",
-        "status":  "Active",
-        "before":  19,
-        "after":   16,
-        "desc":    "Dedicated onboarding support introduced for patients unable to book via the "
-                   "Zedoc portal, including a help-desk line and step-by-step video guide.",
+        "label":        "Zedoc patient portal onboarding",
+        "month":        "Dec",
+        "theme":        "Booking & Access",
+        "quarter":      "Q4 2025",
+        "owner":        "Digital Health",
+        "status":       "Promising",
+        "before":       19,
+        "after":        16,
+        "desc":         "Implemented Q4 2025 at HHS C, G and L. Dedicated onboarding support "
+                        "introduced for patients unable to book via Zedoc, including a help-desk "
+                        "line, step-by-step video guide, and in-clinic kiosk assistance.",
+        "pilot_metric": "Negative booking & access comments",
+        "pilot_before": 19, "pilot_after": 16,
+        "comp_before":  18, "comp_after":  17,
+        "metric_unit":  "%",
+        "status_text":  "Promising. One quarter of post-implementation data available. "
+                        "Recommend continued monitoring and case for broader rollout in next "
+                        "quarterly review.",
+        "nsqhs":        "NSQHS 1",
     },
     {
-        "label":   "Plain-language results letters",
-        "month":   "Jan 26",
-        "theme":   "Results & Information",
-        "quarter": "Q1 2026",
-        "owner":   "Pathology / Outpatients",
-        "status":  "Monitoring",
-        "before":  17,
-        "after":   15,
-        "desc":    "All pathology and imaging result letters rewritten in plain language with a "
-                   "clear next-steps section and a named contact for follow-up questions.",
+        "label":        "Plain-language results letters",
+        "month":        "Jan 26",
+        "theme":        "Results & Information",
+        "quarter":      "Q1 2026",
+        "owner":        "Pathology / Outpatients",
+        "status":       "Early signal",
+        "before":       17,
+        "after":        15,
+        "desc":         "Implemented Q1 2026 at HHS D, E and J. All pathology and imaging result "
+                        "letters rewritten in plain language with a clear next-steps section and "
+                        "a named contact for follow-up questions.",
+        "pilot_metric": "Negative results & information comments",
+        "pilot_before": 17, "pilot_after": 15,
+        "comp_before":  16, "comp_after":  16,
+        "metric_unit":  "%",
+        "status_text":  "Early signal. Insufficient post-implementation data for a definitive "
+                        "read. Continue monitoring; first comparative read at end of Q2 2026.",
+        "nsqhs":        "NSQHS 4",
     },
     {
-        "label":   "48-hour post-discharge call program",
-        "month":   "Feb",
-        "theme":   "Discharge & Follow-up",
-        "quarter": "Q1 2026",
-        "owner":   "Nursing / Care Coordination",
-        "status":  "Active",
-        "before":  16,
-        "after":   14,
-        "desc":    "Structured discharge checklist and a 48-hour follow-up phone call introduced "
-                   "for all inpatient discharges, with a named contact for post-discharge queries.",
+        "label":        "48-hour post-discharge call program",
+        "month":        "Feb",
+        "theme":        "Discharge & Follow-up",
+        "quarter":      "Q1 2026",
+        "owner":        "Nursing / Care Coordination",
+        "status":       "Promising",
+        "before":       16,
+        "after":        14,
+        "desc":         "Implemented Q1 2026 at HHS A, B and K. Structured discharge checklist "
+                        "and a 48-hour follow-up phone call introduced for all inpatient "
+                        "discharges, with a named contact for post-discharge queries.",
+        "pilot_metric": "Negative discharge & follow-up comments",
+        "pilot_before": 16, "pilot_after": 14,
+        "comp_before":  15, "comp_after":  15,
+        "metric_unit":  "%",
+        "status_text":  "Promising. Early results encouraging. Structured evaluation scheduled "
+                        "for Q2 2026 before recommending statewide adoption.",
+        "nsqhs":        "NSQHS 6",
     },
     {
-        "label":   "Environmental hygiene audit program",
-        "month":   "Apr",
-        "theme":   "Facilities & Environment & Environmental Hygiene",
-        "quarter": "Q2 2026",
-        "owner":   "Facilities Management",
-        "status":  "Active",
-        "before":  17,
-        "after":   15,
-        "desc":    "Visible hand-hygiene compliance boards and proactive ward-cleanliness updates "
-                   "introduced, alongside a monthly patient-led environmental audit process.",
+        "label":        "Environmental hygiene audit program",
+        "month":        "Apr",
+        "theme":        "Facilities & Environment & Environmental Hygiene",
+        "quarter":      "Q2 2026",
+        "owner":        "Facilities Management",
+        "status":       "Active",
+        "before":       17,
+        "after":        15,
+        "desc":         "Launched Q2 2026 across HHS F, H and N. Visible hand-hygiene compliance "
+                        "boards, proactive ward-cleanliness updates, and a monthly patient-led "
+                        "environmental audit process introduced.",
+        "pilot_metric": "Negative facilities & environment comments",
+        "pilot_before": 17, "pilot_after": 15,
+        "comp_before":  16, "comp_after":  16,
+        "metric_unit":  "%",
+        "status_text":  "Active. Program launched Q2 2026. Monitoring underway; "
+                        "first comparative read due end of Q2 2026.",
+        "nsqhs":        "NSQHS 3",
     },
     {
-        "label":   "Ask Me 3 consultation framework",
-        "month":   "May",
-        "theme":   "Information & Shared Decision-Making",
-        "quarter": "Q2 2026",
-        "owner":   "Clinical Governance",
-        "status":  "Active",
-        "before":  16,
-        "after":   13,
-        "desc":    "Clinicians trained to invite patients to ask three key questions before leaving "
-                   "every consultation, supporting shared decision-making and informed consent.",
+        "label":        "Ask Me 3 consultation framework",
+        "month":        "May",
+        "theme":        "Information & Shared Decision-Making",
+        "quarter":      "Q2 2026",
+        "owner":        "Clinical Governance",
+        "status":       "Active",
+        "before":       16,
+        "after":        13,
+        "desc":         "Launched Q2 2026 at HHS C, E and M. Clinicians trained to invite "
+                        "patients to ask three key questions before leaving every consultation, "
+                        "supporting shared decision-making and informed consent.",
+        "pilot_metric": "Negative shared decision-making comments",
+        "pilot_before": 16, "pilot_after": 13,
+        "comp_before":  15, "comp_after":  15,
+        "metric_unit":  "%",
+        "status_text":  "Active. Strong early uptake in pilot clinics. Recommend integration "
+                        "into clinical orientation program pending Q2 2026 evaluation.",
+        "nsqhs":        "NSQHS 6",
     },
 ]
 
@@ -7116,59 +7165,111 @@ def _build_cqi_trend_chart(topic_model_label=""):
 
 
 def _build_cqi_cards_html():
-    """Cards summarising each registered intervention."""
-    status_colors = {"Active": "#27ae60", "Monitoring": "#e67e22", "Closed": "#7f8c8d"}
+    """Rich 2-column intervention cards matching the CQI screenshot style."""
+    status_cfg = {
+        "Effective":    ("#27ae60", "#fff"),
+        "Promising":    ("#e67e22", "#fff"),
+        "Early signal": ("#2980b9", "#fff"),
+        "Active":       ("#1a3a5c", "#fff"),
+        "Monitoring":   ("#e67e22", "#fff"),
+        "Closed":       ("#7f8c8d", "#fff"),
+    }
 
-    def _trend_badge(before, after):
+    def _delta_str(before, after, unit):
         delta = after - before
-        if delta < 0:
-            return (f'<span style="background:#e8f8f0;color:#27ae60;border-radius:20px;'
-                    f'padding:3px 10px;font-weight:700;font-size:0.82rem;">▼ {abs(delta)} pp</span>')
-        if delta > 0:
-            return (f'<span style="background:#fde8e8;color:#c0392b;border-radius:20px;'
-                    f'padding:3px 10px;font-weight:700;font-size:0.82rem;">▲ +{delta} pp</span>')
-        return '<span style="color:#888;">— no change</span>'
+        sign  = "+" if delta > 0 else ""
+        col   = "#27ae60" if delta < 0 else ("#c0392b" if delta > 0 else "#888")
+        if unit == "%":
+            val = f"{sign}{delta} pp"
+        else:
+            val = f"{sign}{delta}"
+        return (f'<span style="font-size:1.15rem;font-weight:800;color:{col};">{val}</span>')
+
+    def _comparison_block(label, before, after, unit, col_title):
+        return (
+            f'<div style="flex:1;padding:10px 12px;background:#f4f7fb;border-radius:6px;">'
+            f'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.07em;'
+            f'color:#1a3a5c;margin-bottom:6px;">{col_title}</div>'
+            f'<div style="font-size:0.78rem;color:#555;margin-bottom:4px;">{label}</div>'
+            f'<div style="font-size:0.85rem;color:#333;">'
+            f'<strong style="color:#000;">{before}{unit}</strong>'
+            f' → <strong style="color:#000;">{after}{unit}</strong>'
+            f' &nbsp;=&nbsp; {_delta_str(before, after, unit)}'
+            f'</div></div>'
+        )
+
+    def _tag(text, bg="#e8f0fb", fg="#1a3a5c"):
+        return (f'<span style="background:{bg};color:{fg};border-radius:4px;'
+                f'padding:2px 8px;font-size:0.74rem;font-weight:600;">{text}</span>')
 
     cards = ""
     for interv in _CQI_INTERVENTIONS:
-        sc = status_colors.get(interv["status"], "#888")
+        sc, st = status_cfg.get(interv["status"], ("#888", "#fff"))
+        unit   = interv.get("metric_unit", "%")
         cards += (
-            '<div style="border:1px solid #d1e5f7;border-radius:10px;padding:18px;background:#fafcff;">'
+            '<div style="border:1px solid #d1e5f7;border-radius:10px;padding:18px 20px;'
+            'background:#fafcff;display:flex;flex-direction:column;gap:10px;">'
 
-            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'
-            f'<span style="font-weight:700;color:#1a3a5c;font-size:0.95rem;">{interv["label"]}</span>'
-            f'<span style="background:{sc};color:#fff;border-radius:20px;padding:2px 12px;'
-            f'font-size:0.76rem;font-weight:600;">{interv["status"]}</span>'
-            f'</div>'
+            # Header
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+            f'<span style="font-weight:700;color:#1a3a5c;font-size:0.96rem;">{interv["label"]}</span>'
+            f'<span style="background:{sc};color:{st};border-radius:20px;padding:2px 12px;'
+            f'font-size:0.75rem;font-weight:700;white-space:nowrap;margin-left:8px;">'
+            f'{interv["status"]}</span></div>'
 
-            f'<p style="margin:0 0 6px;font-size:0.82rem;color:#333;">'
-            f'<strong>Theme:</strong> {interv["theme"]}</p>'
-            f'<p style="margin:0 0 6px;font-size:0.82rem;color:#333;">'
-            f'<strong>Quarter:</strong> {interv["quarter"]} &nbsp;·&nbsp; '
-            f'<strong>Owner:</strong> {interv["owner"]}</p>'
-            f'<p style="margin:0 0 8px;font-size:0.80rem;color:#555;font-style:italic;">'
-            f'{interv.get("desc","")}</p>'
+            # Implementation paragraph
+            f'<p style="margin:0;font-size:0.81rem;color:#333;line-height:1.55;">{interv["desc"]}</p>'
 
-            f'<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">'
-            f'<span style="font-size:0.82rem;color:#555;">Before: <strong style="color:#000;font-weight:700;">{interv["before"]}%</strong></span>'
-            f'<span style="font-size:0.82rem;color:#555;">After: <strong style="color:#000;font-weight:700;">{interv["after"]}%</strong></span>'
-            f'{_trend_badge(interv["before"], interv["after"])}'
-            f'</div>'
+            # Pilot vs Comparison columns
+            f'<div style="display:flex;gap:10px;">'
+            + _comparison_block(
+                interv.get("pilot_metric",""),
+                interv["pilot_before"], interv["pilot_after"], unit, "PILOT HHS"
+            )
+            + _comparison_block(
+                interv.get("pilot_metric",""),
+                interv["comp_before"], interv["comp_after"], unit, "COMPARISON HHS"
+            )
+            + '</div>'
+
+            # Status summary
+            f'<p style="margin:0;font-size:0.80rem;color:#333;">'
+            f'<strong>Status:</strong> {interv.get("status_text","")}</p>'
+
+            # Footer tags
+            f'<div style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid #e0eaf5;'
+            f'padding-top:8px;margin-top:2px;">'
+            + _tag(interv.get("nsqhs",""), "#eaf1fb", "#1a3a5c")
+            + "&nbsp;"
+            + _tag(f'Theme: {interv["theme"]}', "#f0f6ff", "#1a6fa8")
+            + '</div>'
 
             '</div>'
         )
+
+    how_it_works = (
+        '<div style="border-left:4px solid #4a90d9;background:#f0f6ff;'
+        'border-radius:6px;padding:14px 18px;margin-top:8px;">'
+        '<p style="margin:0;font-size:0.86rem;color:#000;line-height:1.65;">'
+        '<strong style="color:#000;">How prior actions enter Q:</strong> '
+        'CEQ and HHS teams register an improvement action via the TCP platform, specifying: '
+        'targeted themes, participating sites, start date, expected direction of change, and '
+        'review cadence. Q then tags subsequent comments against the registered intervention '
+        'so before/after, pilot/comparison, and dose-response analyses can be produced without '
+        'manual data wrangling. Registered actions also surface in the Recommendations section '
+        'so leadership sees what is already in flight against any new proposal.'
+        '</p></div>'
+    )
 
     return (
         '<div style="margin-top:24px;">'
         '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:12px;">'
         'Registered Interventions</h3>'
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">'
-        + cards +
-        '</div>'
-        '<p style="font-size:0.73rem;color:#aaa;margin-top:10px;">'
-        'Before = avg negative-sentiment % in the two months prior to intervention. '
-        'After = avg in the two months following. Δ in percentage points (pp).'
-        '</p></div>'
+        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">'
+        + cards
+        + '</div>'
+        + how_it_works
+        + '</div>'
     )
 
 
