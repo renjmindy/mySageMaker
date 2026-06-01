@@ -7114,8 +7114,8 @@ def _build_cqi_cards_html():
             f'{interv.get("desc","")}</p>'
 
             f'<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">'
-            f'<span style="font-size:0.82rem;color:#555;">Before: <strong>{interv["before"]}%</strong></span>'
-            f'<span style="font-size:0.82rem;color:#555;">After: <strong>{interv["after"]}%</strong></span>'
+            f'<span style="font-size:0.82rem;color:#555;">Before: <strong style="color:#000;font-weight:700;">{interv["before"]}%</strong></span>'
+            f'<span style="font-size:0.82rem;color:#555;">After: <strong style="color:#000;font-weight:700;">{interv["after"]}%</strong></span>'
             f'{_trend_badge(interv["before"], interv["after"])}'
             f'</div>'
 
