@@ -6969,9 +6969,9 @@ def run_theme_impact_analysis(topic_model_label=""):
 # ── Continuous Quality Improvement ───────────────────────────────────────────
 
 _CQI_MONTHS = [
-    "Jul 25", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan 26", "Feb", "Mar",
+    "Jul 25", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan 26", "Feb", "Mar", "Apr", "May",
 ]
-_CQI_NEG_PCT = [21, 21, 20, 19, 18, 17, 16, 16, 18]
+_CQI_NEG_PCT = [21, 21, 20, 19, 18, 17, 16, 16, 17, 16, 15]
 
 _CQI_INTERVENTIONS = [
     {
@@ -7010,6 +7010,42 @@ _CQI_INTERVENTIONS = [
         "desc":    "All pathology and imaging result letters rewritten in plain language with a "
                    "clear next-steps section and a named contact for follow-up questions.",
     },
+    {
+        "label":   "48-hour post-discharge call program",
+        "month":   "Feb",
+        "theme":   "Discharge & Follow-up",
+        "quarter": "Q1 2026",
+        "owner":   "Nursing / Care Coordination",
+        "status":  "Active",
+        "before":  16,
+        "after":   14,
+        "desc":    "Structured discharge checklist and a 48-hour follow-up phone call introduced "
+                   "for all inpatient discharges, with a named contact for post-discharge queries.",
+    },
+    {
+        "label":   "Environmental hygiene audit program",
+        "month":   "Apr",
+        "theme":   "Facilities & Environment & Environmental Hygiene",
+        "quarter": "Q2 2026",
+        "owner":   "Facilities Management",
+        "status":  "Active",
+        "before":  17,
+        "after":   15,
+        "desc":    "Visible hand-hygiene compliance boards and proactive ward-cleanliness updates "
+                   "introduced, alongside a monthly patient-led environmental audit process.",
+    },
+    {
+        "label":   "Ask Me 3 consultation framework",
+        "month":   "May",
+        "theme":   "Information & Shared Decision-Making",
+        "quarter": "Q2 2026",
+        "owner":   "Clinical Governance",
+        "status":  "Active",
+        "before":  16,
+        "after":   13,
+        "desc":    "Clinicians trained to invite patients to ask three key questions before leaving "
+                   "every consultation, supporting shared decision-making and informed consent.",
+    },
 ]
 
 
@@ -7028,7 +7064,7 @@ def _build_cqi_trend_chart(topic_model_label=""):
     ))
 
     shapes, annotations = [], []
-    interv_colors = ["#B5651D", "#B5651D", "#B5651D"]
+    interv_colors = ["#B5651D"] * len(_CQI_INTERVENTIONS)
     for interv, color in zip(_CQI_INTERVENTIONS, interv_colors):
         x_val = interv["month"]
         shapes.append(dict(
