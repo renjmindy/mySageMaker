@@ -7007,7 +7007,7 @@ _CQI_INTERVENTIONS = [
 ]
 
 
-def _build_cqi_trend_chart():
+def _build_cqi_trend_chart(topic_model_label=""):
     """Line chart: statewide negative-sentiment % with vertical intervention markers."""
     fig = go.Figure()
 
@@ -7043,7 +7043,8 @@ def _build_cqi_trend_chart():
 
     fig.update_layout(
         title=dict(
-            text="Direction of travel — statewide negative-sentiment % with intervention markers",
+            text=("Direction of travel — statewide negative-sentiment % with intervention markers"
+                  + (f"  ·  {topic_model_label}" if topic_model_label else "")),
             x=0.5, font=dict(size=13, family="Arial"),
         ),
         xaxis=dict(showgrid=False, zeroline=False),
@@ -7127,8 +7128,8 @@ def _build_cqi_cards_html():
     )
 
 
-def run_cqi_analysis():
-    chart = _build_cqi_trend_chart()
+def run_cqi_analysis(topic_model_label=""):
+    chart = _build_cqi_trend_chart(topic_model_label)
     cards = _build_cqi_cards_html()
     return chart, cards
 
@@ -7375,6 +7376,10 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "so before/after comparisons can be produced automatically."
             )
             with gr.Row():
+                cqi_topic_model_dd = gr.Dropdown(
+                    choices=_TOPIC_MODEL_CHOICES, value=_TOPIC_MODEL_CHOICES[0],
+                    label="Topic model", scale=4,
+                )
                 cqi_run_btn   = gr.Button("Run CQI Analysis", variant="primary", scale=2)
                 cqi_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
             cqi_trend_chart = gr.Plot(show_label=False)
@@ -7455,7 +7460,7 @@ examples/
         fn=lambda: (None, "", "", "", None),
         outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download],
     )
-    cqi_run_btn.click(fn=run_cqi_analysis, inputs=[], outputs=[cqi_trend_chart, cqi_cards])
+    cqi_run_btn.click(fn=run_cqi_analysis, inputs=[cqi_topic_model_dd], outputs=[cqi_trend_chart, cqi_cards])
     cqi_clear_btn.click(fn=lambda: (None, ""), outputs=[cqi_trend_chart, cqi_cards])
     ts_btn.click(
         fn=run_timeseries,
