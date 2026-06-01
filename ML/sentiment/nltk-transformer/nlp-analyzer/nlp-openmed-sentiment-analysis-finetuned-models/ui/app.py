@@ -6975,34 +6975,40 @@ _CQI_NEG_PCT = [21, 21, 20, 19, 18, 17, 16, 16, 18]
 
 _CQI_INTERVENTIONS = [
     {
-        "label":   "Quiet hours pilot",
+        "label":   "Clinical communication skills workshop",
         "month":   "Sep",
-        "theme":   "Facilities & Environment & Environmental Hygiene",
+        "theme":   "Clinical Staff",
         "quarter": "Q3 2025",
-        "owner":   "Ward Operations",
+        "owner":   "Workforce Development",
         "status":  "Active",
         "before":  21,
-        "after":   19,
+        "after":   18,
+        "desc":    "Structured communication skills training rolled out to all clinical staff, "
+                   "covering active listening, shared decision-making language, and dignity in care.",
     },
     {
-        "label":   "ED update protocol",
+        "label":   "Zedoc patient portal onboarding",
         "month":   "Dec",
-        "theme":   "Efficiency and Flow",
+        "theme":   "Booking & Access",
         "quarter": "Q4 2025",
-        "owner":   "Emergency Department",
+        "owner":   "Digital Health",
         "status":  "Active",
         "before":  19,
-        "after":   17,
+        "after":   16,
+        "desc":    "Dedicated onboarding support introduced for patients unable to book via the "
+                   "Zedoc portal, including a help-desk line and step-by-step video guide.",
     },
     {
-        "label":   "Discharge med reconciliation",
+        "label":   "Plain-language results letters",
         "month":   "Jan 26",
-        "theme":   "Discharge & Follow-up",
+        "theme":   "Results & Information",
         "quarter": "Q1 2026",
-        "owner":   "Pharmacy / Inpatient",
+        "owner":   "Pathology / Outpatients",
         "status":  "Monitoring",
         "before":  17,
-        "after":   16,
+        "after":   15,
+        "desc":    "All pathology and imaging result letters rewritten in plain language with a "
+                   "clear next-steps section and a named contact for follow-up questions.",
     },
 ]
 
@@ -7104,6 +7110,8 @@ def _build_cqi_cards_html():
             f'<p style="margin:0 0 6px;font-size:0.82rem;color:#333;">'
             f'<strong>Quarter:</strong> {interv["quarter"]} &nbsp;·&nbsp; '
             f'<strong>Owner:</strong> {interv["owner"]}</p>'
+            f'<p style="margin:0 0 8px;font-size:0.80rem;color:#555;font-style:italic;">'
+            f'{interv.get("desc","")}</p>'
 
             f'<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">'
             f'<span style="font-size:0.82rem;color:#555;">Before: <strong>{interv["before"]}%</strong></span>'
