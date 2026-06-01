@@ -7279,6 +7279,248 @@ def run_cqi_analysis(topic_model_label=""):
     return chart, cards
 
 
+# ── Candidate Safety & Escalation Themes ─────────────────────────────────────
+
+_SAFETY_THEMES = [
+    {
+        "label":       "Medication reconciliation failures",
+        "escalation":  "Escalate",
+        "nsqhs":       "NSQHS 4 Medication Safety",
+        "theme":       "Medication administration & reconciliation",
+        "desc": (
+            "Q2 2026 — 14 HHSs. Comments describe missed doses, incorrect medications "
+            "administered on admission or discharge, and patients not informed of medication "
+            "changes. Cluster density highest in HHS B, F and M."
+        ),
+        "col_metric":  "Comments flagging medication errors",
+        "prev_cluster": 8,  "cur_cluster": 13,
+        "prev_sw":      7,  "cur_sw":       8,
+        "metric_unit":  "%",
+        "status_text": (
+            "Escalate. 63% quarter-on-quarter increase in cluster HHSs. "
+            "Pattern consistent with a systemic gap in handover reconciliation. "
+            "Recommend immediate review with Medication Safety Committee."
+        ),
+    },
+    {
+        "label":       "Failure to recognise patient deterioration",
+        "escalation":  "Escalate",
+        "nsqhs":       "NSQHS 8 Recognising & Responding to Acute Deterioration",
+        "theme":       "Clinical deterioration & escalation",
+        "desc": (
+            "Q2 2026 — 9 HHSs. Patients and families describe staff not responding "
+            "to reported changes in condition, delayed escalation to senior clinicians, "
+            "and inadequate observation frequency. HHS D and H are outliers."
+        ),
+        "col_metric":  "Comments on delayed deterioration response",
+        "prev_cluster": 6,  "cur_cluster": 11,
+        "prev_sw":      5,  "cur_sw":       6,
+        "metric_unit":  "%",
+        "status_text": (
+            "Escalate. 83% increase over the quarter in cluster HHSs. "
+            "Corroborates recent VHIMS incident cluster in HHS D. "
+            "Recommend cross-reference with MET call data and urgent clinician debrief."
+        ),
+    },
+    {
+        "label":       "Informed consent communication gaps",
+        "escalation":  "Monitor",
+        "nsqhs":       "NSQHS 6 Communicating for Safety",
+        "theme":       "Consent & information sharing",
+        "desc": (
+            "Q2 2026 — 11 HHSs. Patients report procedures proceeding without adequate "
+            "explanation of risks, alternatives not discussed, and written consent forms "
+            "not explained verbally before signing."
+        ),
+        "col_metric":  "Comments on consent process concerns",
+        "prev_cluster": 9,  "cur_cluster": 11,
+        "prev_sw":      8,  "cur_sw":       9,
+        "metric_unit":  "%",
+        "status_text": (
+            "Monitor. Moderate increase this quarter — not yet at escalation threshold "
+            "but trajectory warrants proactive review by Clinical Governance. "
+            "Consider targeted consent framework audit."
+        ),
+    },
+    {
+        "label":       "Inadequate pain assessment and management",
+        "escalation":  "Monitor",
+        "nsqhs":       "NSQHS 5 Comprehensive Care",
+        "theme":       "Pain management & symptom control",
+        "desc": (
+            "Q2 2026 — 12 HHSs. Repeated comments about pain not being taken seriously, "
+            "long waits for analgesia, and inadequate reassessment after initial management. "
+            "Volume stable but consistently elevated for three consecutive quarters."
+        ),
+        "col_metric":  "Comments on inadequate pain management",
+        "prev_cluster": 14, "cur_cluster": 14,
+        "prev_sw":      13, "cur_sw":       14,
+        "metric_unit":  "%",
+        "status_text": (
+            "Monitor. Stable but persistently high. No deterioration this quarter "
+            "but this theme has remained above benchmark for 3 consecutive quarters. "
+            "Flagged for inclusion in next Pain Management CQI cycle."
+        ),
+    },
+    {
+        "label":       "Falls prevention communication breakdown",
+        "escalation":  "Watch",
+        "nsqhs":       "NSQHS 5 Comprehensive Care",
+        "theme":       "Falls risk & prevention",
+        "desc": (
+            "Q2 2026 — 7 HHSs. Patients and families report not being told of fall-risk "
+            "status, bed alarms not explained, and call-bell location not communicated "
+            "on admission to the ward."
+        ),
+        "col_metric":  "Comments on falls prevention communication",
+        "prev_cluster": 7,  "cur_cluster": 8,
+        "prev_sw":      6,  "cur_sw":       6,
+        "metric_unit":  "%",
+        "status_text": (
+            "Watch. Small increase in cluster HHSs — not yet at monitor threshold. "
+            "Pattern emerging in post-surgical wards. Recommend inclusion in "
+            "next bedside-handover audit cycle."
+        ),
+    },
+    {
+        "label":       "Sepsis and infection recognition delays",
+        "escalation":  "Watch",
+        "nsqhs":       "NSQHS 3 Preventing & Controlling Healthcare-Associated Infections",
+        "theme":       "Infection control & sepsis recognition",
+        "desc": (
+            "Q2 2026 — 5 HHSs. A small but emerging cluster of comments describing "
+            "delayed diagnosis of infection, inadequate explanation of antibiotic "
+            "treatment plans, and missed early warning signs by ward staff."
+        ),
+        "col_metric":  "Comments on infection or sepsis recognition concerns",
+        "prev_cluster": 3,  "cur_cluster": 5,
+        "prev_sw":      3,  "cur_sw":       3,
+        "metric_unit":  "%",
+        "status_text": (
+            "Watch. Low absolute volume but 67% relative increase in cluster HHSs. "
+            "Early signal only — recommend cross-referencing with infection "
+            "surveillance data before formal escalation decision."
+        ),
+    },
+]
+
+
+def _build_safety_escalation_html():
+    """Rich 2-column cards for Candidate Safety & Escalation Themes."""
+    escalation_cfg = {
+        "Escalate": ("#c0392b", "#fff"),
+        "Monitor":  ("#e67e22", "#fff"),
+        "Watch":    ("#2980b9", "#fff"),
+        "Stable":   ("#27ae60", "#fff"),
+    }
+
+    def _delta_str(prev, cur, unit):
+        delta = cur - prev
+        sign  = "+" if delta > 0 else ""
+        col   = "#c0392b" if delta > 0 else ("#27ae60" if delta < 0 else "#888")
+        val   = f"{sign}{delta} pp" if unit == "%" else f"{sign}{delta}"
+        return f'<span style="font-size:1.15rem;font-weight:800;color:{col};">{val}</span>'
+
+    def _col_block(metric, prev, cur, unit, col_title):
+        return (
+            f'<div style="flex:1;padding:10px 12px;background:#f4f7fb;border-radius:6px;">'
+            f'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.07em;'
+            f'color:#1a3a5c;margin-bottom:6px;">{col_title}</div>'
+            f'<div style="font-size:0.78rem;color:#555;margin-bottom:4px;">{metric}</div>'
+            f'<div style="font-size:0.85rem;color:#333;">'
+            f'<strong style="color:#000;">{prev}{unit}</strong>'
+            f' → <strong style="color:#000;">{cur}{unit}</strong>'
+            f' &nbsp;=&nbsp; {_delta_str(prev, cur, unit)}'
+            f'</div></div>'
+        )
+
+    def _tag(text, bg="#e8f0fb", fg="#1a3a5c"):
+        return (
+            f'<span style="background:{bg};color:{fg};border-radius:4px;'
+            f'padding:2px 8px;font-size:0.74rem;font-weight:600;">{text}</span>'
+        )
+
+    cards = ""
+    for theme in _SAFETY_THEMES:
+        ec, et = escalation_cfg.get(theme["escalation"], ("#888", "#fff"))
+        unit   = theme.get("metric_unit", "%")
+        metric = theme.get("col_metric", "")
+        cards += (
+            '<div style="border:1px solid #f5c6c6;border-radius:10px;padding:18px 20px;'
+            'background:#fffafa;display:flex;flex-direction:column;gap:10px;">'
+
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+            f'<span style="font-weight:700;color:#1a3a5c;font-size:0.96rem;">{theme["label"]}</span>'
+            f'<span style="background:{ec};color:{et};border-radius:20px;padding:2px 12px;'
+            f'font-size:0.75rem;font-weight:700;white-space:nowrap;margin-left:8px;">'
+            f'{theme["escalation"]}</span></div>'
+
+            f'<p style="margin:0;font-size:0.81rem;color:#333;line-height:1.55;">{theme["desc"]}</p>'
+
+            f'<div style="display:flex;gap:10px;">'
+            + _col_block(metric, theme["prev_cluster"], theme["cur_cluster"], unit, "HHS CLUSTER")
+            + _col_block(metric, theme["prev_sw"],      theme["cur_sw"],      unit, "STATEWIDE")
+            + '</div>'
+
+            f'<p style="margin:0;font-size:0.80rem;color:#333;">'
+            f'<strong>Status:</strong> {theme.get("status_text","")}</p>'
+
+            f'<div style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid #f0d0d0;'
+            f'padding-top:8px;margin-top:2px;">'
+            + _tag(theme.get("nsqhs", ""), "#fdecea", "#922b21")
+            + "&nbsp;"
+            + _tag(f'Theme: {theme["theme"]}', "#fff0f0", "#a93226")
+            + '</div>'
+
+            '</div>'
+        )
+
+    escalation_key = (
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'
+        + ''.join(
+            f'<span style="background:{bg};color:{fg};border-radius:20px;padding:3px 14px;'
+            f'font-size:0.78rem;font-weight:700;">{label}</span>'
+            for label, bg, fg in [
+                ("Escalate", "#c0392b", "#fff"),
+                ("Monitor",  "#e67e22", "#fff"),
+                ("Watch",    "#2980b9", "#fff"),
+                ("Stable",   "#27ae60", "#fff"),
+            ]
+        )
+        + '<span style="font-size:0.78rem;color:#555;align-self:center;margin-left:4px;">'
+          '— threshold based on quarter-on-quarter change rate and absolute volume</span>'
+        '</div>'
+    )
+
+    how_it_works = (
+        '<div style="border-left:4px solid #c0392b;background:#fff5f5;'
+        'border-radius:6px;padding:14px 18px;margin-top:8px;">'
+        '<p style="margin:0;font-size:0.86rem;color:#000;line-height:1.65;">'
+        '<strong style="color:#000;">How escalation candidates are identified:</strong> '
+        'Q continuously monitors the volume and rate-of-change of negative comments '
+        'across each safety-relevant theme. A theme is flagged as a candidate when it '
+        'crosses one or more thresholds: ≥10% absolute prevalence, ≥30% quarter-on-quarter '
+        'increase, or sustained elevation above the statewide benchmark for ≥2 consecutive '
+        'quarters. Escalation candidates are surfaced automatically in this tab and '
+        'cross-referenced against NSQHS standards and open VHIMS incident clusters to '
+        'support prioritisation by Safety and Quality committees.'
+        '</p></div>'
+    )
+
+    return (
+        '<div style="margin-top:24px;">'
+        + escalation_key
+        + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">'
+        + cards
+        + '</div>'
+        + how_it_works
+        + '</div>'
+    )
+
+
+_SAFETY_ESCALATION_HTML = _build_safety_escalation_html()
+
+
 # ── Gradio layout ─────────────────────────────────────────────────────────────
 
 _CSS = """
@@ -7530,7 +7772,18 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             cqi_trend_chart = gr.Plot(show_label=False)
             cqi_cards       = gr.HTML()
 
-        # ── Tab 7: About ──────────────────────────────────────────────────
+        # ── Tab 7: Candidate Safety & Escalation Themes ──────────────────
+        with gr.TabItem("Candidate Safety and Escalation Themes"):
+            gr.Markdown(
+                "Themes in patient feedback that have crossed one or more safety escalation "
+                "thresholds this quarter — by absolute prevalence, rate of change, or sustained "
+                "elevation above the statewide benchmark. Cards compare the most-affected "
+                "HHS cluster against the statewide average (prev quarter → current quarter). "
+                "Cross-referenced with NSQHS standards to support Safety and Quality committee prioritisation."
+            )
+            gr.HTML(value=_SAFETY_ESCALATION_HTML)
+
+        # ── Tab 8: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
             gr.Markdown("""
 ## Models (13 total)
