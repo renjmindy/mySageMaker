@@ -4,7 +4,7 @@ Description: NLP Sentiment Analysis API - AWS Lambda Deployment
 
 Globals:
   Function:
-    Timeout: 180            # 3 min — first invocation loads model weights from image
+    Timeout: 900            # 15 min — largest HC model cold-start needs headroom
     MemorySize: 4096        # 4 GB — largest model (BART MNLI zero-shot) needs ~2 GB headroom
     Environment:
       Variables:
@@ -25,12 +25,12 @@ Parameters:
 
   OpenMedPiiBaseUrl:
     Type: String
-    Default: https://i6di6fkeqi.execute-api.ap-southeast-2.amazonaws.com/prod
+    Default: https://08cnjcgfxg.execute-api.ap-southeast-2.amazonaws.com/prod
     Description: Base URL of the OpenMed PII de-identification API
 
   OpenMedPiiApiKey:
     Type: String
-    Default: t1Ej9UB6ZU1VUFKUURAky7fK4ux9pFwa3Db7s4u4
+    Default: amCRZA8wjA54tyEbYaGOV9qNAGUPlcNm7ylTd8Kg
     NoEcho: true
     Description: x-api-key for the OpenMed PII de-identification API
 
@@ -41,7 +41,7 @@ Resources:
     Properties:
       FunctionName:   !Sub nlp-hc-sentiment-${Stage}
       PackageType:    Image
-      ImageUri:       !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/nlp-sentiment:latest
+      ImageUri:       !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/nlp-hc-sentiment:latest
       Description:    NLP OpenMed Sentiment Analysis — 13 Transformer models (6 HC fine-tuned + 7 pretrained) via FastAPI
       Architectures:  [x86_64]
       EphemeralStorage:
@@ -97,8 +97,8 @@ Resources:
       LogGroupName:    !Sub /aws/lambda/nlp-hc-sentiment-${Stage}
       RetentionInDays: 7
 
-  # ── Keep-warm: ping all 6 HC models every 5 minutes to prevent cold starts ───
-  # EventBridge max 5 targets per rule — models split across WarmupRule (5) + WarmupRule2 (1)
+  # ── Keep-warm: ping all 13 models every 5 minutes to prevent cold starts ─────
+  # EventBridge max 5 targets per rule — 13 models split across 3 rules (5 + 5 + 3)
   WarmupRule:
     Type: AWS::Events::Rule
     Properties:
@@ -127,13 +127,43 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name:               !Sub nlp-hc-sentiment-warmup2-${Stage}
-      Description:        Warms distilroberta_hc (6th model — separate rule due to 5-target limit)
+      Description:        Warms distilroberta_hc / default / roberta / emotion / amazon
       ScheduleExpression: rate(5 minutes)
       State:              ENABLED
       Targets:
         - Id:  WarmDistilrobertaHc
           Arn: !GetAtt SentimentFunction.Arn
           Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-distilroberta-hc","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"distilroberta_hc\"}","isBase64Encoded":false}'
+        - Id:  WarmDefault
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-default","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"default\"}","isBase64Encoded":false}'
+        - Id:  WarmRoberta
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-roberta","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"roberta\"}","isBase64Encoded":false}'
+        - Id:  WarmEmotion
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-emotion","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"emotion\"}","isBase64Encoded":false}'
+        - Id:  WarmAmazon
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-amazon","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"amazon\"}","isBase64Encoded":false}'
+
+  WarmupRule3:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:               !Sub nlp-hc-sentiment-warmup3-${Stage}
+      Description:        Warms twitter / sst2 / zeroshot
+      ScheduleExpression: rate(5 minutes)
+      State:              ENABLED
+      Targets:
+        - Id:  WarmTwitter
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-twitter","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"twitter\"}","isBase64Encoded":false}'
+        - Id:  WarmSst2
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-sst2","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"sst2\"}","isBase64Encoded":false}'
+        - Id:  WarmZeroshot
+          Arn: !GetAtt SentimentFunction.Arn
+          Input: '{"version":"1.0","resource":"/api/v1/analyze","httpMethod":"POST","path":"/api/v1/analyze","headers":{"Content-Type":"application/json","Host":"localhost"},"multiValueHeaders":{"Content-Type":["application/json"],"Host":["localhost"]},"queryStringParameters":null,"multiValueQueryStringParameters":null,"requestContext":{"resourcePath":"/api/v1/analyze","httpMethod":"POST","path":"/prod/api/v1/analyze","protocol":"HTTP/1.1","requestId":"warmup-zeroshot","stage":"prod","identity":{"sourceIp":"127.0.0.1","userAgent":"warmup-scheduler"},"apiId":"warmup"},"body":"{\"text\":\"keeping model warm for fast inference\",\"model_type\":\"zeroshot\"}","isBase64Encoded":false}'
 
   WarmupPermission:
     Type: AWS::Lambda::Permission
@@ -150,6 +180,14 @@ Resources:
       Action:       lambda:InvokeFunction
       Principal:    events.amazonaws.com
       SourceArn:    !GetAtt WarmupRule2.Arn
+
+  WarmupPermission3:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SentimentFunction
+      Action:       lambda:InvokeFunction
+      Principal:    events.amazonaws.com
+      SourceArn:    !GetAtt WarmupRule3.Arn
 
 Outputs:
   ApiEndpoint:

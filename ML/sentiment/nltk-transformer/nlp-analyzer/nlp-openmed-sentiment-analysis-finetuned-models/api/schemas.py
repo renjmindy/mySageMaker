@@ -3,19 +3,17 @@
 from typing import Dict, List
 from pydantic import BaseModel, Field
 
+from src.models import ModelType
+
 
 class AnalyzeRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=5000, description="Text to analyse (4–300 words)")
-    model_type: str = Field(
-        "bert_hc_v2",
+    model_type: ModelType = Field(
+        ModelType.BERT_HC_V2,
         description=(
-            # Fine-tuned healthcare (cjen1008)
-            "Fine-tuned HC: 'bert_hc_v2', 'distilroberta_hc_v2', 'distilbert_hc_v2', "
-            "'bert_hc', 'distilbert_hc', 'distilroberta_hc'. "
-            # Pretrained general-purpose
-            "Pretrained: 'default' (DistilBERT SST-2), 'roberta' (BERT Multilingual 5-star), "
-            "'emotion' (GoEmotions 7-class), 'amazon' (Amazon Reviews), "
-            "'twitter' (RoBERTa Twitter), 'sst2' (BERT SST-2), 'zeroshot' (BART MNLI)."
+            "Fine-tuned HC: bert_hc_v2, distilroberta_hc_v2, distilbert_hc_v2, "
+            "bert_hc, distilbert_hc, distilroberta_hc. "
+            "Pretrained: default, roberta, emotion, amazon, twitter, sst2, zeroshot."
         ),
     )
 

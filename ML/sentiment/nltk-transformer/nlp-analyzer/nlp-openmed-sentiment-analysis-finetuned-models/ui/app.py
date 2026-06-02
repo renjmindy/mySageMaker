@@ -6521,41 +6521,68 @@ _THEME_POS_WORDS = {
 }
 
 
-def _compute_theme_impact():
-    """Score each AHPEQS-aligned theme by volume × severity × trend, normalised to 0–100."""
-    # Flatten all patient-months with positional index (used for trend split)
+def _compute_theme_impact(model_type=None):
+    """Score each AHPEQS-aligned theme by volume × severity × trend, normalised to 0–100.
+
+    When model_type is supplied, severity is derived from the sentiment model's
+    average NEGATIVE probability across a sample of matching patient-months
+    (up to _THEME_INFER_SAMPLE per theme) rather than keyword counting.
+    """
+    import random as _random
+
+    _THEME_INFER_SAMPLE = 6  # max texts inferred per theme
+
     all_months = []
     for pname, months in PATIENT_SAMPLES.items():
         month_items = list(months.items())
         n = len(month_items)
         for m_idx, (_, text) in enumerate(month_items):
-            all_months.append({"m_idx": m_idx, "n": n, "text": text.lower()})
+            all_months.append({"m_idx": m_idx, "n": n, "text": text.lower(), "raw": text})
     total = len(all_months)
     if total == 0:
         return {}
 
+    # Pre-sample texts per theme and run inference on the unique set once
+    theme_samples: dict = {}
+    infer_cache:   dict = {}  # raw_text → severity 0-1 (0 = positive, 1 = negative)
+
+    if model_type is not None:
+        for theme, keywords in _SEMANTIC_THEMES.items():
+            hits = [m["raw"] for m in all_months if any(kw in m["text"] for kw in keywords)]
+            theme_samples[theme] = _random.sample(hits, min(_THEME_INFER_SAMPLE, len(hits)))
+
+        needed = {t for texts in theme_samples.values() for t in texts}
+        labels = SUPPORTED_MODELS[model_type]["labels"]
+        for raw_text in needed:
+            try:
+                _, probs = analyze_sentiment(raw_text, model_type)
+                q = _compute_quality_score(probs, labels)
+                infer_cache[raw_text] = (10.0 - q) / 9.0  # 0=positive, 1=negative
+            except Exception:
+                infer_cache[raw_text] = 0.5
+
     results = {}
     for theme, keywords in _SEMANTIC_THEMES.items():
-        # Volume: months that mention at least one keyword
         mentions = [m for m in all_months if any(kw in m["text"] for kw in keywords)]
         volume   = len(mentions) / total * 100
 
-        # Severity: ratio of negative-word hits to total sentiment-word hits
-        neg_hits = sum(sum(1 for w in _THEME_NEG_WORDS if w in m["text"]) for m in mentions)
-        pos_hits = sum(sum(1 for w in _THEME_POS_WORDS if w in m["text"]) for m in mentions)
-        severity = neg_hits / max(neg_hits + pos_hits, 1)   # 0 = all positive, 1 = all negative
+        if model_type is not None and theme_samples.get(theme):
+            sevs     = [infer_cache.get(t, 0.5) for t in theme_samples[theme]]
+            severity = sum(sevs) / len(sevs)
+        else:
+            neg_hits = sum(sum(1 for w in _THEME_NEG_WORDS if w in m["text"]) for m in mentions)
+            pos_hits = sum(sum(1 for w in _THEME_POS_WORDS if w in m["text"]) for m in mentions)
+            severity = neg_hits / max(neg_hits + pos_hits, 1)
 
-        # Trend: is this theme mentioned MORE in the second half of journeys?
         early  = [m for m in mentions if m["m_idx"] <  m["n"] // 2]
         recent = [m for m in mentions if m["m_idx"] >= m["n"] // 2]
         denom  = max(total / 2, 1)
-        trend  = (len(recent) - len(early)) / denom   # positive = growing concern
+        trend  = (len(recent) - len(early)) / denom
         trend_factor = 1.0 + 0.25 * max(trend, 0)
 
         raw = volume * (0.4 + 0.6 * severity) * trend_factor
         results[theme] = {"raw": raw, "volume": volume, "severity": severity, "trend": trend}
 
-    # Normalise so the highest score = 100
     max_raw = max(s["raw"] for s in results.values()) or 1
     for theme in results:
         results[theme]["impact"] = round(results[theme]["raw"] / max_raw * 100)
@@ -6953,8 +6980,9 @@ def _write_theme_report(topic_model_label, top6_cards, table, prevalence):
     return tmp.name
 
 
-def run_theme_impact_analysis(topic_model_label=""):
-    scores = _compute_theme_impact()
+def run_theme_impact_analysis(topic_model_label="", sent_model_label=""):
+    model_type = MODEL_LABEL_TO_TYPE.get(sent_model_label) if sent_model_label else None
+    scores = _compute_theme_impact(model_type=model_type)
     chart  = _build_theme_impact_chart(scores, topic_model_label)
     try:
         top6_cards = _build_top6_impact_cards_html(scores)
@@ -7098,13 +7126,117 @@ _CQI_INTERVENTIONS = [
 ]
 
 
-def _build_cqi_trend_chart(topic_model_label=""):
+def _compute_cqi_data(model_type=None):
+    """Derive CQI trend + per-intervention before/after stats from patient data.
+
+    Pilot group  = even-indexed patients  (deterministic split)
+    Comparison   = odd-indexed patients
+    Before       = first half of each patient's journey months
+    After        = second half
+
+    Returns (trend_pct, interv_stats) where:
+      trend_pct   — list[float] aligned with _CQI_MONTHS (11 values)
+      interv_stats — dict: label → {pilot_before, pilot_after, comp_before, comp_after}
+    """
+    import random as _random
+    _MAX = 3  # texts sampled per group/period
+
+    patients = list(PATIENT_SAMPLES.items())
+    pilot_idx = {i for i in range(0, len(patients), 2)}
+
+    all_months = []
+    for p_idx, (_, months) in enumerate(patients):
+        items = list(months.items())
+        n = len(items)
+        for m_idx, (_, text) in enumerate(items):
+            all_months.append({
+                "raw":      text,
+                "lower":    text.lower(),
+                "is_pilot": p_idx in pilot_idx,
+                "is_early": m_idx < n // 2,
+                "frac":     m_idx / max(n - 1, 1),
+            })
+
+    # ── Pre-collect all texts that need inference ──────────────────────────
+    bucket_samples: list = []
+    for b in range(11):
+        lo, hi = b / 11, (b + 1) / 11
+        pool = [m["raw"] for m in all_months if lo <= m["frac"] < hi]
+        bucket_samples.append(_random.sample(pool, min(_MAX, len(pool))) if pool else [])
+
+    interv_groups: dict = {}
+    for interv in _CQI_INTERVENTIONS:
+        theme = interv["theme"]
+        keywords = next(
+            (kws for k, kws in _SEMANTIC_THEMES.items() if theme == k or theme in k or k in theme),
+            [w.lower() for w in theme.split() if len(w) > 3],
+        )
+        def _hit(m, kws=keywords):
+            return any(kw in m["lower"] for kw in kws)
+        groups = {
+            "pilot_before": [m["raw"] for m in all_months if     m["is_pilot"] and     m["is_early"] and _hit(m)],
+            "pilot_after":  [m["raw"] for m in all_months if     m["is_pilot"] and not m["is_early"] and _hit(m)],
+            "comp_before":  [m["raw"] for m in all_months if not m["is_pilot"] and     m["is_early"] and _hit(m)],
+            "comp_after":   [m["raw"] for m in all_months if not m["is_pilot"] and not m["is_early"] and _hit(m)],
+        }
+        interv_groups[interv["label"]] = {
+            k: _random.sample(v, min(_MAX, len(v))) for k, v in groups.items()
+        }
+
+    # ── Run inference once on the unique text set ──────────────────────────
+    infer_cache: dict = {}
+    if model_type is not None:
+        needed = set(t for s in bucket_samples for t in s)
+        for g in interv_groups.values():
+            for texts in g.values():
+                needed.update(texts)
+        labels = SUPPORTED_MODELS[model_type]["labels"]
+        for raw in needed:
+            try:
+                _, probs = analyze_sentiment(raw, model_type)
+                infer_cache[raw] = _compute_quality_score(probs, labels)
+            except Exception:
+                infer_cache[raw] = 5.5  # neutral fallback
+
+    def _neg_pct(texts, fallback):
+        if not texts:
+            return fallback
+        if model_type is not None:
+            scores = [infer_cache.get(t, 5.5) for t in texts]
+            neg = sum(1 for s in scores if s < 5.5)
+            return round(neg / len(scores) * 100)
+        neg = sum(sum(1 for w in _THEME_NEG_WORDS if w in t.lower()) for t in texts)
+        pos = sum(sum(1 for w in _THEME_POS_WORDS if w in t.lower()) for t in texts)
+        return round(neg / max(neg + pos, 1) * 100)
+
+    # ── Trend line ─────────────────────────────────────────────────────────
+    trend_pct = [
+        _neg_pct(bucket_samples[b], _CQI_NEG_PCT[b]) for b in range(11)
+    ]
+
+    # ── Intervention stats ─────────────────────────────────────────────────
+    interv_stats = {}
+    for interv in _CQI_INTERVENTIONS:
+        g = interv_groups[interv["label"]]
+        interv_stats[interv["label"]] = {
+            "pilot_before": _neg_pct(g["pilot_before"], interv["pilot_before"]),
+            "pilot_after":  _neg_pct(g["pilot_after"],  interv["pilot_after"]),
+            "comp_before":  _neg_pct(g["comp_before"],  interv["comp_before"]),
+            "comp_after":   _neg_pct(g["comp_after"],   interv["comp_after"]),
+        }
+
+    return trend_pct, interv_stats
+
+
+def _build_cqi_trend_chart(sent_model_label="", trend_pct=None):
     """Line chart: statewide negative-sentiment % with vertical intervention markers."""
+    y_values = trend_pct if trend_pct is not None else _CQI_NEG_PCT
+
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
         x=_CQI_MONTHS,
-        y=_CQI_NEG_PCT,
+        y=y_values,
         mode="lines+markers",
         name="Statewide negative-sentiment %",
         line=dict(color="#c0392b", width=2.5),
@@ -7135,7 +7267,7 @@ def _build_cqi_trend_chart(topic_model_label=""):
     fig.update_layout(
         title=dict(
             text=("Direction of travel — statewide negative-sentiment % with intervention markers"
-                  + (f"  ·  {topic_model_label}" if topic_model_label else "")),
+                  + (f"  ·  {sent_model_label}" if sent_model_label else "")),
             x=0.5, font=dict(size=13, family="Arial"),
         ),
         xaxis=dict(showgrid=False, zeroline=False),
@@ -7164,8 +7296,12 @@ def _build_cqi_trend_chart(topic_model_label=""):
     return fig
 
 
-def _build_cqi_cards_html():
-    """Rich 2-column intervention cards matching the CQI screenshot style."""
+def _build_cqi_cards_html(stats=None):
+    """Rich 2-column intervention cards matching the CQI screenshot style.
+
+    stats: optional dict returned by _compute_cqi_data — overrides hardcoded
+           before/after values with model-derived percentages.
+    """
     status_cfg = {
         "Effective":    ("#27ae60", "#fff"),
         "Promising":    ("#e67e22", "#fff"),
@@ -7206,6 +7342,11 @@ def _build_cqi_cards_html():
     for interv in _CQI_INTERVENTIONS:
         sc, st = status_cfg.get(interv["status"], ("#888", "#fff"))
         unit   = interv.get("metric_unit", "%")
+        s      = (stats or {}).get(interv["label"], {})
+        p_bef  = s.get("pilot_before", interv["pilot_before"])
+        p_aft  = s.get("pilot_after",  interv["pilot_after"])
+        c_bef  = s.get("comp_before",  interv["comp_before"])
+        c_aft  = s.get("comp_after",   interv["comp_after"])
         cards += (
             '<div style="border:1px solid #d1e5f7;border-radius:10px;padding:18px 20px;'
             'background:#fafcff;display:flex;flex-direction:column;gap:10px;">'
@@ -7222,14 +7363,8 @@ def _build_cqi_cards_html():
 
             # Pilot vs Comparison columns
             f'<div style="display:flex;gap:10px;">'
-            + _comparison_block(
-                interv.get("pilot_metric",""),
-                interv["pilot_before"], interv["pilot_after"], unit, "PILOT HHS"
-            )
-            + _comparison_block(
-                interv.get("pilot_metric",""),
-                interv["comp_before"], interv["comp_after"], unit, "COMPARISON HHS"
-            )
+            + _comparison_block(interv.get("pilot_metric",""), p_bef, p_aft, unit, "PILOT HHS")
+            + _comparison_block(interv.get("pilot_metric",""), c_bef, c_aft, unit, "COMPARISON HHS")
             + '</div>'
 
             # Status summary
@@ -7273,9 +7408,11 @@ def _build_cqi_cards_html():
     )
 
 
-def run_cqi_analysis(topic_model_label=""):
-    chart = _build_cqi_trend_chart(topic_model_label)
-    cards = _build_cqi_cards_html()
+def run_cqi_analysis(sent_model_label=""):
+    model_type = MODEL_LABEL_TO_TYPE.get(sent_model_label) if sent_model_label else None
+    trend_pct, interv_stats = _compute_cqi_data(model_type)
+    chart = _build_cqi_trend_chart(sent_model_label, trend_pct)
+    cards = _build_cqi_cards_html(interv_stats)
     return chart, cards
 
 
@@ -7405,8 +7542,121 @@ _SAFETY_THEMES = [
 ]
 
 
-def _build_safety_escalation_html():
-    """Rich 2-column cards for Candidate Safety & Escalation Themes."""
+_SAFETY_THEME_KEYWORDS = {
+    "Medication reconciliation failures": [
+        "medication", "medicine", "dose", "drug", "pharmacy", "prescription",
+        "tablet", "pill", "inject", "administered", "dispensed",
+    ],
+    "Failure to recognise patient deterioration": [
+        "deteriorat", "worsen", "worse", "decline", "urgent", "emergency",
+        "rapid", "alarming", "condition changed", "not responding",
+    ],
+    "Informed consent communication gaps": [
+        "consent", "explained", "told", "informed", "options", "decision",
+        "choice", "understand", "shared", "sign", "agree",
+    ],
+    "Inadequate pain assessment and management": [
+        "pain", "hurt", "ache", "discomfort", "painkiller", "sore",
+        "agony", "suffering", "analges",
+    ],
+    "Falls prevention communication breakdown": [
+        "fall", "fell", "trip", "slip", "mobility", "call bell",
+        "balance", "walking", "bed rail", "call-bell",
+    ],
+    "Sepsis and infection recognition delays": [
+        "infection", "sepsis", "antibiotic", "fever", "bacteria",
+        "wound", "contamina", "sterile", "hygiene",
+    ],
+}
+
+
+def _compute_safety_data(model_type=None):
+    """Derive prev/current negative-% for each safety theme.
+
+    HHS CLUSTER = even-indexed patients (proxy for most-affected cluster)
+    STATEWIDE   = all patients
+    Prev quarter = first half of each patient's journey
+    Cur quarter  = second half
+    """
+    import random as _random
+    _MAX = 4
+
+    patients = list(PATIENT_SAMPLES.items())
+    cluster_idx = {i for i in range(0, len(patients), 2)}
+
+    all_months = []
+    for p_idx, (_, months) in enumerate(patients):
+        items = list(months.items())
+        n = len(items)
+        for m_idx, (_, text) in enumerate(items):
+            all_months.append({
+                "raw":        text,
+                "lower":      text.lower(),
+                "is_cluster": p_idx in cluster_idx,
+                "is_early":   m_idx < n // 2,
+            })
+
+    # Pre-sample texts per theme × group
+    theme_samples: dict = {}
+    for theme_label, keywords in _SAFETY_THEME_KEYWORDS.items():
+        def _hit(m, kws=keywords):
+            return any(kw in m["lower"] for kw in kws)
+        groups = {
+            "cluster_prev": [m["raw"] for m in all_months if     m["is_cluster"] and     m["is_early"] and _hit(m)],
+            "cluster_cur":  [m["raw"] for m in all_months if     m["is_cluster"] and not m["is_early"] and _hit(m)],
+            "sw_prev":      [m["raw"] for m in all_months if     m["is_early"]  and _hit(m)],
+            "sw_cur":       [m["raw"] for m in all_months if not m["is_early"]  and _hit(m)],
+        }
+        theme_samples[theme_label] = {
+            k: _random.sample(v, min(_MAX, len(v))) for k, v in groups.items()
+        }
+
+    # Run inference on unique texts
+    infer_cache: dict = {}
+    if model_type is not None:
+        needed = {t for g in theme_samples.values() for texts in g.values() for t in texts}
+        labels = SUPPORTED_MODELS[model_type]["labels"]
+        for raw in needed:
+            try:
+                _, probs = analyze_sentiment(raw, model_type)
+                infer_cache[raw] = _compute_quality_score(probs, labels)
+            except Exception:
+                infer_cache[raw] = 5.5
+
+    def _neg_pct(texts, fallback):
+        if not texts:
+            return fallback
+        if model_type is not None:
+            scores = [infer_cache.get(t, 5.5) for t in texts]
+            return round(sum(1 for s in scores if s < 5.5) / len(scores) * 100)
+        neg = sum(sum(1 for w in _THEME_NEG_WORDS if w in t.lower()) for t in texts)
+        pos = sum(sum(1 for w in _THEME_POS_WORDS if w in t.lower()) for t in texts)
+        return round(neg / max(neg + pos, 1) * 100)
+
+    stats: dict = {}
+    for theme in _SAFETY_THEMES:
+        label = theme["label"]
+        g = theme_samples.get(label, {})
+        stats[label] = {
+            "prev_cluster": _neg_pct(g.get("cluster_prev", []), theme["prev_cluster"]),
+            "cur_cluster":  _neg_pct(g.get("cluster_cur",  []), theme["cur_cluster"]),
+            "prev_sw":      _neg_pct(g.get("sw_prev",      []), theme["prev_sw"]),
+            "cur_sw":       _neg_pct(g.get("sw_cur",       []), theme["cur_sw"]),
+        }
+    return stats
+
+
+def run_safety_analysis(sent_model_label=""):
+    model_type = MODEL_LABEL_TO_TYPE.get(sent_model_label) if sent_model_label else None
+    stats = _compute_safety_data(model_type)
+    return _build_safety_escalation_html(stats)
+
+
+def _build_safety_escalation_html(stats=None):
+    """Rich 2-column cards for Candidate Safety & Escalation Themes.
+
+    stats: optional dict from _compute_safety_data — overrides hardcoded values.
+    """
     escalation_cfg = {
         "Escalate": ("#c0392b", "#fff"),
         "Monitor":  ("#e67e22", "#fff"),
@@ -7445,6 +7695,11 @@ def _build_safety_escalation_html():
         ec, et = escalation_cfg.get(theme["escalation"], ("#888", "#fff"))
         unit   = theme.get("metric_unit", "%")
         metric = theme.get("col_metric", "")
+        s      = (stats or {}).get(theme["label"], {})
+        prev_c = s.get("prev_cluster", theme["prev_cluster"])
+        cur_c  = s.get("cur_cluster",  theme["cur_cluster"])
+        prev_s = s.get("prev_sw",      theme["prev_sw"])
+        cur_s  = s.get("cur_sw",       theme["cur_sw"])
         cards += (
             '<div style="border:1px solid #f5c6c6;border-radius:10px;padding:18px 20px;'
             'background:#fffafa;display:flex;flex-direction:column;gap:10px;">'
@@ -7458,8 +7713,8 @@ def _build_safety_escalation_html():
             f'<p style="margin:0;font-size:0.81rem;color:#333;line-height:1.55;">{theme["desc"]}</p>'
 
             f'<div style="display:flex;gap:10px;">'
-            + _col_block(metric, theme["prev_cluster"], theme["cur_cluster"], unit, "HHS CLUSTER")
-            + _col_block(metric, theme["prev_sw"],      theme["cur_sw"],      unit, "STATEWIDE")
+            + _col_block(metric, prev_c, cur_c, unit, "HHS CLUSTER")
+            + _col_block(metric, prev_s, cur_s, unit, "STATEWIDE")
             + '</div>'
 
             f'<p style="margin:0;font-size:0.80rem;color:#333;">'
@@ -7487,7 +7742,7 @@ def _build_safety_escalation_html():
                 ("Stable",   "#27ae60", "#fff"),
             ]
         )
-        + '<span style="font-size:0.78rem;color:#555;align-self:center;margin-left:4px;">'
+        + '<span style="font-size:0.78rem;color:#ffffff;align-self:center;margin-left:4px;">'
           '— threshold based on quarter-on-quarter change rate and absolute volume</span>'
         '</div>'
     )
@@ -7521,17 +7776,701 @@ def _build_safety_escalation_html():
 _SAFETY_ESCALATION_HTML = _build_safety_escalation_html()
 
 
+_SAFETY_SUMMARY_ROWS = [
+    {
+        "flag":     "Medication confusion or omission",
+        "mentions": 92,
+        "reviewed": 64,
+        "sla_pct":  87,
+        "severity": "High",
+        "owner":    "Pharmacy / Medication Safety",
+    },
+    {
+        "flag":     "Possible infection prevention breach",
+        "mentions": 61,
+        "reviewed": 42,
+        "sla_pct":  79,
+        "severity": "High",
+        "owner":    "Infection Prevention & Control",
+    },
+    {
+        "flag":     "Fall, mobility or call-bell concern",
+        "mentions": 51,
+        "reviewed": 32,
+        "sla_pct":  82,
+        "severity": "High",
+        "owner":    "Ward governance / Falls Committee",
+    },
+    {
+        "flag":     "Vulnerable persons, dignity or discrimination concern",
+        "mentions": 31,
+        "reviewed": 21,
+        "sla_pct":  94,
+        "severity": "High",
+        "owner":    "Patient Safety / Open Disclosure",
+    },
+    {
+        "flag":     "Severe discharge risk",
+        "mentions": 52,
+        "reviewed": 33,
+        "sla_pct":  71,
+        "severity": "Medium",
+        "owner":    "Discharge improvement program",
+    },
+]
+
+
+def _build_safety_summary_html():
+    sev_cfg = {
+        "High":   ("#c0392b", "#fff"),
+        "Medium": ("#e67e22", "#fff"),
+        "Low":    ("#27ae60", "#fff"),
+    }
+
+    def _sla_color(pct):
+        if pct >= 85:
+            return "#1a7a3a"
+        if pct >= 70:
+            return "#b46b00"
+        return "#c0392b"
+
+    total_mentions = sum(r["mentions"] for r in _SAFETY_SUMMARY_ROWS)
+    total_reviewed = sum(r["reviewed"] for r in _SAFETY_SUMMARY_ROWS)
+
+    header_cells = "".join(
+        f'<th style="padding:10px 14px;text-align:left;font-size:0.76rem;'
+        f'font-weight:700;letter-spacing:0.06em;color:#fff;white-space:nowrap;">{h}</th>'
+        for h in ["Flag type", "Mentions", "Reviewed", "% within SLA", "Severity", "Workflow owner"]
+    )
+
+    rows_html = ""
+    for i, r in enumerate(_SAFETY_SUMMARY_ROWS):
+        bg = "#fffafa" if i % 2 == 0 else "#fff5f5"
+        sc, st = sev_cfg.get(r["severity"], ("#888", "#fff"))
+        sla_col = _sla_color(r["sla_pct"])
+        rows_html += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:10px 14px;font-size:0.82rem;color:#1a3a5c;font-weight:600;">{r["flag"]}</td>'
+            f'<td style="padding:10px 14px;font-size:0.82rem;color:#333;text-align:center;">{r["mentions"]}</td>'
+            f'<td style="padding:10px 14px;font-size:0.82rem;color:#333;text-align:center;">{r["reviewed"]}</td>'
+            f'<td style="padding:10px 14px;text-align:center;">'
+            f'<span style="font-size:0.88rem;font-weight:700;color:{sla_col};">{r["sla_pct"]}%</span></td>'
+            f'<td style="padding:10px 14px;text-align:center;">'
+            f'<span style="background:{sc};color:{st};border-radius:20px;padding:2px 11px;'
+            f'font-size:0.74rem;font-weight:700;">{r["severity"]}</span></td>'
+            f'<td style="padding:10px 14px;font-size:0.80rem;color:#555;">{r["owner"]}</td>'
+            f'</tr>'
+        )
+
+    # Totals footer row
+    rows_html += (
+        f'<tr style="background:#fde8e8;border-top:2px solid #c0392b;">'
+        f'<td style="padding:10px 14px;font-size:0.82rem;font-weight:700;color:#922b21;">Total</td>'
+        f'<td style="padding:10px 14px;font-size:0.82rem;font-weight:700;color:#922b21;text-align:center;">{total_mentions}</td>'
+        f'<td style="padding:10px 14px;font-size:0.82rem;font-weight:700;color:#922b21;text-align:center;">{total_reviewed}</td>'
+        f'<td colspan="3"></td>'
+        f'</tr>'
+    )
+
+    return (
+        '<div style="margin-bottom:24px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:magenta;margin-bottom:10px;">'
+        'Safety Flag Summary — Q2 2026</h3>'
+        '<div style="overflow-x:auto;border-radius:10px;border:1px solid #f5c6c6;">'
+        '<table style="width:100%;border-collapse:collapse;">'
+        f'<thead><tr style="background:#c0392b;">{header_cells}</tr></thead>'
+        f'<tbody>{rows_html}</tbody>'
+        '</table></div></div>'
+    )
+
+
+_SAFETY_SUMMARY_HTML = _build_safety_summary_html()
+
+
+# ── Keys (MpMq) — Recurring Semantic Themes ──────────────────────────────────
+
+def _compute_theme_recurrence():
+    """Compute recurrence metrics for each semantic theme across the full patient cohort.
+
+    Returns (rec_data, max_months, patients) where rec_data is keyed by theme:
+        persistence      — % of all patient-month slots containing at least one keyword hit
+        breadth          — % of patients who ever mention this theme
+        monthly_matrix   — {month_position: count_of_patients}
+        cooccurrence     — {other_theme: shared_slot_count}
+        recurrence_score — persistence × breadth (geometric, 0–100)
+    """
+    entries = []
+    for pname, months in PATIENT_SAMPLES.items():
+        for m_idx, (_, text) in enumerate(months.items()):
+            entries.append((pname, m_idx, text.lower()))
+
+    total_slots = max(len(entries), 1)
+    patients    = list(PATIENT_SAMPLES.keys())
+    max_months  = max(len(v) for v in PATIENT_SAMPLES.values())
+
+    theme_hits = {
+        theme: {
+            (pname, m_idx)
+            for pname, m_idx, text in entries
+            if any(kw in text for kw in kws)
+        }
+        for theme, kws in _SEMANTIC_THEMES.items()
+    }
+
+    results = {}
+    for theme, hits in theme_hits.items():
+        persistence    = len(hits) / total_slots * 100
+        hit_patients   = {p for p, _ in hits}
+        breadth        = len(hit_patients) / len(patients) * 100
+        monthly_matrix = {
+            m: sum(1 for p in patients if (p, m) in hits)
+            for m in range(max_months)
+        }
+        cooccurrence = {
+            other: len(hits & other_hits)
+            for other, other_hits in theme_hits.items()
+            if other != theme
+        }
+        results[theme] = {
+            "persistence":      round(persistence, 1),
+            "breadth":          round(breadth, 1),
+            "monthly_matrix":   monthly_matrix,
+            "cooccurrence":     cooccurrence,
+            "recurrence_score": round((persistence / 100) * (breadth / 100) * 100, 1),
+        }
+
+    return results, max_months, patients
+
+
+def _build_keys_bubble_chart(rec_data):
+    """Bubble chart: x = breadth, y = persistence, bubble size ∝ recurrence score."""
+    themes = list(rec_data.keys())
+    x_vals  = [rec_data[t]["breadth"]          for t in themes]
+    y_vals  = [rec_data[t]["persistence"]       for t in themes]
+    scores  = [rec_data[t]["recurrence_score"]  for t in themes]
+    sizes   = [max(s * 1.2, 10) for s in scores]
+
+    def _bcolor(s):
+        if s >= 50: return "#8B1A1A"
+        if s >= 28: return "#B5651D"
+        return "#1a3a5c"
+
+    fig = go.Figure(go.Scatter(
+        x=x_vals, y=y_vals,
+        mode="markers+text",
+        marker=dict(
+            size=sizes, color=[_bcolor(s) for s in scores],
+            opacity=0.82, line=dict(width=1, color="white"),
+        ),
+        text=[t.replace(" & ", "<br>&amp; ") for t in themes],
+        textposition="top center",
+        textfont=dict(size=8, color="#222"),
+        customdata=[[t, rec_data[t]["recurrence_score"]] for t in themes],
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>"
+            "Breadth: %{x:.1f}% of patients<br>"
+            "Persistence: %{y:.1f}% of month-slots<br>"
+            "Recurrence score: %{customdata[1]:.1f}<extra></extra>"
+        ),
+    ))
+    fig.update_layout(
+        title=dict(
+            text="Theme Recurrence Map — Breadth × Persistence  (bubble size = recurrence score)",
+            x=0.5, font=dict(size=13, family="Arial"),
+        ),
+        xaxis=dict(
+            title="Breadth — % of patients ever mentioning this theme",
+            range=[0, 115], showgrid=True, gridcolor="#e0e0e0",
+        ),
+        yaxis=dict(
+            title="Persistence — % of patient-month slots with a keyword hit",
+            range=[0, 115], showgrid=True, gridcolor="#e0e0e0",
+        ),
+        height=520,
+        margin=dict(l=70, r=30, t=70, b=70),
+        paper_bgcolor="#f8f9fa", plot_bgcolor="#ffffff",
+        showlegend=False,
+    )
+    return fig
+
+
+def _build_keys_heatmap(rec_data, max_months):
+    """Heatmap: themes × month positions, cell = number of patients mentioning theme."""
+    themes = sorted(rec_data.keys(), key=lambda t: -rec_data[t]["recurrence_score"])
+    month_labels = [f"M{i + 1}" for i in range(max_months)]
+
+    z = [
+        [rec_data[t]["monthly_matrix"].get(i, 0) for i in range(max_months)]
+        for t in themes
+    ]
+
+    fig = go.Figure(go.Heatmap(
+        z=z, x=month_labels, y=themes,
+        colorscale=[[0, "#f0f6ff"], [0.45, "#4a90d9"], [1, "#8B1A1A"]],
+        hovertemplate="<b>%{y}</b><br>%{x}: %{z} patient(s)<extra></extra>",
+        showscale=True,
+        colorbar=dict(title="Patients", thickness=14),
+    ))
+    fig.update_layout(
+        title=dict(
+            text="Theme Recurrence Heatmap — patient count per theme per month position",
+            x=0.5, font=dict(size=13, family="Arial"),
+        ),
+        xaxis=dict(title="Month in patient journey", side="top"),
+        yaxis=dict(autorange="reversed"),
+        height=540,
+        margin=dict(l=320, r=70, t=90, b=40),
+        paper_bgcolor="#f8f9fa", plot_bgcolor="#ffffff",
+    )
+    return fig
+
+
+def _build_keys_cooccurrence_chart(rec_data):
+    """Square heatmap: themes × themes, cell = shared patient-month slots."""
+    themes = sorted(rec_data.keys(), key=lambda t: -rec_data[t]["recurrence_score"])
+
+    z = [
+        [rec_data[t1]["cooccurrence"].get(t2, 0) if t2 != t1 else 0 for t2 in themes]
+        for t1 in themes
+    ]
+
+    fig = go.Figure(go.Heatmap(
+        z=z, x=themes, y=themes,
+        colorscale=[[0, "#f8fbff"], [1, "#1a3a5c"]],
+        hovertemplate="<b>%{y}</b> + <b>%{x}</b><br>Shared slots: %{z}<extra></extra>",
+        showscale=True,
+        colorbar=dict(title="Shared<br>slots", thickness=14),
+    ))
+    fig.update_layout(
+        title=dict(
+            text="Theme Co-occurrence Matrix — patient-months where both themes appear together",
+            x=0.5, font=dict(size=13, family="Arial"),
+        ),
+        xaxis=dict(tickangle=-45, tickfont=dict(size=8)),
+        yaxis=dict(tickfont=dict(size=8), autorange="reversed"),
+        height=620,
+        margin=dict(l=300, r=40, t=70, b=260),
+        paper_bgcolor="#f8f9fa", plot_bgcolor="#ffffff",
+    )
+    return fig
+
+
+def _build_keys_overlay_bars(rec_data):
+    """Overlaid horizontal bars: persistence (blue) and breadth (green) per theme."""
+    sorted_items = sorted(rec_data.items(), key=lambda x: -x[1]["recurrence_score"])
+    labels    = [t for t, _ in sorted_items]
+    persists  = [s["persistence"] for _, s in sorted_items]
+    breadths  = [s["breadth"]     for _, s in sorted_items]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="Persistence (% month-slots)",
+        x=persists, y=labels, orientation="h",
+        marker_color="#4a90d9", opacity=0.75,
+        hovertemplate="<b>%{y}</b><br>Persistence: %{x:.1f}%<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        name="Breadth (% patients)",
+        x=breadths, y=labels, orientation="h",
+        marker_color="#27ae60", opacity=0.75,
+        hovertemplate="<b>%{y}</b><br>Breadth: %{x:.1f}%<extra></extra>",
+    ))
+    fig.update_layout(
+        barmode="overlay",
+        title=dict(
+            text="Persistence × Breadth — how consistently each theme recurs across months and patients",
+            x=0.5, font=dict(size=13, family="Arial"),
+        ),
+        xaxis=dict(
+            title="Percentage (%)",
+            range=[0, 115], showgrid=True, gridcolor="#e0e0e0",
+        ),
+        yaxis=dict(autorange="reversed"),
+        height=520,
+        margin=dict(l=320, r=80, t=70, b=70),
+        paper_bgcolor="#f8f9fa", plot_bgcolor="#ffffff",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    return fig
+
+
+def _build_keys_summary_html(rec_data):
+    """Table: top recurring themes with persistence, breadth, recurrence score, and top co-theme."""
+    sorted_items = sorted(rec_data.items(), key=lambda x: -x[1]["recurrence_score"])
+
+    th  = ("padding:10px 14px;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;"
+           "color:#1a3a5c;background:#eaf1fb;border-bottom:2px solid #c3d4e8;")
+    th_r = th + "text-align:right;"
+    th_c = th + "text-align:center;"
+
+    def _score_badge(score):
+        color = "#8B1A1A" if score >= 50 else ("#B5651D" if score >= 28 else "#1a3a5c")
+        return (f'<span style="background:{color};color:#fff;border-radius:4px;'
+                f'padding:2px 10px;font-weight:700;">{score:.1f}</span>')
+
+    def _bar_mini(pct, color):
+        return (
+            f'<div style="display:flex;align-items:center;gap:6px;">'
+            f'<div style="width:80px;background:#e8edf3;border-radius:3px;height:8px;">'
+            f'<div style="width:{min(pct, 100):.0f}%;background:{color};height:8px;border-radius:3px;"></div>'
+            f'</div>'
+            f'<span style="font-size:0.82rem;color:#333;">{pct:.1f}%</span>'
+            f'</div>'
+        )
+
+    rows = ""
+    for i, (theme, s) in enumerate(sorted_items):
+        bg = "#f8fbff" if i % 2 == 0 else "#ffffff"
+        top_co = max(s["cooccurrence"], key=s["cooccurrence"].get, default="—")
+        top_co_n = s["cooccurrence"].get(top_co, 0)
+        top_co_cell = f'{top_co} <span style="color:#888;font-size:0.78rem;">({top_co_n})</span>' if top_co != "—" else "—"
+        rows += (
+            f'<tr style="background:{bg};">'
+            f'<td style="padding:9px 14px;color:#1a3a5c;font-weight:500;">{theme}</td>'
+            f'<td style="padding:9px 14px;">{_bar_mini(s["persistence"], "#4a90d9")}</td>'
+            f'<td style="padding:9px 14px;">{_bar_mini(s["breadth"],     "#27ae60")}</td>'
+            f'<td style="padding:9px 14px;text-align:center;">{_score_badge(s["recurrence_score"])}</td>'
+            f'<td style="padding:9px 14px;font-size:0.81rem;color:#444;">{top_co_cell}</td>'
+            f'</tr>'
+        )
+
+    footnote = (
+        "<b>Persistence</b>: share of all patient-month slots in which the theme is mentioned. "
+        "<b>Breadth</b>: share of patients who mention the theme at least once across their journey. "
+        "<b>Recurrence score</b>: persistence&nbsp;×&nbsp;breadth (geometric, 0–100) — themes that are "
+        "both frequent and cross-patient are ranked highest. "
+        "<b>Top co-occurring theme</b>: the other theme most often mentioned in the same patient-month slot (count in brackets)."
+    )
+
+    return (
+        '<div style="overflow-x:auto;margin-top:24px;">'
+        '<h3 style="font-size:1rem;font-weight:700;color:#ffffff;margin-bottom:4px;">'
+        'Recurring Semantic Themes — recurrence summary</h3>'
+        '<p style="font-size:0.76rem;color:#ccc;margin:0 0 10px;">'
+        f'Sorted by recurrence score (descending). {len(PATIENT_NAMES)} patients · '
+        f'{len(_SEMANTIC_THEMES)} themes.</p>'
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem;">'
+        '<thead><tr>'
+        f'<th style="{th}">THEME</th>'
+        f'<th style="{th}">PERSISTENCE</th>'
+        f'<th style="{th}">BREADTH</th>'
+        f'<th style="{th_c}">RECURRENCE SCORE</th>'
+        f'<th style="{th}">TOP CO-OCCURRING THEME</th>'
+        '</tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        f'<p style="font-size:0.73rem;color:#aaa;margin-top:10px;">{footnote}</p>'
+        '</div>'
+    )
+
+
+_KEYS_FINDING_TITLE = {
+    "Clinical Staff":
+        "Clinical staff interactions remain the primary driver of patient experience across all HHSs.",
+    "Administrative Staff":
+        "Administrative friction at reception and billing creates a persistent first-impression barrier.",
+    "Efficiency and Flow":
+        "Waiting time and care-flow delays are the highest-volume recurring concern statewide.",
+    "Booking & Access":
+        "Booking access and portal usability are a growing source of patient frustration.",
+    "Information & Shared Decision-Making":
+        "Shared decision-making gaps continue to drive negative sentiment across consultations.",
+    "Dignity & Respect":
+        "Dignity and respect failures generate the strongest negative sentiment and escalation risk.",
+    "Care Quality":
+        "Care quality perceptions remain central to overall satisfaction and safety governance.",
+    "Care Coordination":
+        "Care coordination failures are a leading driver of preventable harm and patient distress.",
+    "Results & Information":
+        "Discharge uncertainty remains a cross-functional quality risk despite encouraging early results from medication reconciliation.",
+    "Facilities & Environment & Environmental Hygiene":
+        "Environmental cleanliness and comfort directly affect infection-risk perceptions and recovery.",
+    "Telehealth":
+        "Telehealth access and technical quality are emerging as consistent patient concerns.",
+    "Emotional Support":
+        "Communication and staff kindness are protected strengths to sustain and spread.",
+    "Cultural & Accessibility Needs":
+        "Equity of access for culturally diverse and disabled patients requires targeted improvement.",
+    "Discharge & Follow-up":
+        "The discharge transition remains the highest-risk moment in the care journey for repeat mentions.",
+    "Feeling in Good Hands":
+        "Trust and safety signals are protective factors that drive adherence and patient loyalty.",
+}
+
+_KEYS_SUGGESTED_RESPONSE = {
+    "Clinical Staff": (
+        "Prepare statewide rollout case for the structured post-consultation feedback protocol; "
+        "share quarterly theme summaries with department heads to support reflection and coaching."
+    ),
+    "Administrative Staff": (
+        "Audit reception touchpoints and booking confirmation workflows for friction points. "
+        "Embed a 60-second patient-experience check at front-desk team huddles."
+    ),
+    "Efficiency and Flow": (
+        "Prepare statewide rollout case for the ED update protocol; continue weekly monitoring "
+        "of pilot HHSs through Q2. Introduce proactive delay-notification scripts for all waiting areas."
+    ),
+    "Booking & Access": (
+        "Prioritise usability improvements to the patient portal booking flow. Commission a "
+        "short-form satisfaction survey at the point of booking to capture drop-off friction."
+    ),
+    "Information & Shared Decision-Making": (
+        "Extend the reconciliation pilot's teach-back component to non-medication discharge information "
+        "at participating wards; commission a second-phase intervention focused on written take-home information."
+    ),
+    "Dignity & Respect": (
+        "Mandate dignity and respect as a standing item in monthly clinical governance meetings. "
+        "Escalate comments below the dignity composite threshold to patient liaison within 24 hours."
+    ),
+    "Care Quality": (
+        "Commission a focused rapid-cycle improvement sprint on 'rushed care' comments. "
+        "Align findings with the accreditation self-assessment for NSQHS Standard 5."
+    ),
+    "Care Coordination": (
+        "Adopt a structured transition-of-care handover checklist across all ward-to-ward and "
+        "ward-to-community transfers. Track checklist completion rate alongside PREM scores quarterly."
+    ),
+    "Results & Information": (
+        "Extend the reconciliation pilot's teach-back component to non-medication discharge information "
+        "at participating wards. Commission a second-phase intervention focused on written take-home materials."
+    ),
+    "Facilities & Environment & Environmental Hygiene": (
+        "Commission a patient-facing environment walk-through at each HHS. Prioritise visible hygiene "
+        "signage and temperature comfort in highest-volume inpatient wards."
+    ),
+    "Telehealth": (
+        "Review technical reliability metrics for the virtual care platform. Introduce a post-telehealth "
+        "satisfaction micro-survey and act on low-connectivity feedback within one business day."
+    ),
+    "Emotional Support": (
+        "Codify the empathetic communication practices seen in Maternity and Cancer Services into "
+        "training and onboarding examples; surface positive comments to clinical teams quarterly."
+    ),
+    "Cultural & Accessibility Needs": (
+        "Audit interpreter availability and wait times at the three lowest-scoring HHSs. "
+        "Align corrective actions with the Equity of Access framework under NSQHS Standard 2."
+    ),
+    "Discharge & Follow-up": (
+        "Adopt preparation guidance for the discharge medication reconciliation protocol; route "
+        "remaining candidate discharge comments into the pharmacy governance queue."
+    ),
+    "Feeling in Good Hands": (
+        "Codify positive trust signals into workforce recognition programs. Use high-scoring "
+        "patient quotes as exemplars in staff training and induction sessions."
+    ),
+}
+
+
+def _build_keys_prioritised_findings_html(rec_data):
+    """Screenshot-style 2×2 card grid: top-4 recurring themes as prioritised key findings."""
+    import html as _html_mod
+
+    all_texts_lower = [
+        t.lower()
+        for months in PATIENT_SAMPLES.values()
+        for t in months.values()
+    ]
+    total = max(len(all_texts_lower), 1)
+
+    # compute negative % and comment count per theme
+    theme_stats = {}
+    for theme, kws in _SEMANTIC_THEMES.items():
+        mentions = [t for t in all_texts_lower if any(kw in t for kw in kws)]
+        neg_ratios = []
+        for text in mentions:
+            neg = sum(1 for w in _THEME_NEG_WORDS if w in text)
+            pos = sum(1 for w in _THEME_POS_WORDS if w in text)
+            if neg + pos > 0:
+                neg_ratios.append(neg / (neg + pos))
+        theme_stats[theme] = {
+            "n":       len(mentions),
+            "neg_pct": round(sum(neg_ratios) / max(len(neg_ratios), 1) * 100),
+        }
+
+    top4 = sorted(rec_data.items(), key=lambda x: -x[1]["recurrence_score"])[:4]
+
+    def _sev_badge(label):
+        cfg = {"High": ("#c0392b", "#fff"), "Medium": ("#e67e22", "#fff"), "Low": ("#27ae60", "#fff")}
+        bg, fg = cfg.get(label, ("#888", "#fff"))
+        return (
+            f'<span style="background:{bg};color:{fg};border-radius:20px;'
+            f'padding:3px 14px;font-size:0.78rem;font-weight:700;white-space:nowrap;">'
+            f'{label.upper()}</span>'
+        )
+
+    def _anchor_tags(raw):
+        """Turn 'AHPEQS Q1, Q2 · NSQHS 5, 6' into pill tags."""
+        pills = ""
+        for part in raw.replace("·", ",").split(","):
+            part = part.strip()
+            if not part:
+                continue
+            is_nsqhs = part.upper().startswith("NSQHS")
+            bg = "#e8f8f0" if is_nsqhs else "#e8f2fc"
+            fg = "#1a6b3a" if is_nsqhs else "#1a3a8c"
+            pills += (
+                f'<span style="background:{bg};color:{fg};border-radius:20px;'
+                f'padding:3px 11px;font-size:0.75rem;font-weight:600;white-space:nowrap;">'
+                f'{_html_mod.escape(part)}</span>'
+            )
+        return f'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">{pills}</div>'
+
+    cards_html = ""
+    for rank, (theme, s) in enumerate(top4, start=1):
+        st        = theme_stats.get(theme, {"n": 0, "neg_pct": 0})
+        sev_label = _THEME_CLINICAL_SEVERITY.get(theme, "Medium")
+        title     = _KEYS_FINDING_TITLE.get(theme, theme)
+        evidence  = (
+            f'{st["n"]:,} patient-month mentions, {st["neg_pct"]}% negative sentiment. '
+            f'Recurrence score&nbsp;{s["recurrence_score"]:.0f} — '
+            f'present in {s["persistence"]:.0f}% of month-slots across '
+            f'{s["breadth"]:.0f}% of patients.'
+        )
+        impact    = _THEME_CLINICAL_RELEVANCE.get(theme, "")
+        response  = _KEYS_SUGGESTED_RESPONSE.get(theme, "")
+        anchor    = _THEME_AHPEQS_ANCHOR.get(theme, "—")
+
+        cards_html += (
+            '<div style="border:1px solid #d1e5f7;border-radius:10px;padding:20px 22px;'
+            'background:#ffffff;display:flex;flex-direction:column;">'
+
+            # header row: title + badge
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;'
+            'gap:12px;margin-bottom:14px;">'
+            f'<span style="font-weight:700;color:#1a1a2e;font-size:1rem;line-height:1.4;">'
+            f'{_html_mod.escape(title)}</span>'
+            + _sev_badge(sev_label) +
+            '</div>'
+
+            # Evidence
+            '<p style="margin:0 0 8px;font-size:0.85rem;color:#222;line-height:1.6;">'
+            f'<span style="font-weight:700;">Evidence:</span> {evidence}</p>'
+
+            # Impact
+            '<p style="margin:0 0 8px;font-size:0.85rem;color:#222;line-height:1.6;">'
+            f'<span style="font-weight:700;">Impact:</span> {_html_mod.escape(impact)}</p>'
+
+            # Suggested response
+            '<p style="margin:0 0 4px;font-size:0.85rem;color:#222;line-height:1.6;flex-grow:1;">'
+            f'<span style="font-weight:700;">Suggested response:</span> '
+            f'{_html_mod.escape(response)}</p>'
+
+            + _anchor_tags(anchor) +
+            '</div>'
+        )
+
+    section_label = (
+        '<div style="margin-bottom:8px;">'
+        '<span style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;color:#aaa;">'
+        'PRIORITISED KEY FINDINGS</span>'
+        '</div>'
+    )
+    subtitle = (
+        '<p style="font-size:0.83rem;color:#ccc;margin:0 0 20px;">'
+        'The four most-recurring themes across the patient cohort this quarter, '
+        'each with evidence, NSQHS anchor and a clear ownership path.</p>'
+    )
+
+    return (
+        '<div style="margin-top:8px;">'
+        + section_label
+        + '<h2 style="font-size:1.45rem;font-weight:800;color:#ffffff;margin:0 0 6px;">07 Prioritised Key Findings</h2>'
+        + subtitle
+        + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:18px;">'
+        + cards_html
+        + '</div></div>'
+    )
+
+
+def run_keys_analysis():
+    """Compute and return all outputs for the Keys (MpMq) tab."""
+    rec_data, max_months, _ = _compute_theme_recurrence()
+    return (
+        _build_keys_prioritised_findings_html(rec_data),
+        _build_keys_bubble_chart(rec_data),
+        _build_keys_heatmap(rec_data, max_months),
+        _build_keys_cooccurrence_chart(rec_data),
+        _build_keys_overlay_bars(rec_data),
+        _build_keys_summary_html(rec_data),
+    )
+
+
 # ── Gradio layout ─────────────────────────────────────────────────────────────
 
 _CSS = """
 .gradio-container { max-width: 1280px !important; margin: 0 auto; }
-.tab-nav button { font-size: 0.92rem; }
+
+/* ── Horizontally scrollable pill tab bar (Gradio 6.x) ───────────────── */
+
+/* Outer wrapper: scroll horizontally, hide overflow-dropdown */
+.tab-wrapper {
+    overflow-x: auto  !important;
+    overflow-y: visible !important;
+    height: auto      !important;
+    padding-bottom: 6px !important;
+}
+
+/* Tablist: single row, no wrapping */
+.tab-container[role="tablist"] {
+    flex-wrap: nowrap  !important;
+    overflow: visible  !important;
+    gap: 8px           !important;
+    padding: 6px 2px   !important;
+    height: auto       !important;
+}
+
+/* Pill button style */
+.tab-container[role="tablist"] button {
+    border-radius: 50px       !important;
+    border: 2px solid #1a3a5c !important;
+    background: #ffffff       !important;
+    color: #1a3a5c            !important;
+    font-weight: 700          !important;
+    font-size: 0.82rem        !important;
+    padding: 5px 16px         !important;
+    white-space: nowrap       !important;
+    flex-shrink: 0            !important;
+    transition: background 0.15s, color 0.15s !important;
+}
+.tab-container[role="tablist"] button:hover {
+    background: #e8f0fb !important;
+}
+.tab-container[role="tablist"] button[aria-selected="true"],
+.tab-container[role="tablist"] button.selected {
+    background: #1a3a5c !important;
+    color: #ffffff      !important;
+}
+
+/* Hide three-dot overflow — scrolling replaces it */
+.overflow-menu     { display: none !important; }
+.overflow-dropdown { display: none !important; }
+
+/* Thin scrollbar under the tab row */
+.tab-wrapper::-webkit-scrollbar       { height: 5px; }
+.tab-wrapper::-webkit-scrollbar-track { background: #eef2f7; border-radius: 3px; }
+.tab-wrapper::-webkit-scrollbar-thumb { background: #8ea8c3; border-radius: 3px; }
+"""
+
+_JS = """
+() => {
+    function fixTabs() {
+        /* Hide the overflow menu/dropdown — horizontal scroll replaces it */
+        document.querySelectorAll('.overflow-menu, .overflow-dropdown').forEach(el => {
+            el.style.display = 'none';
+        });
+        /* Ensure the tablist stays nowrap + scrollable */
+        document.querySelectorAll('[role="tablist"]').forEach(el => {
+            el.style.flexWrap = 'nowrap';
+            el.style.overflow = 'visible';
+        });
+    }
+    [0, 100, 300, 800, 2000].forEach(t => setTimeout(fixTabs, t));
+}
 """
 
 _default_patient = PATIENT_NAMES[0]
 _default_months  = get_month_names(_default_patient)
 
-with gr.Blocks(title="NLP Sentiment Analysis") as demo:
+with gr.Blocks(title="NLP Sentiment Analysis", js=_JS) as demo:
 
     gr.Markdown("""
 # NLP Sentiment Analysis
@@ -7646,7 +8585,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 report_file_html = gr.File(label="Download Report (.html)", interactive=False)
 
         # ── Tab 2: Time-Series & Forecast ─────────────────────────────────
-        with gr.TabItem("Time-Series & Forecast (1pMq)"):
+        with gr.TabItem("Forecast (1pMq)"):
             gr.Markdown(
                 "Select a patient and months above, click **Load selected month(s)**, "
                 "choose a model below, then click **Run Time-Series Analysis**."
@@ -7671,7 +8610,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 ts_delta_plot = gr.Plot(show_label=False)
 
         # ── Tab 3: Topic & Theme Analytics ────────────────────────────────
-        with gr.TabItem("Topic & Theme Analytics (1pMq)"):
+        with gr.TabItem("Topics (1pMq)"):
             gr.Markdown(
                 "Select a **topic model** and a **sentiment model**, choose Top-N topics, "
                 "then click **Run Topic Analysis**. The chart shows the sentiment distribution "
@@ -7707,7 +8646,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             topic_summary_table = gr.HTML(label="Monthly Summary")
 
         # ── Tab 4: Statewide Sentiment & HHS Profile ──────────────────────
-        with gr.TabItem("Statewide Sentiment & HHS Profile (MpMq)"):
+        with gr.TabItem("Sentiment & HHS (MpMq)"):
             gr.Markdown(
                 "The statewide sentiment mix and an anonymised HHS rollup across all "
                 f"**{len(PATIENT_NAMES)} patients**. HHSs are de-identified (HHS A–AJ); "
@@ -7731,7 +8670,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             sw_hhs_rollup_table = gr.HTML()
 
         # ── Tab 5: Recurring Semantic Themes ──────────────────────────────
-        with gr.TabItem("Recurring Semantic Themes (MpMq)"):
+        with gr.TabItem("Themes (MpMq)"):
             gr.Markdown(
                 "Themes are derived from aspect-level keyword classification across all "
                 f"**{len(PATIENT_NAMES)} patients**. A single comment may map to multiple themes; "
@@ -7743,7 +8682,13 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             with gr.Row():
                 theme_topic_model_dd = gr.Dropdown(
                     choices=_TOPIC_MODEL_CHOICES, value=_TOPIC_MODEL_CHOICES[0],
-                    label="Topic model", scale=4,
+                    label="Topic model", scale=3,
+                )
+                theme_sent_model_dd = gr.Dropdown(
+                    choices=["Keywords only (fast)"] + list(MODEL_LABEL_TO_TYPE.keys()),
+                    value="Keywords only (fast)",
+                    label="Sentiment model (severity scoring)",
+                    scale=4,
                 )
                 theme_run_btn   = gr.Button("Run Theme Analysis", variant="primary", scale=2)
                 theme_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
@@ -7754,7 +8699,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             theme_prevalence_tbl = gr.HTML()
 
         # ── Tab 6: CQI ────────────────────────────────────────────────────
-        with gr.TabItem("CQI — Status of Prior Actions (MpMq)"):
+        with gr.TabItem("CQI & Prior Actions (MpMq)"):
             gr.Markdown(
                 "A PREM report has limited value if it only ever shows the current snapshot. "
                 "This section closes the CQI loop by reporting on improvement actions implemented "
@@ -7763,9 +8708,10 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "so before/after comparisons can be produced automatically."
             )
             with gr.Row():
-                cqi_topic_model_dd = gr.Dropdown(
-                    choices=_TOPIC_MODEL_CHOICES, value=_TOPIC_MODEL_CHOICES[0],
-                    label="Topic model", scale=4,
+                cqi_sent_model_dd = gr.Dropdown(
+                    choices=list(MODEL_LABEL_TO_TYPE.keys()),
+                    value=list(MODEL_LABEL_TO_TYPE.keys())[0],
+                    label="Sentiment model", scale=4,
                 )
                 cqi_run_btn   = gr.Button("Run CQI Analysis", variant="primary", scale=2)
                 cqi_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
@@ -7773,7 +8719,16 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
             cqi_cards       = gr.HTML()
 
         # ── Tab 7: Candidate Safety & Escalation Themes ──────────────────
-        with gr.TabItem("Candidate Safety and Escalation Themes"):
+        with gr.TabItem("Safety & Escalation (MpMq)"):
+            with gr.Row():
+                safety_sent_model_dd = gr.Dropdown(
+                    choices=list(MODEL_LABEL_TO_TYPE.keys()),
+                    value=list(MODEL_LABEL_TO_TYPE.keys())[0],
+                    label="Sentiment model", scale=5,
+                )
+                safety_run_btn   = gr.Button("Run Safety Analysis", variant="primary", scale=2)
+                safety_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
+            gr.HTML(value=_SAFETY_SUMMARY_HTML)
             gr.Markdown(
                 "Themes in patient feedback that have crossed one or more safety escalation "
                 "thresholds this quarter — by absolute prevalence, rate of change, or sustained "
@@ -7781,9 +8736,32 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "HHS cluster against the statewide average (prev quarter → current quarter). "
                 "Cross-referenced with NSQHS standards to support Safety and Quality committee prioritisation."
             )
-            gr.HTML(value=_SAFETY_ESCALATION_HTML)
+            safety_cards = gr.HTML(value=_SAFETY_ESCALATION_HTML)
 
-        # ── Tab 8: About ──────────────────────────────────────────────────
+        # ── Tab 8: Keys — Recurring Semantic Themes ───────────────────────
+        with gr.TabItem("Keys (MpMq)"):
+            gr.Markdown(
+                "Recurring Semantic Themes — the four most-recurring findings surfaced as "
+                "prioritised key findings (evidence · impact · suggested response · NSQHS anchor), "
+                f"followed by four analytic charts. Based on {len(PATIENT_NAMES)} patients · "
+                f"{len(_SEMANTIC_THEMES)} AHPEQS-aligned themes. "
+                "Click **Run Keys Analysis** to compute."
+            )
+            with gr.Row():
+                keys_run_btn   = gr.Button("Run Keys Analysis", variant="primary", scale=3)
+                keys_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
+            keys_findings_html = gr.HTML()
+            with gr.Row():
+                keys_bubble_plot  = gr.Plot(show_label=False)
+            with gr.Row():
+                keys_heatmap_plot = gr.Plot(show_label=False)
+            with gr.Row():
+                keys_cooc_plot    = gr.Plot(show_label=False)
+            with gr.Row():
+                keys_bars_plot    = gr.Plot(show_label=False)
+            keys_summary_html = gr.HTML()
+
+        # ── Tab 9: About ──────────────────────────────────────────────────
         with gr.TabItem("About"):
             gr.Markdown("""
 ## Models (13 total)
@@ -7844,7 +8822,7 @@ examples/
     # ── Event wiring ──────────────────────────────────────────────────────────
     patient_dd.change(fn=update_months, inputs=[patient_dd], outputs=[sample_dd])
     load_btn.click(fn=load_sample, inputs=[patient_dd, sample_dd], outputs=[text_input, load_status])
-    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd], outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download])
+    theme_run_btn.click(fn=run_theme_impact_analysis, inputs=[theme_topic_model_dd, theme_sent_model_dd], outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download])
     sw_run_btn.click(
         fn=run_statewide_analysis,
         inputs=[sw_model_dd],
@@ -7858,8 +8836,19 @@ examples/
         fn=lambda: (None, "", "", "", None),
         outputs=[theme_impact_plot, theme_top6_cards, theme_breakdown_tbl, theme_prevalence_tbl, theme_download],
     )
-    cqi_run_btn.click(fn=run_cqi_analysis, inputs=[cqi_topic_model_dd], outputs=[cqi_trend_chart, cqi_cards])
+    cqi_run_btn.click(fn=run_cqi_analysis, inputs=[cqi_sent_model_dd], outputs=[cqi_trend_chart, cqi_cards])
     cqi_clear_btn.click(fn=lambda: (None, ""), outputs=[cqi_trend_chart, cqi_cards])
+    safety_run_btn.click(fn=run_safety_analysis, inputs=[safety_sent_model_dd], outputs=[safety_cards])
+    safety_clear_btn.click(fn=lambda: _SAFETY_ESCALATION_HTML, outputs=[safety_cards])
+    keys_run_btn.click(
+        fn=run_keys_analysis,
+        inputs=[],
+        outputs=[keys_findings_html, keys_bubble_plot, keys_heatmap_plot, keys_cooc_plot, keys_bars_plot, keys_summary_html],
+    )
+    keys_clear_btn.click(
+        fn=lambda: ("", None, None, None, None, ""),
+        outputs=[keys_findings_html, keys_bubble_plot, keys_heatmap_plot, keys_cooc_plot, keys_bars_plot, keys_summary_html],
+    )
     ts_btn.click(
         fn=run_timeseries,
         inputs=[text_input, ts_model_dd],

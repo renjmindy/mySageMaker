@@ -27,7 +27,8 @@ RUN pip install --no-cache-dir \
     "nltk>=3.9.1" \
     "fastapi>=0.104.0" \
     "pydantic>=2.9.0" \
-    "mangum>=0.17.0"
+    "mangum>=0.17.0" \
+    "python-dotenv>=1.0.0"
 
 # ── NLTK data bundled into image ──────────────────────────────────────────────
 ENV NLTK_DATA=/var/task/nltk_data
@@ -37,7 +38,7 @@ for pkg in ["punkt", "punkt_tab", "wordnet", "averaged_perceptron_tagger"]:
     nltk.download(pkg, download_dir=os.environ["NLTK_DATA"], quiet=True)
 PY
 
-# ── Pre-download all 7 HuggingFace models ─────────────────────────────────────
+# ── Pre-download all 13 HuggingFace models ────────────────────────────────────
 # Baked into image → zero download delay at runtime (cold start = model load only)
 # Uses AutoModel (same path as analyzer.py) so weights are cached identically
 ENV HF_HOME=/var/task/.cache/huggingface \
@@ -48,13 +49,21 @@ os.environ["HF_HOME"] = "/var/task/.cache/huggingface"
 
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, pipeline
 
-# 5 direct-inference models (AutoModel path used by analyzer.py)
+# 11 direct-inference models (AutoModel path used by analyzer.py)
 direct = [
-    ("distilbert-base-uncased-finetuned-sst-2-english", None),
-    ("nlptown/bert-base-multilingual-uncased-sentiment", None),
-    ("sohan-ai/sentiment-analysis-model-amazon-reviews", "distilbert-base-uncased"),
-    ("cardiffnlp/twitter-roberta-base-sentiment-latest", None),
-    ("textattack/bert-base-uncased-SST-2",               "bert-base-uncased"),
+    # 6 fine-tuned healthcare models (cjen1008)
+    ("cjen1008/bert-healthcare-sentiment_v2",            None),
+    ("cjen1008/distilroberta-healthcare-sentiment_v2",   None),
+    ("cjen1008/distilbert-healthcare-sentiment_v2",      None),
+    ("cjen1008/bert-healthcare-sentiment",               None),
+    ("cjen1008/distilbert-healthcare-sentiment",         None),
+    ("cjen1008/distilroberta-healthcare-sentiment",      None),
+    # 5 pretrained general-purpose models
+    ("distilbert-base-uncased-finetuned-sst-2-english",  None),
+    ("nlptown/bert-base-multilingual-uncased-sentiment",  None),
+    ("sohan-ai/sentiment-analysis-model-amazon-reviews",  "distilbert-base-uncased"),
+    ("cardiffnlp/twitter-roberta-base-sentiment-latest",  None),
+    ("textattack/bert-base-uncased-SST-2",                "bert-base-uncased"),
 ]
 for hf_id, tok_id in direct:
     print(f"Caching {hf_id} ...")
@@ -70,7 +79,7 @@ pipeline("sentiment-analysis", model="j-hartmann/emotion-english-distilroberta-b
 print("Caching facebook/bart-large-mnli ...")
 pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-print("All 7 models cached.")
+print("All 13 models cached.")
 PY
 
 # ── Application source ────────────────────────────────────────────────────────
