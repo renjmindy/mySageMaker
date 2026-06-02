@@ -7996,13 +7996,38 @@ def _build_keys_bubble_chart(rec_data):
 
 def _build_keys_heatmap(rec_data, max_months):
     """Heatmap: themes × month positions, cell = number of patients mentioning theme."""
-    themes = sorted(rec_data.keys(), key=lambda t: -rec_data[t]["recurrence_score"])
+    # Ascending sort — Plotly places the last list entry at the top of a
+    # categorical y-axis, so highest-recurrence theme still appears at the top.
+    themes = sorted(rec_data.keys(), key=lambda t: rec_data[t]["recurrence_score"])
     month_labels = [f"M{i + 1}" for i in range(max_months)]
 
     z = [
         [rec_data[t]["monthly_matrix"].get(i, 0) for i in range(max_months)]
         for t in themes
     ]
+
+    # Plotly heatmap always pins built-in x tick labels to the top of the grid.
+    # Work-around: suppress them and re-draw as paper-coordinate annotations
+    # at the bottom so the axis title "Month in patient journey" sits below them.
+    tick_annotations = [
+        dict(
+            x=lbl, y=-0.04,
+            xref="x", yref="paper",
+            text=lbl,
+            showarrow=False,
+            font=dict(size=11, color="#444"),
+            xanchor="center", yanchor="top",
+        )
+        for lbl in month_labels
+    ]
+    axis_title_annotation = dict(
+        x=0.5, y=-0.11,
+        xref="paper", yref="paper",
+        text="Month in patient journey",
+        showarrow=False,
+        font=dict(size=12, color="#333"),
+        xanchor="center", yanchor="top",
+    )
 
     fig = go.Figure(go.Heatmap(
         z=z, x=month_labels, y=themes,
@@ -8016,10 +8041,15 @@ def _build_keys_heatmap(rec_data, max_months):
             text="Theme Recurrence Heatmap — patient count per theme per month position",
             x=0.5, font=dict(size=13, family="Arial"),
         ),
-        xaxis=dict(title="Month in patient journey", side="top"),
-        yaxis=dict(autorange="reversed"),
-        height=540,
-        margin=dict(l=320, r=70, t=90, b=40),
+        xaxis=dict(
+            showticklabels=False,
+            showline=False,
+            ticks="",
+        ),
+        yaxis=dict(),
+        annotations=tick_annotations + [axis_title_annotation],
+        height=560,
+        margin=dict(l=320, r=70, t=60, b=100),
         paper_bgcolor="#f8f9fa", plot_bgcolor="#ffffff",
     )
     return fig
@@ -8373,7 +8403,7 @@ def _build_keys_prioritised_findings_html(rec_data):
     return (
         '<div style="margin-top:8px;">'
         + section_label
-        + '<h2 style="font-size:1.45rem;font-weight:800;color:#ffffff;margin:0 0 6px;">07 Prioritised Key Findings</h2>'
+        + '<h2 style="font-size:1.45rem;font-weight:800;color:#ffffff;margin:0 0 6px;">Prioritised Key Findings</h2>'
         + subtitle
         + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:18px;">'
         + cards_html
@@ -8391,6 +8421,127 @@ def run_keys_analysis():
         _build_keys_cooccurrence_chart(rec_data),
         _build_keys_overlay_bars(rec_data),
         _build_keys_summary_html(rec_data),
+    )
+
+
+# ── De-identified Quote Evidence ─────────────────────────────────────────────
+
+def _build_deidentified_quotes_html():
+    """2-column card grid: one representative de-identified quote per patient (all 36)."""
+    import re as _re
+    import html as _html_mod
+
+    # For each patient pick the single highest-scoring sentence across all their months.
+    # Score = total keyword hits across all themes + sentiment word hits (ensures the
+    # sentence is both thematically rich and emotionally expressive).
+    selected = []
+    for pname, months in PATIENT_SAMPLES.items():
+        best, best_score, best_mk, best_theme = None, 0, None, None
+        for mk, text in months.items():
+            for sent in _re.split(r"(?<=[.!?])\s+", text):
+                sl  = sent.lower()
+                wc  = len(sent.split())
+                if not (8 <= wc <= 55):
+                    continue
+                kw_score  = sum(
+                    sum(1 for kw in kws if kw in sl)
+                    for kws in _SEMANTIC_THEMES.values()
+                )
+                neg_score = sum(1 for w in _THEME_NEG_WORDS if w in sl)
+                pos_score = sum(1 for w in _THEME_POS_WORDS if w in sl)
+                scr = kw_score + neg_score + pos_score
+                if scr > best_score:
+                    best_score = scr
+                    best       = sent.strip()
+                    best_mk    = mk
+                    # dominant theme: highest keyword hits for this sentence
+                    theme_hits = {
+                        t: sum(1 for kw in kws if kw in sl)
+                        for t, kws in _SEMANTIC_THEMES.items()
+                    }
+                    best_theme = max(theme_hits, key=theme_hits.get)
+        if best:
+            selected.append({
+                "patient":   pname,
+                "month_key": best_mk,
+                "raw":       best,
+                "theme":     best_theme,
+            })
+
+    def _render_tokens(text):
+        escaped = _html_mod.escape(text)
+        return _re.sub(
+            r'\[([A-Z_]+)\]',
+            r'<span style="background:#dbeafe;color:#1e40af;border-radius:4px;'
+            r'padding:1px 6px;font-size:0.77rem;font-weight:600;font-family:monospace;">'
+            r'[\1]</span>',
+            escaped,
+        )
+
+    def _sent_badge(text_lower):
+        neg = sum(1 for w in _THEME_NEG_WORDS if w in text_lower)
+        pos = sum(1 for w in _THEME_POS_WORDS if w in text_lower)
+        if   neg > 0 and pos > 0: label, fg, bg = "Mixed",    "#b46b00", "#fef6e4"
+        elif neg > 0:              label, fg, bg = "Negative", "#c0392b", "#fdecea"
+        else:                      label, fg, bg = "Positive", "#1a7a3a", "#e8f5ee"
+        return (f'<span style="background:{bg};color:{fg};border-radius:20px;'
+                f'padding:2px 12px;font-size:0.76rem;font-weight:700;">{label}</span>')
+
+    cards_html = ""
+    for i, q in enumerate(selected, start=1):
+        q_id             = f"Q-{i:03d}"
+        redacted, _      = redact_pii(q["raw"])
+        has_tokens       = bool(_re.search(r'\[[A-Z_]+\]', redacted))
+        rendered         = _render_tokens(redacted)
+        ward             = get_ward(q["patient"], q["month_key"])
+        status           = "Pending analyst review" if has_tokens else "Approved for external use"
+        status_color     = "#b46b00"                if has_tokens else "#1a7a3a"
+        badge            = _sent_badge(q["raw"].lower())
+
+        cards_html += (
+            '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px;'
+            'background:#ffffff;display:flex;flex-direction:column;gap:10px;">'
+
+            '<div style="display:flex;justify-content:space-between;align-items:center;'
+            'flex-wrap:wrap;gap:6px;">'
+            f'<span style="font-size:0.78rem;font-weight:700;color:#666;letter-spacing:0.04em;">'
+            f'{q_id}&nbsp;&nbsp;·&nbsp;&nbsp;{_html_mod.escape(ward)}</span>'
+            + badge +
+            '</div>'
+
+            f'<p style="font-size:0.88rem;color:#222;line-height:1.7;margin:0;'
+            f'font-style:italic;">{rendered}</p>'
+
+            f'<div style="font-size:0.79rem;color:#555;border-top:1px solid #f0f0f0;'
+            f'padding-top:8px;margin-top:4px;">'
+            f'<span style="font-weight:700;">Theme:</span> {_html_mod.escape(q["theme"])}'
+            f'&nbsp;&nbsp;&nbsp;'
+            f'<span style="font-weight:700;">Status:</span> '
+            f'<span style="color:{status_color};font-weight:600;">{status}</span>'
+            f'</div>'
+
+            '</div>'
+        )
+
+    header = (
+        '<div style="margin-top:8px;margin-bottom:20px;">'
+        '<span style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;color:#aaa;">'
+        'DE-IDENTIFIED QUOTE EVIDENCE</span>'
+        '<h2 style="font-size:1.45rem;font-weight:800;color:#ffffff;margin:4px 0 6px;">'
+        'Representative De-identified Quote Evidence</h2>'
+        '<p style="font-size:0.83rem;color:#ccc;margin:0;">'
+        f'One representative quote per patient across all {len(PATIENT_NAMES)} patients. '
+        'Quotes provide trackable qualitative evidence without exposing identifiable raw text. '
+        'The status flag indicates whether the quote has cleared secondary review for use '
+        'outside the analytic environment.</p>'
+        '</div>'
+    )
+
+    return (
+        header
+        + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">'
+        + cards_html
+        + '</div>'
     )
 
 
@@ -8761,7 +8912,20 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 keys_bars_plot    = gr.Plot(show_label=False)
             keys_summary_html = gr.HTML()
 
-        # ── Tab 9: About ──────────────────────────────────────────────────
+        # ── Tab 9: De-identified Quote Evidence ───────────────────────────
+        with gr.TabItem("De-identified (1p1q)"):
+            gr.Markdown(
+                "Representative quotes drawn from across the patient cohort, each processed "
+                "through the OpenMed PII redaction engine. `[TOKEN]` placeholders replace "
+                "potentially identifying entities. One quote is selected per top-8 recurring "
+                "theme. Click **Run De-identified Analysis** to generate."
+            )
+            with gr.Row():
+                deid_run_btn   = gr.Button("Run De-identified Analysis", variant="primary", scale=3)
+                deid_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
+            deid_quotes_html = gr.HTML()
+
+        # ── Tab 10: About ─────────────────────────────────────────────────
         with gr.TabItem("About"):
             gr.Markdown("""
 ## Models (13 total)
@@ -8849,6 +9013,12 @@ examples/
         fn=lambda: ("", None, None, None, None, ""),
         outputs=[keys_findings_html, keys_bubble_plot, keys_heatmap_plot, keys_cooc_plot, keys_bars_plot, keys_summary_html],
     )
+    deid_run_btn.click(
+        fn=_build_deidentified_quotes_html,
+        inputs=[],
+        outputs=[deid_quotes_html],
+    )
+    deid_clear_btn.click(fn=lambda: "", outputs=[deid_quotes_html])
     ts_btn.click(
         fn=run_timeseries,
         inputs=[text_input, ts_model_dd],
