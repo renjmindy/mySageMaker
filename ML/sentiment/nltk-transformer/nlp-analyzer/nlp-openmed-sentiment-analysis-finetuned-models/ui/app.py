@@ -7284,7 +7284,7 @@ def _build_cqi_trend_chart(sent_model_label="", trend_pct=None):
         xaxis=dict(showgrid=False, zeroline=False),
         yaxis=dict(
             title="Negative sentiment %",
-            range=[0, 30],
+            range=[0, max(max(y_values) + 5, 30)],
             ticksuffix="%",
             showgrid=True, gridcolor="#e8e8e8",
             zeroline=False,
