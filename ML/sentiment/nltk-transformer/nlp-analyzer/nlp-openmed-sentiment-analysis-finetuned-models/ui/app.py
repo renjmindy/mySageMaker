@@ -8903,7 +8903,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "HHS cluster against the statewide average (prev quarter → current quarter). "
                 "Cross-referenced with NSQHS standards to support Safety and Quality committee prioritisation."
             )
-            safety_cards = gr.HTML(value=_SAFETY_ESCALATION_HTML)
+            safety_cards = gr.HTML()
 
         # ── Tab 8: Keys — Recurring Semantic Themes ───────────────────────
         with gr.TabItem("Keys (MpMq)"):
@@ -9019,7 +9019,7 @@ examples/
     cqi_run_btn.click(fn=run_cqi_analysis, inputs=[cqi_sent_model_dd], outputs=[cqi_trend_chart, cqi_cards])
     cqi_clear_btn.click(fn=lambda: (None, ""), outputs=[cqi_trend_chart, cqi_cards])
     safety_run_btn.click(fn=run_safety_analysis, inputs=[safety_sent_model_dd], outputs=[safety_cards])
-    safety_clear_btn.click(fn=lambda: _SAFETY_ESCALATION_HTML, outputs=[safety_cards])
+    safety_clear_btn.click(fn=lambda: "", outputs=[safety_cards])
     keys_run_btn.click(
         fn=run_keys_analysis,
         inputs=[],
