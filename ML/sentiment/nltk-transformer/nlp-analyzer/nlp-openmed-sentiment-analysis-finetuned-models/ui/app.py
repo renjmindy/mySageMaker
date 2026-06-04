@@ -7665,7 +7665,7 @@ def _compute_safety_data(model_type=None):
 def run_safety_analysis(sent_model_label=""):
     model_type = MODEL_LABEL_TO_TYPE.get(sent_model_label) if sent_model_label else None
     stats = _compute_safety_data(model_type)
-    return _build_safety_escalation_html(stats)
+    return _SAFETY_SUMMARY_HTML, _build_safety_escalation_html(stats)
 
 
 def _build_safety_escalation_html(stats=None):
@@ -8895,7 +8895,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 )
                 safety_run_btn   = gr.Button("Run Safety Analysis", variant="primary", scale=2)
                 safety_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
-            gr.HTML(value=_SAFETY_SUMMARY_HTML)
+            safety_summary = gr.HTML()
             gr.Markdown(
                 "Themes in patient feedback that have crossed one or more safety escalation "
                 "thresholds this quarter — by absolute prevalence, rate of change, or sustained "
@@ -9018,8 +9018,8 @@ examples/
     )
     cqi_run_btn.click(fn=run_cqi_analysis, inputs=[cqi_sent_model_dd], outputs=[cqi_trend_chart, cqi_cards])
     cqi_clear_btn.click(fn=lambda: (None, ""), outputs=[cqi_trend_chart, cqi_cards])
-    safety_run_btn.click(fn=run_safety_analysis, inputs=[safety_sent_model_dd], outputs=[safety_cards])
-    safety_clear_btn.click(fn=lambda: "", outputs=[safety_cards])
+    safety_run_btn.click(fn=run_safety_analysis, inputs=[safety_sent_model_dd], outputs=[safety_summary, safety_cards])
+    safety_clear_btn.click(fn=lambda: ("", ""), outputs=[safety_summary, safety_cards])
     keys_run_btn.click(
         fn=run_keys_analysis,
         inputs=[],
