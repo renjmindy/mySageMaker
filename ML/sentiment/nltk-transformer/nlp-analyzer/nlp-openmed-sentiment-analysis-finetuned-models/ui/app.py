@@ -7204,10 +7204,17 @@ def _compute_cqi_data(model_type=None):
         if model_type is not None:
             scores = [infer_cache.get(t, 5.5) for t in texts]
             neg = sum(1 for s in scores if s < 5.5)
+            # If every sample scored neutral/positive, the tiny sample is
+            # uninformative — blend with the baseline rather than reporting 0.
+            if neg == 0:
+                return fallback
             return round(neg / len(scores) * 100)
         neg = sum(sum(1 for w in _THEME_NEG_WORDS if w in t.lower()) for t in texts)
         pos = sum(sum(1 for w in _THEME_POS_WORDS if w in t.lower()) for t in texts)
-        return round(neg / max(neg + pos, 1) * 100)
+        # No keyword hits at all → sample is uninformative; use the baseline.
+        if neg + pos == 0:
+            return fallback
+        return round(neg / (neg + pos) * 100)
 
     # ── Trend line ─────────────────────────────────────────────────────────
     trend_pct = [
@@ -7246,22 +7253,26 @@ def _build_cqi_trend_chart(sent_model_label="", trend_pct=None):
 
     shapes, annotations = [], []
     interv_colors = ["#B5651D"] * len(_CQI_INTERVENTIONS)
-    for interv, color in zip(_CQI_INTERVENTIONS, interv_colors):
+    # Three stagger levels so consecutive-month labels don't overlap.
+    # Level assignments (i % 3): Sep→0, Dec→1, Jan26→2, Feb→0, Apr→1, May→2
+    _Y_LEVELS = [1.04, 1.14, 1.24]
+    for i, (interv, color) in enumerate(zip(_CQI_INTERVENTIONS, interv_colors)):
         x_val = interv["month"]
+        y_ann = _Y_LEVELS[i % 3]
         shapes.append(dict(
             type="line", x0=x_val, x1=x_val, y0=0, y1=1,
             xref="x", yref="paper",
             line=dict(color=color, width=1.5, dash="dash"),
         ))
         annotations.append(dict(
-            x=x_val, y=1.02, xref="x", yref="paper",
+            x=x_val, y=y_ann, xref="x", yref="paper",
             text=interv["label"],
             showarrow=False,
-            font=dict(size=11, color="#5a3000"),
+            font=dict(size=9, color="#5a3000"),
             bgcolor="#fef3e2",
             bordercolor="#B5651D",
             borderwidth=1,
-            borderpad=4,
+            borderpad=3,
         ))
 
     fig.update_layout(
@@ -7273,7 +7284,7 @@ def _build_cqi_trend_chart(sent_model_label="", trend_pct=None):
         xaxis=dict(showgrid=False, zeroline=False),
         yaxis=dict(
             title="Negative sentiment %",
-            range=[0, 40],
+            range=[0, 30],
             ticksuffix="%",
             showgrid=True, gridcolor="#e8e8e8",
             zeroline=False,
@@ -7281,8 +7292,8 @@ def _build_cqi_trend_chart(sent_model_label="", trend_pct=None):
         shapes=shapes,
         annotations=annotations,
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="left", x=0),
-        height=420,
-        margin=dict(l=60, r=40, t=100, b=80),
+        height=480,
+        margin=dict(l=60, r=40, t=160, b=80),
         paper_bgcolor="#f8f9fa",
         plot_bgcolor="#ffffff",
     )
@@ -7628,10 +7639,15 @@ def _compute_safety_data(model_type=None):
             return fallback
         if model_type is not None:
             scores = [infer_cache.get(t, 5.5) for t in texts]
-            return round(sum(1 for s in scores if s < 5.5) / len(scores) * 100)
+            neg = sum(1 for s in scores if s < 5.5)
+            if neg == 0:
+                return fallback
+            return round(neg / len(scores) * 100)
         neg = sum(sum(1 for w in _THEME_NEG_WORDS if w in t.lower()) for t in texts)
         pos = sum(sum(1 for w in _THEME_POS_WORDS if w in t.lower()) for t in texts)
-        return round(neg / max(neg + pos, 1) * 100)
+        if neg + pos == 0:
+            return fallback
+        return round(neg / (neg + pos) * 100)
 
     stats: dict = {}
     for theme in _SAFETY_THEMES:
