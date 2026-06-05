@@ -8932,7 +8932,7 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 )
                 safety_run_btn   = gr.Button("Run Safety Analysis", variant="primary", scale=2)
                 safety_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
-            safety_summary = gr.HTML()
+            safety_summary = gr.HTML(value=_SAFETY_SUMMARY_HTML)
             gr.Markdown(
                 "Themes in patient feedback that have crossed one or more safety escalation "
                 "thresholds this quarter — by absolute prevalence, rate of change, or sustained "
@@ -9061,7 +9061,7 @@ examples/
     cqi_run_btn.click(fn=run_cqi_analysis, inputs=[cqi_sent_model_dd], outputs=[cqi_trend_chart, cqi_cards])
     cqi_clear_btn.click(fn=lambda: (None, ""), outputs=[cqi_trend_chart, cqi_cards])
     safety_run_btn.click(fn=run_safety_analysis, inputs=[safety_sent_model_dd], outputs=[safety_summary, safety_cards])
-    safety_clear_btn.click(fn=lambda: ("", ""), outputs=[safety_summary, safety_cards])
+    safety_clear_btn.click(fn=lambda: "", outputs=[safety_cards])
     keys_run_btn.click(
         fn=run_keys_analysis,
         inputs=[keys_sent_model_dd],
