@@ -7248,7 +7248,7 @@ def _build_cqi_trend_chart(sent_model_label="", trend_pct=None):
         name="Statewide negative-sentiment %",
         line=dict(color="#c0392b", width=2.5),
         marker=dict(size=7, color="#c0392b"),
-        hovertemplate="%{x}: <b>%{y}%</b><extra></extra>",
+        hovertemplate="%{x}: <b>%{y}</b><extra></extra>",
     ))
 
     shapes, annotations = [], []
