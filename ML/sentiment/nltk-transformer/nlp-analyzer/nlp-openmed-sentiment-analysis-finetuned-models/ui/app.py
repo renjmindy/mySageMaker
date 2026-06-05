@@ -7595,6 +7595,10 @@ def _compute_safety_data(model_type=None):
     """
     import random as _random
     _MAX = 4
+    # Seed from model_type so the same model always samples the same texts
+    # and produces identical percentages on every Run click.
+    _seed = hash(model_type) & 0xFFFFFF if model_type is not None else 42
+    _rng  = _random.Random(_seed)
 
     patients = list(PATIENT_SAMPLES.items())
     cluster_idx = {i for i in range(0, len(patients), 2)}
@@ -7623,7 +7627,7 @@ def _compute_safety_data(model_type=None):
             "sw_cur":       [m["raw"] for m in all_months if not m["is_early"]  and _hit(m)],
         }
         theme_samples[theme_label] = {
-            k: _random.sample(v, min(_MAX, len(v))) for k, v in groups.items()
+            k: _rng.sample(v, min(_MAX, len(v))) for k, v in groups.items()
         }
 
     # Run inference on unique texts
