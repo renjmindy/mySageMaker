@@ -8314,31 +8314,59 @@ _KEYS_SUGGESTED_RESPONSE = {
 }
 
 
-def _build_keys_prioritised_findings_html(rec_data):
+def _build_keys_prioritised_findings_html(rec_data, model_type=None):
     """Screenshot-style 2×2 card grid: top-4 recurring themes as prioritised key findings."""
     import html as _html_mod
+    import random as _random
 
-    all_texts_lower = [
-        t.lower()
-        for months in PATIENT_SAMPLES.values()
-        for t in months.values()
+    _SAMPLE = 12  # max texts inferred per theme when a model is selected
+    _seed   = hash(model_type) & 0xFFFFFF if model_type is not None else 42
+    _rng    = _random.Random(_seed)
+
+    all_texts = [
+        t for months in PATIENT_SAMPLES.values() for t in months.values()
     ]
-    total = max(len(all_texts_lower), 1)
+    all_texts_lower = [t.lower() for t in all_texts]
+
+    # Build inference cache for model path
+    infer_cache: dict = {}
+    if model_type is not None:
+        labels = SUPPORTED_MODELS[model_type]["labels"]
+        for theme, kws in _SEMANTIC_THEMES.items():
+            pool = [t for t, tl in zip(all_texts, all_texts_lower)
+                    if any(kw in tl for kw in kws)]
+            sample = _rng.sample(pool, min(_SAMPLE, len(pool)))
+            for raw in sample:
+                if raw not in infer_cache:
+                    try:
+                        _, probs = analyze_sentiment(raw, model_type)
+                        infer_cache[raw] = _compute_quality_score(probs, labels)
+                    except Exception:
+                        infer_cache[raw] = 5.5
 
     # compute negative % and comment count per theme
     theme_stats = {}
     for theme, kws in _SEMANTIC_THEMES.items():
-        mentions = [t for t in all_texts_lower if any(kw in t for kw in kws)]
-        neg_ratios = []
-        for text in mentions:
-            neg = sum(1 for w in _THEME_NEG_WORDS if w in text)
-            pos = sum(1 for w in _THEME_POS_WORDS if w in text)
-            if neg + pos > 0:
-                neg_ratios.append(neg / (neg + pos))
-        theme_stats[theme] = {
-            "n":       len(mentions),
-            "neg_pct": round(sum(neg_ratios) / max(len(neg_ratios), 1) * 100),
-        }
+        mentions_lower = [tl for tl in all_texts_lower if any(kw in tl for kw in kws)]
+        n = len(mentions_lower)
+
+        if model_type is not None:
+            pool = [t for t, tl in zip(all_texts, all_texts_lower)
+                    if any(kw in tl for kw in kws)]
+            sample = _rng.sample(pool, min(_SAMPLE, len(pool)))
+            scores  = [infer_cache.get(t, 5.5) for t in sample]
+            neg_cnt = sum(1 for s in scores if s < 5.5)
+            neg_pct = round(neg_cnt / len(scores) * 100) if scores else 0
+        else:
+            neg_ratios = []
+            for text in mentions_lower:
+                neg = sum(1 for w in _THEME_NEG_WORDS if w in text)
+                pos = sum(1 for w in _THEME_POS_WORDS if w in text)
+                if neg + pos > 0:
+                    neg_ratios.append(neg / (neg + pos))
+            neg_pct = round(sum(neg_ratios) / max(len(neg_ratios), 1) * 100)
+
+        theme_stats[theme] = {"n": n, "neg_pct": neg_pct}
 
     top4 = sorted(rec_data.items(), key=lambda x: -x[1]["recurrence_score"])[:4]
 
@@ -8397,15 +8425,15 @@ def _build_keys_prioritised_findings_html(rec_data):
 
             # Evidence
             '<p style="margin:0 0 8px;font-size:0.85rem;color:#222;line-height:1.6;">'
-            f'<span style="font-weight:700;">Evidence:</span> {evidence}</p>'
+            f'<span style="font-weight:700;color:#000;">Evidence:</span> {evidence}</p>'
 
             # Impact
             '<p style="margin:0 0 8px;font-size:0.85rem;color:#222;line-height:1.6;">'
-            f'<span style="font-weight:700;">Impact:</span> {_html_mod.escape(impact)}</p>'
+            f'<span style="font-weight:700;color:#000;">Impact:</span> {_html_mod.escape(impact)}</p>'
 
             # Suggested response
             '<p style="margin:0 0 4px;font-size:0.85rem;color:#222;line-height:1.6;flex-grow:1;">'
-            f'<span style="font-weight:700;">Suggested response:</span> '
+            f'<span style="font-weight:700;color:#000;">Suggested response:</span> '
             f'{_html_mod.escape(response)}</p>'
 
             + _anchor_tags(anchor) +
@@ -8437,9 +8465,10 @@ def _build_keys_prioritised_findings_html(rec_data):
 
 def run_keys_analysis(sent_model_label=""):
     """Compute and return all outputs for the Keys (MpMq) tab."""
+    model_type = MODEL_LABEL_TO_TYPE.get(sent_model_label) if sent_model_label else None
     rec_data, max_months, _ = _compute_theme_recurrence()
     return (
-        _build_keys_prioritised_findings_html(rec_data),
+        _build_keys_prioritised_findings_html(rec_data, model_type),
         _build_keys_bubble_chart(rec_data),
         _build_keys_heatmap(rec_data, max_months),
         _build_keys_cooccurrence_chart(rec_data),
