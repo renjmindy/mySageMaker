@@ -8435,7 +8435,7 @@ def _build_keys_prioritised_findings_html(rec_data):
     )
 
 
-def run_keys_analysis():
+def run_keys_analysis(sent_model_label=""):
     """Compute and return all outputs for the Keys (MpMq) tab."""
     rec_data, max_months, _ = _compute_theme_recurrence()
     return (
@@ -8923,7 +8923,12 @@ Covers cleaning · tokenisation · stemming · lemmatisation · NER · POS taggi
                 "Click **Run Keys Analysis** to compute."
             )
             with gr.Row():
-                keys_run_btn   = gr.Button("Run Keys Analysis", variant="primary", scale=3)
+                keys_sent_model_dd = gr.Dropdown(
+                    choices=list(MODEL_LABEL_TO_TYPE.keys()),
+                    value=list(MODEL_LABEL_TO_TYPE.keys())[0],
+                    label="Sentiment model", scale=4,
+                )
+                keys_run_btn   = gr.Button("Run Keys Analysis", variant="primary", scale=2)
                 keys_clear_btn = gr.Button("🔄 Clear", variant="secondary", scale=1)
             keys_findings_html = gr.HTML()
             with gr.Row():
@@ -9030,7 +9035,7 @@ examples/
     safety_clear_btn.click(fn=lambda: ("", ""), outputs=[safety_summary, safety_cards])
     keys_run_btn.click(
         fn=run_keys_analysis,
-        inputs=[],
+        inputs=[keys_sent_model_dd],
         outputs=[keys_findings_html, keys_bubble_plot, keys_heatmap_plot, keys_cooc_plot, keys_bars_plot, keys_summary_html],
     )
     keys_clear_btn.click(
