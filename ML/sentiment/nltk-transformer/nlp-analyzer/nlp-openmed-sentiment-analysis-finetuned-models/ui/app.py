@@ -7140,6 +7140,10 @@ def _compute_cqi_data(model_type=None):
     """
     import random as _random
     _MAX = 3  # texts sampled per group/period
+    # Seed from model_type so the same model always picks the same texts
+    # and produces a stable, reproducible chart.
+    _seed = hash(model_type) & 0xFFFFFF if model_type is not None else 42
+    _rng  = _random.Random(_seed)
 
     patients = list(PATIENT_SAMPLES.items())
     pilot_idx = {i for i in range(0, len(patients), 2)}
@@ -7162,7 +7166,7 @@ def _compute_cqi_data(model_type=None):
     for b in range(11):
         lo, hi = b / 11, (b + 1) / 11
         pool = [m["raw"] for m in all_months if lo <= m["frac"] < hi]
-        bucket_samples.append(_random.sample(pool, min(_MAX, len(pool))) if pool else [])
+        bucket_samples.append(_rng.sample(pool, min(_MAX, len(pool))) if pool else [])
 
     interv_groups: dict = {}
     for interv in _CQI_INTERVENTIONS:
@@ -7180,7 +7184,7 @@ def _compute_cqi_data(model_type=None):
             "comp_after":   [m["raw"] for m in all_months if not m["is_pilot"] and not m["is_early"] and _hit(m)],
         }
         interv_groups[interv["label"]] = {
-            k: _random.sample(v, min(_MAX, len(v))) for k, v in groups.items()
+            k: _rng.sample(v, min(_MAX, len(v))) for k, v in groups.items()
         }
 
     # ── Run inference once on the unique text set ──────────────────────────
