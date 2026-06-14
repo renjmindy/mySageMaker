@@ -1,8 +1,8 @@
 ---
 title: OpenMedRedacted Patient Report Measures NLP Sentiments
 emoji: 🏥
-colorFrom: indigo
-colorTo: indigo
+colorFrom: green
+colorTo: blue
 sdk: gradio
 sdk_version: 6.13.0
 app_file: app.py
