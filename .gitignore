@@ -16,6 +16,10 @@ __pycache__/
 *.tar.gz
 *.parquet
 
+# Secrets
+.env
+*.env
+
 # IDE/System Garbage
 .ipynb_checkpoints/
 .DS_Store
