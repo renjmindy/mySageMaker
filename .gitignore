@@ -12,6 +12,7 @@ __pycache__/
 *.onnx
 *.weights
 *.csv
+!test_data.csv
 *.zip
 *.tar.gz
 *.parquet
