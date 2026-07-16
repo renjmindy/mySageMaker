@@ -1,0 +1,30 @@
+Loaded 30 rows from test_data.csv
+Discovered 3 pipeline(s): ['absa_pipeline.py', 'counterfactual_override_engine.py', 'severity_stratification_pipeline.py']
+
+=== Running absa_pipeline.py (ClinicalABSAAnalyzer) ===
+Loading weights:   0%|          | 0/202 [00:00<?, ?it/s]Loading weights:   2%|▏         | 5/202 [00:01<00:39,  4.99it/s]Loading weights:  65%|██████▍   | 131/202 [00:01<00:00, 159.85it/s]Loading weights:  99%|█████████▉| 200/202 [00:01<00:00, 209.02it/s]Loading weights: 100%|██████████| 202/202 [00:01<00:00, 154.04it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 29932.72it/s]
+[1mRobertaForSequenceClassification LOAD REPORT[0m from: cardiffnlp/twitter-roberta-base-sentiment-latest
+Key                             | Status     |  | 
+--------------------------------+------------+--+-
+roberta.pooler.dense.weight     | UNEXPECTED |  | 
+roberta.pooler.dense.bias       | UNEXPECTED |  | 
+roberta.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  OK  init=6.349s  inference=78.289s  total=84.638s  device=cpu  new_columns=['absa_results']
+
+=== Running counterfactual_override_engine.py (CounterfactualOverrideEngine) ===
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 16768.54it/s]
+[1mRobertaForSequenceClassification LOAD REPORT[0m from: finiteautomata/bertweet-base-sentiment-analysis
+Key                             | Status     |  | 
+--------------------------------+------------+--+-
+roberta.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  OK  init=2.798s  inference=5.71s  total=8.508s  device=cpu  new_columns=['calibrated_results']
+
+=== Running severity_stratification_pipeline.py (SeverityStratificationAnalyzer) ===
+Loading weights:   0%|          | 0/515 [00:00<?, ?it/s]Loading weights:  15%|█▌        | 79/515 [00:00<00:00, 760.21it/s]Loading weights:  36%|███▌      | 185/515 [00:00<00:00, 925.89it/s]Loading weights:  54%|█████▍    | 278/515 [00:00<00:00, 907.94it/s]Loading weights: 100%|██████████| 515/515 [00:00<00:00, 1618.97it/s]

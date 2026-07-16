@@ -1,0 +1,283 @@
+[
+  {
+    "row": 0,
+    "review_text": "The doctor's diagnosis was accurate and the surgery went smoothly, though the parking lot was chaotic and the front desk staff seemed distracted.",
+    "absa_pipeline.absa_results": [
+      {
+        "aspect": "Clinical_Competence",
+        "sentiment": 0.5597
+      },
+      {
+        "aspect": "Facility_Wait_Time",
+        "sentiment": -0.7239
+      }
+    ],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "POS",
+      "calibrated_sentiment": "POS",
+      "confidence": 0.2376,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Emotional_Distress",
+        "Administrative_Complaint",
+        "Clinical_Adverse_Event",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.625,
+        0.5512,
+        0.0084,
+        0.0029
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 1,
+    "review_text": NaN,
+    "absa_pipeline.absa_results": [],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": null,
+      "calibrated_sentiment": null,
+      "confidence": 0.0,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [],
+      "scores": [],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 2,
+    "review_text": "I can't say I didn't not appreciate the fact that the nurse wasn't uncaring, nor would I deny that I didn't dislike not being ignored, though I wouldn't say the doctor never failed to not misdiagnose me, and it's not like I didn't not regret not complaining sooner.",
+    "absa_pipeline.absa_results": [
+      {
+        "aspect": "Clinical_Competence",
+        "sentiment": -0.5332
+      },
+      {
+        "aspect": "Staff_Behavior",
+        "sentiment": -0.4862
+      }
+    ],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "NEG",
+      "calibrated_sentiment": "NEG",
+      "confidence": 0.3645,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Emotional_Distress",
+        "Clinical_Adverse_Event",
+        "Administrative_Complaint",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.9898,
+        0.1635,
+        0.0589,
+        0.0001
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 3,
+    "review_text": "If I hadn't not avoided the surgery, I wouldn't have not survived; it's not that I didn't not appreciate the surgeons, nor would I say I wasn't not grateful for the care I didn't not receive, and I can't deny that I wasn't not relieved when it wasn't not over.",
+    "absa_pipeline.absa_results": [],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "NEU",
+      "calibrated_sentiment": "POS",
+      "confidence": 0.95,
+      "override_triggered": true
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Emotional_Distress",
+        "Clinical_Adverse_Event",
+        "Administrative_Complaint",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.7814,
+        0.6068,
+        0.0386,
+        0.0004
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 4,
+    "review_text": "From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan. From the moment I checked in at the front desk, the entire experience at this clinic unfolded as a long and complicated series of events that I feel compelled to describe in exhaustive detail so that future patients understand exactly what to expect. The receptionist was polite but visibly overwhelmed, juggling phone calls while trying to verify my insurance information, and I noticed several other patients growing impatient in the waiting area as the minutes stretched into hours. When I was finally called back, the nurse who took my vitals was thorough and reassuring, walking me through each step of the blood pressure and temperature checks, and she patiently answered every question I had about the upcoming consultation. The physician arrived nearly forty-five minutes later than my scheduled appointment time, apologizing profusely for the delay caused by an emergency case earlier that morning, and once we began speaking he was remarkably attentive, asking detailed follow-up questions about my symptoms, my family history, and my current medications before proposing a treatment plan.",
+    "absa_pipeline.absa_results": [
+      {
+        "aspect": "Clinical_Competence",
+        "sentiment": -0.08
+      },
+      {
+        "aspect": "Staff_Behavior",
+        "sentiment": 0.5706
+      }
+    ],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "NEU",
+      "calibrated_sentiment": "NEU",
+      "confidence": 0.5946,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Clinical_Adverse_Event",
+        "Emotional_Distress",
+        "Administrative_Complaint",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.9705,
+        0.9624,
+        0.9416,
+        0.7195
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 5,
+    "review_text": NaN,
+    "absa_pipeline.absa_results": [],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": null,
+      "calibrated_sentiment": null,
+      "confidence": 0.0,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [],
+      "scores": [],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 6,
+    "review_text": "   ",
+    "absa_pipeline.absa_results": [],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": null,
+      "calibrated_sentiment": null,
+      "confidence": 0.0,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [],
+      "scores": [],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 7,
+    "review_text": "Bad.",
+    "absa_pipeline.absa_results": [],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "NEG",
+      "calibrated_sentiment": "NEG",
+      "confidence": 0.8789,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Emotional_Distress",
+        "Clinical_Adverse_Event",
+        "Administrative_Complaint",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.9974,
+        0.9947,
+        0.9556,
+        0.0
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 8,
+    "review_text": "醫生非常好 👍 but the front desk was incredibly rude 😡 and the wait time was unacceptable.",
+    "absa_pipeline.absa_results": [
+      {
+        "aspect": "Clinical_Competence",
+        "sentiment": 0.694
+      }
+    ],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "NEG",
+      "calibrated_sentiment": "NEG",
+      "confidence": 0.9072,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Emotional_Distress",
+        "Administrative_Complaint",
+        "Clinical_Adverse_Event",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.9981,
+        0.9952,
+        0.6909,
+        0.0
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  },
+  {
+    "row": 9,
+    "review_text": "THE NURSE WAS AMAZING BUT THE WAIT TIME WAS RIDICULOUS AND I WAITED FOR THREE HOURS WITHOUT ANY UPDATE FROM ANYONE AT THE FRONT DESK",
+    "absa_pipeline.absa_results": [
+      {
+        "aspect": "Clinical_Competence",
+        "sentiment": 0.9581
+      },
+      {
+        "aspect": "Staff_Behavior",
+        "sentiment": 0.9581
+      }
+    ],
+    "counterfactual_override_engine.calibrated_results": {
+      "raw_sentiment": "NEG",
+      "calibrated_sentiment": "NEG",
+      "confidence": 0.7556,
+      "override_triggered": false
+    },
+    "severity_stratification_pipeline.absa_results": {
+      "labels": [
+        "Emotional_Distress",
+        "Administrative_Complaint",
+        "Clinical_Adverse_Event",
+        "Routine_Feedback"
+      ],
+      "scores": [
+        0.9982,
+        0.9873,
+        0.3475,
+        0.0001
+      ],
+      "urgent_review": false
+    },
+    "severity_stratification_pipeline.urgent_flag": ""
+  }
+]

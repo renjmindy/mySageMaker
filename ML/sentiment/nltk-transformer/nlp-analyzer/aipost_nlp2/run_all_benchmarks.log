@@ -1,0 +1,34 @@
+Loaded 30 rows from test_data.csv
+Discovered 3 pipeline(s): ['absa_pipeline.py', 'counterfactual_override_engine.py', 'severity_stratification_pipeline.py']
+
+=== Running absa_pipeline.py (ClinicalABSAAnalyzer) ===
+Loading weights:   0%|          | 0/202 [00:00<?, ?it/s]Loading weights:   2%|▏         | 5/202 [00:01<00:43,  4.49it/s]Loading weights:  59%|█████▉    | 119/202 [00:01<00:00, 130.02it/s]Loading weights:  86%|████████▌ | 174/202 [00:01<00:00, 181.39it/s]Loading weights: 100%|██████████| 202/202 [00:01<00:00, 142.78it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 28271.47it/s]
+[1mRobertaForSequenceClassification LOAD REPORT[0m from: cardiffnlp/twitter-roberta-base-sentiment-latest
+Key                             | Status     |  | 
+--------------------------------+------------+--+-
+roberta.pooler.dense.bias       | UNEXPECTED |  | 
+roberta.embeddings.position_ids | UNEXPECTED |  | 
+roberta.pooler.dense.weight     | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  OK  init=6.178s  inference=53.102s  total=59.279s  device=cpu  new_columns=['absa_results']
+
+=== Running counterfactual_override_engine.py (CounterfactualOverrideEngine) ===
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 20619.15it/s]
+[1mRobertaForSequenceClassification LOAD REPORT[0m from: finiteautomata/bertweet-base-sentiment-analysis
+Key                             | Status     |  | 
+--------------------------------+------------+--+-
+roberta.embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  OK  init=2.787s  inference=4.764s  total=7.551s  device=cpu  new_columns=['calibrated_results']
+
+=== Running severity_stratification_pipeline.py (SeverityStratificationAnalyzer) ===
+Loading weights:   0%|          | 0/515 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 142/515 [00:00<00:00, 1413.60it/s]Loading weights:  55%|█████▌    | 284/515 [00:00<00:00, 1334.78it/s]Loading weights:  81%|████████  | 418/515 [00:00<00:00, 1249.99it/s]Loading weights: 100%|██████████| 515/515 [00:00<00:00, 1447.01it/s]
+  OK  init=1.879s  inference=1901.594s  total=1903.473s  device=cpu  new_columns=['absa_results', 'urgent_flag']
+
+Wrote merged results JSON: /home/cjen/mySageMaker/ML/sentiment/nltk-transformer/nlp-analyzer/aipost_nlp2/benchmark_merged_results.json
+Wrote report: /home/cjen/mySageMaker/ML/sentiment/nltk-transformer/nlp-analyzer/aipost_nlp2/mle_nlp_report.md
