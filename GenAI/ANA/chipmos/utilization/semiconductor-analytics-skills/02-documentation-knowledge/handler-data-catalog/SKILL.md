@@ -23,5 +23,5 @@ description: Catalog entry and site-geometry map for test-handler contactor logs
 - Optional: physical meaning of the 2x2 blocks (see open question in assumptions log)
 
 # Output
-- `assets/catalog_entry_template.md` (filled) — catalog entry for the contactor logs
+- `assets/catalog_entry_template.md` (template) and `assets/contactor_logs_catalog_entry.md` (filled for the contactor logs; unknowns marked [OPEN])
 - Console output of `site_map.py` — position lookup / ASCII grid for discussion with fab engineers

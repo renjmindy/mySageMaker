@@ -31,7 +31,7 @@ Severity per `references/validation_rules.md`. "Evidence" is the day's cleaned a
 | 2026-09-03 | front | 5.3% failed | HIGH | 86.56%, z = -3.0 (lowest day, just under the 3.5 anomaly line) | Keep with caveat (proposed); check against a screenshot |
 | 2026-09-18 | front | 5.07% failed (borderline; crossed 5% only after the gap rule) | HIGH | 87.51%, z = -2.4 | Keep (proposed - confirm) |
 | 2026-09-08 | rear | 11.3% failed | HIGH | 94.85%, z = -0.7 | Keep (proposed - confirm) |
-| 2026-09-09 | rear | 8.2% failed; **coverage 54%, 90-min gap** (capture outage) | HIGH | 94.92%, z = -0.6; gap time is not imputed (weight capped at 15 min) | Keep with caveat (proposed): report the outage |
+| 2026-09-09 | rear | 8.2% failed; **coverage 54%; 11 capture gaps of 16-90 min** (repeated outage) | HIGH | 94.92%, z = -0.6; gap time is not imputed (weight capped at 15 min) | Keep with caveat (proposed): report the repeated outage |
 | 2026-09-03 | rear | 7.0% failed | HIGH | 93.93%, z = -1.1 | Keep (proposed - confirm) |
 | 2026-09-17 | rear | 6.7% failed | HIGH | 93.11%, z = -1.4 | Keep (proposed - confirm) |
 | 2026-09-20 | rear | 6.1% failed; 190 rows are `N/A` + 0 (zero closed, not failures) | HIGH | 97.97%, z = +0.6 | Keep; confirm the zero-closed stretch against a screenshot or the maintenance log |
@@ -43,12 +43,12 @@ Basis for "keep": failed rows are already excluded at row level, and the remaini
 - Whole days excluded: **none**
 - Row-level exclusions (applied by the loader): 256 and 252-255 counts, count - list gap > 50, `N/A` with count > 0
 - Not analysed: 2026-07-30 trial run
-- Caveats the analysis must carry: front 09/09 (27.7% unusable, 65% coverage); rear 09/09 (54% coverage, 90-min capture gap); 10/02 is a partial day (data ends 15:14)
+- Caveats the analysis must carry: front 09/09 (27.7% unusable, 65% coverage); rear 09/09 (54% coverage, repeated capture gaps up to 90 min); 10/02 is a partial day (data ends 15:14)
 
 ## 5. Upstream fixes requested
 - Capture owner: counts of 252-256 and "everything closed" readings look like screen-not-loaded failures; a validity flag at capture time would remove them.
 - Capture owner: in about 7-10% of kept rows the count exceeds the list by around 10 - cause unknown, needs screenshots.
-- Rear 09/09: investigate the 90-minute capture gap.
+- 09/09 on both sides: investigate the repeated capture gaps (rear up to 90 min, front up to 22 min).
 
 ## 6. Open items
 - A14: rows with count 240-251 whose list is also near-full (11 front, 17 rear) are kept; owner to confirm.
