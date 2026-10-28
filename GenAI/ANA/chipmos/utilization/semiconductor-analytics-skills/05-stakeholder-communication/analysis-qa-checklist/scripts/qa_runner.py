@@ -62,6 +62,11 @@ def run(data_dir, start, near_full_min):
     with contextlib.redirect_stderr(io.StringIO()):
         outcome = unittest.TextTestRunner(stream=io.StringIO()).run(suite)
     add("OEE calculator unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "03-data-analysis-investigation/closure-event-root-cause/scripts"))
+    import test_closure_events as tce  # noqa: E402
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tce))
+    add("closure event unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
     return results
 
 
