@@ -172,12 +172,12 @@
   {
     "id": "A18",
     "category": "metric",
-    "statement": "Each reading represents the gap to the next reading, capped at 15 minutes; time lost to capture gaps is not imputed",
+    "statement": "Each valid reading represents the gap to the next reading, capped at 15 minutes: its state is carried forward across a dropped reading or a capture gap, up to that cap; dropped readings have no weight of their own",
     "status": "APPLIED",
     "impact": "medium",
     "source": "",
     "date": "",
-    "note": "DEFAULT_MAX_GAP_MIN=15 in lib/contactor_io.py; matters on days with capture gaps (e.g. rear 09/09, 90-min gap). Analyst design choice - confirm with the owner"
+    "note": "DEFAULT_MAX_GAP_MIN=15 in lib/contactor_io.py. Effect: weighted vs unweighted differs by ~0.6 pt; caps of 15, 30 and unlimited give identical results, a cap of 5 shifts front by +0.4 pt. Analyst design choice - confirm with the owner"
   },
   {
     "id": "A19",

@@ -31,7 +31,7 @@ Severity per `references/validation_rules.md`. "Evidence" is the day's cleaned a
 | 2026-09-03 | front | 5.3% failed | HIGH | 86.56%, z = -3.0 (lowest day, just under the 3.5 anomaly line) | Keep with caveat (proposed); check against a screenshot |
 | 2026-09-18 | front | 5.07% failed (borderline; crossed 5% only after the gap rule) | HIGH | 87.51%, z = -2.4 | Keep (proposed - confirm) |
 | 2026-09-08 | rear | 11.3% failed | HIGH | 94.85%, z = -0.7 | Keep (proposed - confirm) |
-| 2026-09-09 | rear | 8.2% failed; **coverage 54%; 11 capture gaps of 16-90 min** (repeated outage) | HIGH | 94.92%, z = -0.6; gap time is not imputed (weight capped at 15 min) | Keep with caveat (proposed): report the repeated outage |
+| 2026-09-09 | rear | 8.2% failed; **coverage 54%; 11 capture gaps of 16-90 min** (repeated outage) | HIGH | 94.92%, z = -0.6; the last valid reading is carried forward across each gap, at most 15 min (A18) | Keep with caveat (proposed): report the repeated outage |
 | 2026-09-03 | rear | 7.0% failed | HIGH | 93.93%, z = -1.1 | Keep (proposed - confirm) |
 | 2026-09-17 | rear | 6.7% failed | HIGH | 93.11%, z = -1.4 | Keep (proposed - confirm) |
 | 2026-09-20 | rear | 6.1% failed; 190 rows are `N/A` + 0 (zero closed, not failures) | HIGH | 97.97%, z = +0.6 | Keep; confirm the zero-closed stretch against a screenshot or the maintenance log |

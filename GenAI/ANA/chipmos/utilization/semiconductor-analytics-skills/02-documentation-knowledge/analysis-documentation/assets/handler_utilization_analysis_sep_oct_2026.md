@@ -12,17 +12,19 @@
 - Validation decisions per day: `01-data-quality-validation/contactor-log-validation/assets/validation_report_sep_oct_2026.md`. No whole day is excluded; front 09/09 is kept with a caveat (A16: 27.7% of its readings unusable, 65% coverage).
 
 ## Method
-- Site availability = share of the 256 sites per side that are open, **time-weighted**: each reading represents the gap to the next one, capped at 15 minutes (A18). Dropped readings simply do not count.
+- Site availability = share of the 256 sites per side that are open, **time-weighted**: each valid reading represents the gap to the next one, capped at 15 minutes (A18): its state is carried forward across a dropped reading or a capture gap, up to that cap; dropped readings have no weight of their own.
 - Range: the **upper bound** uses the cleaned list length as the number closed; the **lower bound** uses `max(err_01, list length)` because the reported count is never below the list (A5).
 - Combined view (A12): mean of the front and rear figures, always shown next to the per-side numbers.
 - Chronic site = closed in at least 50% of valid time over the period; clusters group neighbouring sites that are closed at least 10% of the time. A **recency status** (A19, last 7 days of data, to 2026-10-02) separates sites still closed now (PERSISTENT, NEW, CURRENT) from partly closed (INTERMITTENT) and fixed or gone (RESOLVED); the period figure alone can point at past problems.
 
 ## Results
-| Side | Availability (upper) | Availability (lower) | Valid samples |
-|---|---|---|---|
-| front | **91.32%** | 90.88% | 11,276 |
-| rear | **96.07%** | 95.64% | 11,199 |
-| combined (mean of sides) | 93.70% | | |
+| Side | Availability (upper) | Availability (lower) | 95% interval (day bootstrap) | Valid samples |
+|---|---|---|---|---|
+| front | **91.32%** | 90.88% | 90.57-92.08% | 11,276 |
+| rear | **96.07%** | 95.64% | 95.30-96.83% | 11,199 |
+| combined (mean of sides) | 93.70% | | | |
+
+Precision: about +/-0.75 pt (daily standard deviation about 2.2 pts); the upper/lower range is narrower than this, so differences under about 1.5 pts between periods are not distinguishable from daily variation. The 252-255 rule is the one that moves the headline (+1.3 pts on the front); the gap rule moves it by about 0.01 pt; time-weighting versus a plain mean is worth about 0.6 pt.
 
 - Daily range: front 86.56% (09/03) to 96.13% (09/16); rear 90.53% (09/05) to 99.68% (09/19).
 - Chronic sites: front 17 of 256 (6.6%), rear 4 of 256 (1.6%). The ten worst sites account for 40.7% of front closure time and 44.1% of rear closure time.
@@ -50,4 +52,4 @@ python 03-data-analysis-investigation/downtime-time-series/scripts/daily_trend.p
 python 02-documentation-knowledge/semiconductor-metric-definitions/scripts/metric_yaml_validator.py --recompute
 python 02-documentation-knowledge/analysis-assumptions-log/scripts/assumptions_tracker.py check
 ```
-<!-- check-numbers: 3.06 | 3.37 | 11276 | 11199 | 91.32 | 90.88 | 96.07 | 95.64 | 93.70 | 17/256 | 4/256 | 6.6% | 1.6% | 2.67 | 2.11 | 1.21 | 0.51 | 1.13 | 0.74 | 40.7 | 44.1 | 20/256 | 5/256 | 3.03 | 2.91 | 1.11 | 1.53 | 0.19 | 86.56 | 96.13 | 90.53 | 99.68 | OK - log consistent -->
+<!-- check-numbers: 3.06 | 3.37 | 11276 | 11199 | 91.32 | 90.88 | 96.07 | 95.64 | 93.70 | 17/256 | 4/256 | 6.6% | 1.6% | 2.67 | 2.11 | 1.21 | 0.51 | 1.13 | 0.74 | 40.7 | 44.1 | 90.57 | 92.08 | 95.30 | 96.83 | 20/256 | 5/256 | 3.03 | 2.91 | 1.11 | 1.53 | 0.19 | 86.56 | 96.13 | 90.53 | 99.68 | OK - log consistent -->

@@ -1,8 +1,9 @@
 # Metric definitions - handler contactor utilization (dbt-semantic-layer style)
 # Checked by scripts/metric_yaml_validator.py against lib/contactor_io.py and the assumptions log.
-version: 3
+version: 4
 
 changelog:
+  - {version: 4, date: 2026-10-28, change: "Clarified weighting: a valid reading is carried forward to the next reading (across dropped readings and gaps) up to 15 min (A18); no formula change."}
   - {version: 3, date: 2026-10-28, change: "Added currently_closed_site_rate (recency, A19)."}
   - {version: 2, date: 2026-10-28, change: "Cleaning contract updated: 252-255 counts (A8) and count-list gap > 50 (A15) dropped by default; 15-min weight cap (A18) stated; lower-bound and combined metrics added. site_availability bumped to v2."}
   - {version: 1, date: 2026-10-28, change: "Initial definitions (256 and N/A>0 dropped only)."}
@@ -15,7 +16,7 @@ contract:
   dropped_status: [READ_FAIL_256, READ_FAIL_NEAR_FULL, READ_FAIL_GAP, NA_NONZERO]
   near_full_min: 252        # err_01 252-255 = read failure (A8)
   max_count_gap: 50         # err_01 - list length > 50 = unreadable list (A15)
-  max_gap_min: 15           # a reading represents at most 15 minutes (A18)
+  max_gap_min: 15           # carry-forward limit: a valid reading represents at most 15 minutes (A18)
   assumptions: [A3, A4, A5, A7, A8, A9, A15, A17, A18]
 
 semantic_model:
@@ -34,7 +35,7 @@ semantic_model:
 metrics:
   - name: site_availability
     label: Site availability (upper bound)
-    description: Time-weighted share of the 256 sites per side that are open (blue), counting closures as the cleaned list length
+    description: Time-weighted share of the 256 sites per side that are open (blue), counting closures as the cleaned list length. Each valid reading is weighted by the gap to the next reading (state carried forward across dropped readings and gaps, at most 15 min)
     type: ratio
     formula: 1 - sum(n_closed * weight_min) / (256 * sum(weight_min))
     grain: [day, side]
