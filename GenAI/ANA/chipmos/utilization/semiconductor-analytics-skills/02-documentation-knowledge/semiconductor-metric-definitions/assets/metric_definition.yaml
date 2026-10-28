@@ -1,0 +1,53 @@
+# Metric definitions - handler contactor utilization (dbt-semantic-layer style)
+version: 1
+
+semantic_model:
+  name: handler_contactor_samples
+  description: One row per captured Contactor Select screen (front or rear side)
+  entities:
+    - {name: handler, type: primary}
+    - {name: side, type: foreign}
+  dimensions:
+    - {name: sample_ts, type: time, granularity: minute}
+    - {name: site_id, type: categorical}
+  measures:
+    - {name: closed_sites, agg: sum, expr: n_closed}
+    - {name: sample_minutes, agg: sum, expr: weight_min}
+
+metrics:
+  - name: site_availability
+    label: Site availability
+    description: Time-weighted share of the 256 sites per side that are open (blue)
+    type: ratio
+    formula: 1 - sum(n_closed * weight_min) / (256 * sum(weight_min))
+    valid_rows: "status in (OK, NA_ZERO); drop READ_FAIL_256 and NA_NONZERO (optionally READ_FAIL_NEAR_FULL)"
+    grain: [day, side]
+    owner: [REQUIRED]
+    version: 1
+
+  - name: chronic_site_rate
+    label: Chronic closed-site share
+    description: Share of sites closed in >= 50% of valid samples over the period
+    type: ratio
+    formula: count(sites with closed_share >= 0.5) / 256
+    grain: [period, side]
+    owner: [REQUIRED]
+    version: 1
+
+  - name: time_availability
+    label: Time availability (OEE A)
+    description: Actual run time / (total time - planned downtime). BLOCKED - needs run-state timeline
+    type: ratio
+    formula: run_minutes / (total_minutes - planned_downtime_minutes)
+    status: blocked
+    owner: [REQUIRED]
+    version: 1
+
+  - name: oee
+    label: Overall equipment effectiveness
+    description: Availability x Performance x Quality. Only Availability-type inputs exist today
+    type: derived
+    formula: time_availability * performance * quality
+    status: blocked
+    owner: [REQUIRED]
+    version: 1

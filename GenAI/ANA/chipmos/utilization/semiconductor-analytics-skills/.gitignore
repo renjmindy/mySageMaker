@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints
+.claude/
+.DS_Store
+# raw handler logs stay out of the repo; outputs are regenerated
+*.csv
+*.zip
+out/

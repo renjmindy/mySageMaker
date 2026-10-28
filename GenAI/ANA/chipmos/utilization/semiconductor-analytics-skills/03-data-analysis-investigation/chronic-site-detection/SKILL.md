@@ -1,0 +1,27 @@
+---
+name: chronic-site-detection
+description: Rank contactor sites by closure share and find spatially clustered (adjacent / aligned 2x2 block) chronic offenders. Activate when asked "which contactors should we fix first", before a maintenance window, or to prioritise HIFIX / contactor replacement.
+---
+
+# When to use
+- Planning contactor or HIFIX maintenance
+- Explaining why availability is below 100% (a few sites explain most of it)
+- Separating chronic closures from transient ones
+
+# Process
+1. **Load cleaned data** via the shared loader (252-255 read failures are dropped by default).
+2. **Compute closure share per site** — share of valid samples where the site is closed (`scripts/chronic_sites.py`).
+3. **Classify** — chronic >= 50%, frequent 10-50%, occasional < 10% (see `references/chronic_thresholds.md`).
+4. **Cluster** — group chronic/frequent sites by 4-neighbour adjacency and by aligned 2x2 block; large clusters point to a module/board cause rather than single contactors.
+5. **Estimate capacity lost** — each site's share = lost availability points; show the top-N cumulative contribution (Pareto).
+6. **Prioritise** — rank clusters by lost capacity x ease of fix; hand to `root-cause-investigation`.
+7. **Fill `assets/chronic_sites_report_template.md`**.
+
+# Inputs the skill needs
+- Required: cleaned contactor logs
+- Optional: maintenance history to tell "fixed" from "still broken" (closure sets change between days)
+- Optional: physical layout / board mapping to validate 2x2 clusters
+
+# Output
+- Console: ranked sites, clusters, Pareto of lost capacity
+- `assets/chronic_sites_report_template.md` (filled)

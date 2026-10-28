@@ -1,0 +1,6 @@
+# Kickoff - [REQUIRED: project]
+Attendees: [REQUIRED]
+Goals and decisions supported: [REQUIRED]
+Open questions to settle (see interview guide): [REQUIRED]
+Data feeds and owners: [REQUIRED]
+Timeline and next review: [REQUIRED]

@@ -1,0 +1,10 @@
+# Analysis Brief - [REQUIRED: title]
+
+- Business question: [REQUIRED]
+- Decision / owner: [REQUIRED]
+- Scope (handlers, period, sides): [REQUIRED]
+- Definitions agreed: [REQUIRED - link metric definitions]
+- Data feeds: [REQUIRED - available / missing]
+- Deliverables and dates: [REQUIRED]
+- Success criteria: [REQUIRED]
+- Risks: [OPTIONAL]
