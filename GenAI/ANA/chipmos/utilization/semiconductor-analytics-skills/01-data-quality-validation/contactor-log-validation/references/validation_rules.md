@@ -4,7 +4,7 @@ Per day and per side (starting values - tune once a baseline exists):
 
 | Check | MEDIUM | HIGH | CRITICAL |
 |---|---|---|---|
-| read-failure rate (`READ_FAIL_256` + `NA_NONZERO`) | >= 2% | >= 5% | >= 15% |
+| read-failure rate (`READ_FAIL_256` + `READ_FAIL_NEAR_FULL` + `READ_FAIL_GAP` + `NA_NONZERO`) | >= 2% | >= 5% | >= 15% |
 | rows with out-of-range IDs | >= 3% | >= 10% | >= 25% |
 | rows where count != list length | >= 10% | >= 25% | >= 50% |
 | coverage (samples / expected ~360 per day) | < 90% | < 75% | < 50% |

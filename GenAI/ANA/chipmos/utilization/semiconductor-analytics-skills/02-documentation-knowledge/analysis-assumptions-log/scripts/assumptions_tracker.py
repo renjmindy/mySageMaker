@@ -30,6 +30,12 @@ SEED = [
     {"id": "A11", "category": "metric", "statement": "Planned time = 24x7 unless a production calendar is provided", "status": "OPEN", "impact": "high",
      "note": "Only matters once OEE is unblocked"},
     {"id": "A12", "category": "metric", "statement": "Report front and rear separately; combined 512-site view is the mean of both", "status": "OPEN", "impact": "medium"},
+    {"id": "A14", "category": "data", "statement": "Rows with count 240-251 whose list is also near-full (count and list agree) may be read failures too", "status": "OPEN", "impact": "low",
+     "note": "11 front / 17 rear rows kept; dropping them would move availability ~+0.2 (front) / +0.3 (rear) pts - ask the process owner"},
+    {"id": "A15", "category": "data", "statement": "err_01 - list length > 50 means the list is unreadable; drop the sample", "status": "CONFIRMED", "impact": "low",
+     "note": "Agreed with process owner; MAX_COUNT_GAP=50 in lib/contactor_io.py; affects ~12 rear / 9 front rows"},
+    {"id": "A16", "category": "scope", "statement": "Front 2026-09-09 (CRITICAL by failure rate) is kept with a caveat, not excluded", "status": "CONFIRMED", "impact": "low",
+     "note": "Decided by process owner; cleaned availability 90.38% is normal; excluding the day changes the front headline by +0.01 pt"},
     {"id": "A13", "category": "physics", "statement": "Adjacent closed sites in aligned 2x2 blocks share a physical cause (module/board)", "status": "OPEN", "impact": "medium",
      "note": "Kept as a hypothesis by decision of the process owner - do not present as fact"},
 ]

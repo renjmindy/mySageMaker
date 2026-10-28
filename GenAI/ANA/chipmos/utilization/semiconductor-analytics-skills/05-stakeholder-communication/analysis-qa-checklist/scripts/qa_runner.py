@@ -19,7 +19,7 @@ import contactor_io as cio  # noqa: E402
 def run(data_dir, start, near_full_min):
     results = []
     add = lambda name, status, detail: results.append((name, status, detail))
-    base = {s: cio.load_side(s, data_dir, start, near_full_min=0) for s in cio.SIDES}  # old 256-only rule, for reference
+    base = {s: cio.load_side(s, data_dir, start, near_full_min=0, max_count_gap=0) for s in cio.SIDES}  # old 256-only rule, for reference
     used = {s: cio.load_side(s, data_dir, start, near_full_min=near_full_min) for s in cio.SIDES}
 
     for side, df in used.items():
@@ -31,6 +31,8 @@ def run(data_dir, start, near_full_min):
         add(f"{side}: closed within 0-256", "PASS" if v["n_closed"].between(0, 256).all() else "FAIL", f"max {v['n_closed'].max()}")
         ids_ok = all(cio.SIDES[side]["lo"] <= s <= cio.SIDES[side]["hi"] for ids in v["sites"] for s in ids)
         add(f"{side}: IDs inside side range", "PASS" if ids_ok else "FAIL", "")
+        gap_kept = int((v["err_01"] - v["n_closed"] > cio.MAX_COUNT_GAP).sum())
+        add(f"{side}: rows with count-list gap > {cio.MAX_COUNT_GAP} kept", "PASS" if gap_kept == 0 else "FAIL", f"{gap_kept} rows (A15)")
         near = int(v["err_01"].between(cio.NEAR_FULL_MIN, 255).sum())
         add(f"{side}: err_01 252-255 rows kept as valid", "PASS" if near == 0 else "FAIL", f"{near} rows (A8 confirmed read failure)")
         lo_hi_gap = (v["err_01"].clip(upper=256).sub(v["n_closed"]).clip(lower=0) * v["weight_min"]).sum() / v["weight_min"].sum() / 256 * 100
@@ -42,7 +44,7 @@ def run(data_dir, start, near_full_min):
         low = int((days < 0.75 * 360).sum())
         add(f"{side}: days with < 75% coverage", "PASS" if low <= 1 else "WARN", f"{low} days (last day may be partial)")
         b = cio.weighted_availability(base[side]) * 100
-        add(f"{side}: effect of 252-255 rule (info)", "PASS", f"{b:.2f}% (256-only) -> {wtd:.2f}% (confirmed rule)")
+        add(f"{side}: effect of 252-255 + gap rules (info)", "PASS", f"{b:.2f}% (256-only) -> {wtd:.2f}% (confirmed rules)")
     return results
 
 

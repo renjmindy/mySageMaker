@@ -15,6 +15,9 @@ defined exactly once. Rules were confirmed with the process owner:
     length is a lower bound on closures - see references/log_semantics.md
   * err_01 in 252-255 is also a read failure (confirmed); `near_full_min`
     defaults to NEAR_FULL_MIN = 252 and can be set to 0/None to disable
+  * err_01 exceeding the cleaned list length by more than MAX_COUNT_GAP (50)
+    means the list does not support the count (unreadable list) -> sample is
+    dropped (status READ_FAIL_GAP); `max_count_gap` 0/None disables
   * IDs outside the side's range and duplicate IDs are OCR noise and removed
   * only Sep/Oct 2026 production data is analysed (07/30 was a trial run)
 """
@@ -35,6 +38,7 @@ COLS = 16
 SITES_PER_SIDE = 256
 READ_FAIL_COUNT = 256
 NEAR_FULL_MIN = 252  # err_01 252-255 = read failure (confirmed by process owner)
+MAX_COUNT_GAP = 50   # err_01 - len(list) above this = list unreadable (agreed with process owner)
 DEFAULT_START = "2026-09-01"
 DEFAULT_MAX_GAP_MIN = 15.0  # a sample never represents more than this many minutes
 
@@ -62,12 +66,13 @@ def load_side(
     end: str | None = None,
     max_gap_min: float = DEFAULT_MAX_GAP_MIN,
     near_full_min: int | None = NEAR_FULL_MIN,
+    max_count_gap: int | None = MAX_COUNT_GAP,
 ) -> pd.DataFrame:
     """Load one side with per-row status, cleaned site list and time weight.
 
     Columns: timestamp, err_01, status, sites, n_closed, n_oob, n_dup,
              count_mismatch, weight_min, valid
-    status: OK | NA_ZERO | READ_FAIL_256 | READ_FAIL_NEAR_FULL | NA_NONZERO
+    status: OK | NA_ZERO | READ_FAIL_256 | READ_FAIL_NEAR_FULL | READ_FAIL_GAP | NA_NONZERO
     """
     cfg = SIDES[side]
     data_dir = Path(data_dir or DEFAULT_DATA_DIR)
@@ -97,8 +102,11 @@ def load_side(
         elif near_full_min and cnt >= near_full_min:
             status.append("READ_FAIL_NEAR_FULL"); ids, oob, dup = [], 0, 0
         else:
-            status.append("OK")
             ids, oob, dup = _parse_ids(lst, cfg["lo"], cfg["hi"])
+            if max_count_gap and cnt - len(ids) > max_count_gap:
+                status.append("READ_FAIL_GAP"); ids, oob, dup = [], 0, 0
+            else:
+                status.append("OK")
         sites.append(ids); n_oob.append(oob); n_dup.append(dup)
 
     df["status"], df["sites"], df["n_oob"], df["n_dup"] = status, sites, n_oob, n_dup
@@ -114,8 +122,9 @@ def load_side(
 
 
 def load_all(data_dir=None, start: str = DEFAULT_START, end: str | None = None,
-             near_full_min: int | None = NEAR_FULL_MIN) -> dict[str, pd.DataFrame]:
-    return {s: load_side(s, data_dir, start, end, near_full_min=near_full_min) for s in SIDES}
+             near_full_min: int | None = NEAR_FULL_MIN,
+             max_count_gap: int | None = MAX_COUNT_GAP) -> dict[str, pd.DataFrame]:
+    return {s: load_side(s, data_dir, start, end, near_full_min=near_full_min, max_count_gap=max_count_gap) for s in SIDES}
 
 
 def weighted_availability(df: pd.DataFrame) -> float:

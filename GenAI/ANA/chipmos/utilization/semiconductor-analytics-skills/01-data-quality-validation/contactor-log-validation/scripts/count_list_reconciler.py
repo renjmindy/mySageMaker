@@ -29,6 +29,7 @@ def reconcile(df, tolerance: int = 0):
         "count_lt_list_pct": round(float((v["diff"] < 0).mean() * 100), 2),
         "mean_signed_diff": round(float(v["diff"].mean()), 3),
         "max_abs_diff": int(v["diff"].abs().max()),
+        "rows_gap_over_limit_kept (should be 0)": int((v["diff"] > cio.MAX_COUNT_GAP).sum()),
         "near_full_rows_kept (err_01 252-255, should be 0)": int(v["err_01"].between(cio.NEAR_FULL_MIN, 255).sum()),
     }
 
@@ -40,10 +41,11 @@ def main():
     ap.add_argument("--start", default=cio.DEFAULT_START)
     ap.add_argument("--tolerance", type=int, default=0)
     ap.add_argument("--near-full-min", type=int, default=cio.NEAR_FULL_MIN)
+    ap.add_argument("--max-count-gap", type=int, default=cio.MAX_COUNT_GAP, help="0 disables the gap rule")
     args = ap.parse_args()
 
     for side in (cio.SIDES if args.side == "both" else [args.side]):
-        res = reconcile(cio.load_side(side, args.data_dir, args.start, near_full_min=args.near_full_min), args.tolerance)
+        res = reconcile(cio.load_side(side, args.data_dir, args.start, near_full_min=args.near_full_min, max_count_gap=args.max_count_gap), args.tolerance)
         print(f"\n=== {side.upper()} count vs list length ===")
         for k, v in res.items():
             print(f"{k:24s} {v}")

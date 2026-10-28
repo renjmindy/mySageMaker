@@ -15,4 +15,4 @@ Samples are ~4 min apart but gaps reach 20 min; an unweighted mean over-represen
 | Variant | Front | Rear |
 |---|---|---|
 | 256-only rule (superseded) | 90.02% | 96.04% |
-| **Confirmed rules** (256, 252-255 and N/A>0 dropped) | **91.33%** (low 90.76%) | **96.08%** (low 95.47%) |
+| **Confirmed rules** (256, 252-255, count-list gap > 50 and N/A>0 dropped) | **91.32%** (low 90.88%) | **96.07%** (low 95.64%) |

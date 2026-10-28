@@ -19,7 +19,7 @@ Each `SKILL.md` needs frontmatter (`name`, `description`) and the sections `When
 - Raw data (`*.csv`, `*.zip`) and `out/` are git-ignored.
 
 ## Data rules
-See `lib/contactor_io.py` docstring and `02-documentation-knowledge/analysis-assumptions-log` (A1-A13). Confirmed: A8 (counts 252-255 = read failure, default). Open: A11 (planned time), A12 (side aggregation), A13 (2x2 blocks - keep as a hypothesis, do not state a physical cause as fact).
+See `lib/contactor_io.py` docstring and `02-documentation-knowledge/analysis-assumptions-log` (A1-A16). Confirmed: A8 (counts 252-255 = read failure, default). Open: A11 (planned time), A12 (side aggregation), A13 (2x2 blocks - keep as a hypothesis, do not state a physical cause as fact).
 
 ## Status gates
 - OEE stays blocked until run-state, output, good-unit and cycle-time data exist - never report an OEE number or a "partial OEE".
