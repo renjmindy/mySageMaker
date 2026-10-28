@@ -178,5 +178,15 @@
     "source": "",
     "date": "",
     "note": "DEFAULT_MAX_GAP_MIN=15 in lib/contactor_io.py; matters on days with capture gaps (e.g. rear 09/09, 90-min gap). Analyst design choice - confirm with the owner"
+  },
+  {
+    "id": "A19",
+    "category": "metric",
+    "statement": "Recency status uses the last 7 days of data: CURRENT/PERSISTENT/NEW = closed >= 50% of the window (NEW: < 20% before it), INTERMITTENT = 10-50%, RESOLVED = < 10% in the window but >= 10% over the period",
+    "status": "APPLIED",
+    "impact": "medium",
+    "source": "",
+    "date": "",
+    "note": "Analyst design choice in chronic_sites.py (--recent-days 7); thresholds not yet confirmed with the process owner"
   }
 ]

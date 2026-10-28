@@ -1,8 +1,9 @@
 # Metric definitions - handler contactor utilization (dbt-semantic-layer style)
 # Checked by scripts/metric_yaml_validator.py against lib/contactor_io.py and the assumptions log.
-version: 2
+version: 3
 
 changelog:
+  - {version: 3, date: 2026-10-28, change: "Added currently_closed_site_rate (recency, A19)."}
   - {version: 2, date: 2026-10-28, change: "Cleaning contract updated: 252-255 counts (A8) and count-list gap > 50 (A15) dropped by default; 15-min weight cap (A18) stated; lower-bound and combined metrics added. site_availability bumped to v2."}
   - {version: 1, date: 2026-10-28, change: "Initial definitions (256 and N/A>0 dropped only)."}
 
@@ -70,6 +71,16 @@ metrics:
     assumptions: [A5]
     owner: "[OPEN]"
     version: 2
+
+  - name: currently_closed_site_rate
+    label: Currently closed site share
+    description: Share of the 256 sites per side closed in >= 50% of valid time in the last 7 days of data (the recency counterpart of chronic_site_rate)
+    type: ratio
+    formula: count(sites with closed_share_last_7d >= 0.5) / 256
+    grain: [period, side]
+    assumptions: [A19]
+    owner: "[OPEN]"
+    version: 1
 
   - name: time_availability
     label: Time availability (OEE A)

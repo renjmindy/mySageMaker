@@ -15,7 +15,7 @@
 - Site availability = share of the 256 sites per side that are open, **time-weighted**: each reading represents the gap to the next one, capped at 15 minutes (A18). Dropped readings simply do not count.
 - Range: the **upper bound** uses the cleaned list length as the number closed; the **lower bound** uses `max(err_01, list length)` because the reported count is never below the list (A5).
 - Combined view (A12): mean of the front and rear figures, always shown next to the per-side numbers.
-- Chronic site = closed in at least 50% of valid time; clusters group neighbouring sites that are closed at least 10% of the time.
+- Chronic site = closed in at least 50% of valid time over the period; clusters group neighbouring sites that are closed at least 10% of the time. A **recency status** (A19, last 7 days of data, to 2026-10-02) separates sites still closed now (PERSISTENT, NEW, CURRENT) from partly closed (INTERMITTENT) and fixed or gone (RESOLVED); the period figure alone can point at past problems.
 
 ## Results
 | Side | Availability (upper) | Availability (lower) | Valid samples |
@@ -26,14 +26,15 @@
 
 - Daily range: front 86.56% (09/03) to 96.13% (09/16); rear 90.53% (09/05) to 99.68% (09/19).
 - Chronic sites: front 17 of 256 (6.6%), rear 4 of 256 (1.6%). The ten worst sites account for 40.7% of front closure time and 44.1% of rear closure time.
-- **Front**: four site clusters explain about 6.5 of the 8.7 points of lost capacity: sites 143/144/159/160/175/176/191/192 (2.67 pts), 197/198/213/214/229/230/245/246 (2.11 pts), 3/4/19/20 (1.21 pts) and 37/38/53/54/69/70 (0.51 pts).
-- **Rear**: the largest cluster is 463/464/479/480/495/496/510/511/512 (1.13 pts), then 291/292/306/307/308 (0.74 pts). Closed sets change between days (for example 479/463/480/464 on 09/21-22), so some closures are repairs or reconfigurations, not constant faults.
+- **Currently closed** (>= 50% of the last 7 days): front 20 of 256 (7.8%), rear 5 of 256 (2.0%).
+- **Front**: over the period, four site clusters explain about 6.5 of the 8.7 points of lost capacity: sites 143/144/159/160/175/176/191/192 (2.67 pts), 197/198/213/214/229/230/245/246 (2.11 pts), 3/4/19/20 (1.21 pts) and 37/38/53/54/69/70 (0.51 pts). **The first three are still closed now** (3.03, 2.91 and 1.11 pts in the last 7 days; 16 sites PERSISTENT, and site 198 NEW, so the second cluster grew). The fourth is RESOLVED (0.19 pts in the last week).
+- **Rear**: over the period the largest clusters are 463/464/479/480/495/496/510/511/512 (1.13 pts) and 291/292/306/307/308 (0.74 pts), **but neither is closed >= 50% of the last week** (INTERMITTENT, about 30% of the time); the four period-chronic rear sites were not chronic in both halves of the period. The cluster that needs attention now is 419/420/435/436, status **NEW**: 0.39 pts over the period but 1.53 pts in the last 7 days. Closed sets change between days (for example 479/463/480/464 on 09/21-22), so many rear closures are repairs or reconfigurations, not constant faults; read the rear period ranking as history.
 - Closed sites often form aligned 2x2 blocks (rows 2k-1,2k x columns 2j-1,2j). **This is a hypothesis (A13); the physical cause is not established.**
 
 ## Limitations and open items
 - **OEE is blocked.** Time availability, Performance and Quality need run-state, output, good-unit and cycle-time data (A10, A11); none exist yet. Site availability here is a capacity factor, not OEE.
 - The cost / impact estimate is **deferred** until real business parameters are supplied.
-- Unconfirmed but applied rules: A9, A12, A17, A18. Open: A11 (planned time basis), A13 (2x2 blocks), A14 (28 kept rows with counts 240-251 and a near-full list).
+- Unconfirmed but applied rules: A9, A12, A17, A18, A19 (7-day recency window and status thresholds). Open: A11 (planned time basis), A13 (2x2 blocks), A14 (28 kept rows with counts 240-251 and a near-full list).
 - Capture quality: 2026-09-09 has repeated capture gaps on both sides (rear up to 90 min); the cause of garbled site IDs is not established; no screenshot spot-check has been done yet.
 - Metric owners and data owners are not yet named (`[OPEN]`).
 
@@ -49,4 +50,4 @@ python 03-data-analysis-investigation/downtime-time-series/scripts/daily_trend.p
 python 02-documentation-knowledge/semiconductor-metric-definitions/scripts/metric_yaml_validator.py --recompute
 python 02-documentation-knowledge/analysis-assumptions-log/scripts/assumptions_tracker.py check
 ```
-<!-- check-numbers: 3.06 | 3.37 | 11276 | 11199 | 91.32 | 90.88 | 96.07 | 95.64 | 93.70 | 17/256 | 4/256 | 6.6% | 1.6% | 2.67 | 2.11 | 1.21 | 0.51 | 1.13 | 0.74 | 40.7 | 44.1 | 86.56 | 96.13 | 90.53 | 99.68 | OK - log consistent -->
+<!-- check-numbers: 3.06 | 3.37 | 11276 | 11199 | 91.32 | 90.88 | 96.07 | 95.64 | 93.70 | 17/256 | 4/256 | 6.6% | 1.6% | 2.67 | 2.11 | 1.21 | 0.51 | 1.13 | 0.74 | 40.7 | 44.1 | 20/256 | 5/256 | 3.03 | 2.91 | 1.11 | 1.53 | 0.19 | 86.56 | 96.13 | 90.53 | 99.68 | OK - log consistent -->
