@@ -46,6 +46,7 @@ def overall(df: pd.DataFrame) -> dict:
         "valid_samples": len(v),
         "availability_high_pct": round(_avail(v["n_closed"], v["weight_min"]) * 100, 2),
         "availability_low_pct": round(_avail(upper, v["weight_min"]) * 100, 2),
+        "_high_raw": _avail(v["n_closed"], v["weight_min"]) * 100,
         "unweighted_pct": round((1 - v["n_closed"].mean() / cio.SITES_PER_SIDE) * 100, 2),
     }
 
@@ -70,8 +71,8 @@ def main():
         if args.output:
             daily_availability(df).to_csv(f"{args.output}_{side}.csv")
     print("\n=== OVERALL (time-weighted) ===" + (f"  [near-full >= {args.near_full_min} excluded]" if args.near_full_min else ""))
-    print(pd.DataFrame(res).T.to_string())
-    both_hi = sum(r["availability_high_pct"] for r in res.values()) / 2
+    print(pd.DataFrame(res).T.drop(columns="_high_raw").to_string())
+    both_hi = sum(r["_high_raw"] for r in res.values()) / 2  # from unrounded values
     print(f"\ncombined 512-site view (mean of sides, high): {both_hi:.2f}%")
 
 

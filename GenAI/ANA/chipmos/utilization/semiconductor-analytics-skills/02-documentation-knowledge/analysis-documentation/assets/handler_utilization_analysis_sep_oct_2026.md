@@ -1,0 +1,52 @@
+# Handler contactor utilization - Sep/Oct 2026
+
+**Question**: How much of the handler's contactor capacity is usable, and where is it lost?
+**Decision supported**: which contactor clusters to inspect or replace first. OEE is a later goal and is **blocked** (see Limitations).
+**Author / date**: Claude (draft), 2026-10-28   **Reviewer**: [OPEN]   **Repo state**: commit `633f6b09` or later
+
+## Data
+- Source: Advantest handler *Contactor Select* screen logs, front (sites 1-256) and rear (257-512); catalog entry: `02-documentation-knowledge/handler-data-catalog/assets/contactor_logs_catalog_entry.md`.
+- Period: 2026-09-01 to 2026-10-02 15:14 (2026-07-30 trial run excluded, A6). Raw data is private and not in the repository.
+- Valid rows: front 11,276 of 11,632; rear 11,199 of 11,589. Failure rate (dropped readings): front 3.06%, rear 3.37%.
+- Cleaning contract (A3, A4, A5, A8, A9, A15, A17, A18; defined once in `lib/contactor_io.py` and `02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml`): counts of 256 and 252-255 are read failures; a count exceeding the cleaned list by more than 50 is dropped; `N/A` with count 0 means zero closed; list length is trusted over the count; out-of-range and duplicate IDs are removed.
+- Validation decisions per day: `01-data-quality-validation/contactor-log-validation/assets/validation_report_sep_oct_2026.md`. No whole day is excluded; front 09/09 is kept with a caveat (A16: 27.7% of its readings unusable, 65% coverage).
+
+## Method
+- Site availability = share of the 256 sites per side that are open, **time-weighted**: each reading represents the gap to the next one, capped at 15 minutes (A18). Dropped readings simply do not count.
+- Range: the **upper bound** uses the cleaned list length as the number closed; the **lower bound** uses `max(err_01, list length)` because the reported count is never below the list (A5).
+- Combined view (A12): mean of the front and rear figures, always shown next to the per-side numbers.
+- Chronic site = closed in at least 50% of valid time; clusters group neighbouring sites that are closed at least 10% of the time.
+
+## Results
+| Side | Availability (upper) | Availability (lower) | Valid samples |
+|---|---|---|---|
+| front | **91.32%** | 90.88% | 11,276 |
+| rear | **96.07%** | 95.64% | 11,199 |
+| combined (mean of sides) | 93.70% | | |
+
+- Daily range: front 86.56% (09/03) to 96.13% (09/16); rear 90.53% (09/05) to 99.68% (09/19).
+- Chronic sites: front 17 of 256 (6.6%), rear 4 of 256 (1.6%). The ten worst sites account for 40.7% of front closure time and 44.1% of rear closure time.
+- **Front**: four site clusters explain about 6.5 of the 8.7 points of lost capacity: sites 143/144/159/160/175/176/191/192 (2.67 pts), 197/198/213/214/229/230/245/246 (2.11 pts), 3/4/19/20 (1.21 pts) and 37/38/53/54/69/70 (0.51 pts).
+- **Rear**: the largest cluster is 463/464/479/480/495/496/510/511/512 (1.13 pts), then 291/292/306/307/308 (0.74 pts). Closed sets change between days (for example 479/463/480/464 on 09/21-22), so some closures are repairs or reconfigurations, not constant faults.
+- Closed sites often form aligned 2x2 blocks (rows 2k-1,2k x columns 2j-1,2j). **This is a hypothesis (A13); the physical cause is not established.**
+
+## Limitations and open items
+- **OEE is blocked.** Time availability, Performance and Quality need run-state, output, good-unit and cycle-time data (A10, A11); none exist yet. Site availability here is a capacity factor, not OEE.
+- The cost / impact estimate is **deferred** until real business parameters are supplied.
+- Unconfirmed but applied rules: A9, A12, A17, A18. Open: A11 (planned time basis), A13 (2x2 blocks), A14 (28 kept rows with counts 240-251 and a near-full list).
+- Capture quality: 2026-09-09 has repeated capture gaps on both sides (rear up to 90 min); the cause of garbled site IDs is not established; no screenshot spot-check has been done yet.
+- Metric owners and data owners are not yet named (`[OPEN]`).
+
+## Reproduce
+Run from the repository root with only `pandas` and `numpy` installed. `python 02-documentation-knowledge/analysis-documentation/scripts/doc_numbers_check.py` re-runs these commands and checks the numbers in this document.
+```bash
+python 01-data-quality-validation/contactor-log-validation/scripts/read_failure_detector.py
+python 03-data-analysis-investigation/site-availability/scripts/site_availability.py --quiet-days
+python 03-data-analysis-investigation/chronic-site-detection/scripts/chronic_sites.py --side front
+python 03-data-analysis-investigation/chronic-site-detection/scripts/chronic_sites.py --side rear
+python 03-data-analysis-investigation/downtime-time-series/scripts/daily_trend.py --side front
+python 03-data-analysis-investigation/downtime-time-series/scripts/daily_trend.py --side rear
+python 02-documentation-knowledge/semiconductor-metric-definitions/scripts/metric_yaml_validator.py --recompute
+python 02-documentation-knowledge/analysis-assumptions-log/scripts/assumptions_tracker.py check
+```
+<!-- check-numbers: 3.06 | 3.37 | 11276 | 11199 | 91.32 | 90.88 | 96.07 | 95.64 | 93.70 | 17/256 | 4/256 | 6.6% | 1.6% | 2.67 | 2.11 | 1.21 | 0.51 | 1.13 | 0.74 | 40.7 | 44.1 | 86.56 | 96.13 | 90.53 | 99.68 | OK - log consistent -->

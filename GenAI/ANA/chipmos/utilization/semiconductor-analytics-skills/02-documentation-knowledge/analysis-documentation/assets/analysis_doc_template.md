@@ -17,6 +17,8 @@
 [REQUIRED]
 
 ## Reproduce
+Repo state: [REQUIRED - `git rev-parse --short HEAD`]. Commands run from the repository root:
+```bash
+python <script path> [REQUIRED - one command per figure in Results]
 ```
-python lib/... / scripts ... [REQUIRED]
-```
+<!-- check-numbers: [REQUIRED - every headline number, separated by | ; verified by scripts/doc_numbers_check.py] -->
