@@ -188,5 +188,15 @@
     "source": "",
     "date": "",
     "note": "Analyst design choice in chronic_sites.py (--recent-days 7); thresholds not yet confirmed with the process owner"
+  },
+  {
+    "id": "A20",
+    "category": "metric",
+    "statement": "Time-series rules: anomaly flag at robust z > 2.5; a day is marked 'bad reads' at >= 5% failed readings; level shift = best single split (>= 7 days each side) with permutation p < 0.05; hour-of-day effect tested within day and re-tested without readings of >= 60 closed sites",
+    "status": "APPLIED",
+    "impact": "low",
+    "source": "",
+    "date": "",
+    "note": "Analyst design choices in daily_trend.py (a 3.5 threshold cannot fire on 32 days with ~2 pt daily noise); not confirmed with the process owner"
   }
 ]
