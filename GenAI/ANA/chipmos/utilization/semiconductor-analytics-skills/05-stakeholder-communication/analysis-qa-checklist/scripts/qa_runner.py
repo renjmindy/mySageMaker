@@ -55,6 +55,13 @@ def run(data_dir, start, near_full_min):
     errs, warns = myv.validate(yaml_path.read_text(encoding="utf-8"))
     add("metric definitions vs loader", "FAIL" if errs else "WARN" if warns else "PASS",
         "; ".join(errs) if errs else (f"{len(warns)} owner(s) not assigned" if warns else "consistent"))
+    import contextlib, io, unittest
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "03-data-analysis-investigation/oee-calculator/scripts"))
+    import test_oee_calculator as toee  # noqa: E402
+    suite = unittest.defaultTestLoader.loadTestsFromModule(toee)
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(suite)
+    add("OEE calculator unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
     return results
 
 

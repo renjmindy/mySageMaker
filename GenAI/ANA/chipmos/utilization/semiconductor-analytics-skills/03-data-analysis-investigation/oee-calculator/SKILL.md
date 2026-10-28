@@ -14,10 +14,10 @@ OEE is **not reported** until run-state, output, good-unit and cycle-time data e
 # Process
 1. **Check inputs** — run-state minutes (for time availability), total/good output, ideal cycle time. List which are missing.
 2. **Time availability (A)** — run minutes / (total minutes - planned downtime). If missing, state "blocked".
-3. **Performance (P)** — output x ideal cycle time / run minutes; fold in site capacity via effective parallelism = site availability (see `references/oee_scenarios.md`).
+3. **Performance (P)** — output x ideal cycle time / run minutes, where `ideal_cycle_min` is minutes per unit at the handler level with **all sites open**. Closed sites therefore lower P through lower output; `--site-availability` only decomposes P into a site-capacity part and a speed part and never changes OEE (see `references/oee_scenarios.md`).
 4. **Quality (Q)** — good / total.
-5. **Combine** — `scripts/oee_calculator.py`; the script reports OEE only when A, P and Q are all supplied; otherwise it prints `OEE: BLOCKED` with the missing inputs.
-6. **Sanity-check** — reproduce the doc demo (400/480 min, 380 out, 370 good = 77.1%).
+5. **Combine** — `scripts/oee_calculator.py` returns one of three statuses: **BLOCKED** (a factor is missing: no number, no partial product), **INVALID** (impossible input: negative values, good > output, run > planned, planned = 0, output without run time, Performance > 100%; exit code 2) or **OK**. A zero is a value, not "missing". An OK result is self-checked: OEE must equal good x ideal cycle / planned.
+6. **Sanity-check** — `--demo` reproduces the guide's simulator example (400/480 min, 380 out, 370 good = 77.1%); those are illustrative numbers from a screenshot, not handler data, and the 1.0 min ideal cycle is back-solved. Run `scripts/test_oee_calculator.py` after any change.
 7. **Fill `assets/oee_report_template.md`** with completeness and caveats.
 
 # Inputs the skill needs
@@ -26,5 +26,6 @@ OEE is **not reported** until run-state, output, good-unit and cycle-time data e
 - Optional: production calendar and lot types (exclude engineering/trial lots)
 
 # Output
-- Console: A, P, Q and either OEE or `BLOCKED (missing ...)`
+- Console: A, P, Q and either OEE, `BLOCKED (missing ...)` or `INVALID` with the errors
+- `scripts/test_oee_calculator.py` — unit tests (blocked, invalid, zero, identity, decomposition cases)
 - `assets/oee_report_template.md` (filled)
