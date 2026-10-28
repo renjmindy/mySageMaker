@@ -1,94 +1,131 @@
 """
-Small JSON-backed assumptions log.
+Assumptions log backed by a TRACKED JSON file (assumptions.json next to SKILL.md).
+
+Statuses: CONFIRMED (owner confirmed), APPLIED (used in the code, not explicitly
+confirmed), OPEN (undecided / not applied), DISPUTED.
 
 Usage:
     python assumptions_tracker.py list
-    python assumptions_tracker.py add --id A12 --category data --statement "..." --impact high --status OPEN
-    python assumptions_tracker.py resolve --id A8 --note "confirmed by process owner"
+    python assumptions_tracker.py add --id A19 --category data --statement "..." --impact high --status OPEN
+    python assumptions_tracker.py resolve --id A9 --source "process owner (chat)" --note "..."
+    python assumptions_tracker.py cite A8 A15 A18     # footnote text for reports
+    python assumptions_tracker.py check               # log vs loader consistency; exit 1 on problems
 """
 
 import argparse
 import json
+import sys
+from datetime import date
 from pathlib import Path
 
-LOG = Path(__file__).resolve().parents[3] / "out" / "assumptions.json"
+HERE = Path(__file__).resolve()
+LOG = HERE.parents[1] / "assumptions.json"
+sys.path.insert(0, str(HERE.parents[3] / "lib"))
 
-SEED = [
-    {"id": "A1", "category": "data", "statement": "err_01 is the number of closed sites; err_02 lists the closed site IDs", "status": "CONFIRMED", "impact": "high"},
-    {"id": "A2", "category": "data", "statement": "Blue = active/open, grey = closed", "status": "CONFIRMED", "impact": "high"},
-    {"id": "A3", "category": "data", "statement": "err_01 == 256 is a read failure; drop the sample", "status": "CONFIRMED", "impact": "high"},
-    {"id": "A4", "category": "data", "statement": "err_02 == N/A with err_01 == 0 means zero closed sites; keep", "status": "CONFIRMED", "impact": "medium"},
-    {"id": "A5", "category": "data", "statement": "Trust list length over err_01 when they disagree", "status": "CONFIRMED", "impact": "medium",
-     "note": "Data shows err_01 is never below list length -> list is a lower bound on closures"},
-    {"id": "A6", "category": "scope", "statement": "Only Sep/Oct 2026 data; 07/30 was a trial run", "status": "CONFIRMED", "impact": "low"},
-    {"id": "A7", "category": "scope", "statement": "Front = sites 1-256, rear = 257-512", "status": "CONFIRMED", "impact": "high"},
-    {"id": "A8", "category": "data", "statement": "err_01 of 252-255 is also a read failure (not caught by the == 256 rule)", "status": "CONFIRMED", "impact": "high",
-     "note": "Confirmed by process owner; applied by default (NEAR_FULL_MIN=252). Front 90.0% -> 91.3%; removes the 09/09 spike"},
-    {"id": "A9", "category": "data", "statement": "N/A with err_01 > 0 is a read failure; drop", "status": "OPEN", "impact": "low"},
-    {"id": "A10", "category": "metric", "statement": "Utilization means time-based OEE; at this stage only Availability from site closure is computable", "status": "CONFIRMED", "impact": "high",
-     "note": "OEE stays BLOCKED until run-state, output, good-unit and cycle-time data exist"},
-    {"id": "A11", "category": "metric", "statement": "Planned time = 24x7 unless a production calendar is provided", "status": "OPEN", "impact": "high",
-     "note": "Only matters once OEE is unblocked"},
-    {"id": "A12", "category": "metric", "statement": "Report front and rear separately; combined 512-site view is the mean of both", "status": "OPEN", "impact": "medium"},
-    {"id": "A14", "category": "data", "statement": "Rows with count 240-251 whose list is also near-full (count and list agree) may be read failures too", "status": "OPEN", "impact": "low",
-     "note": "11 front / 17 rear rows kept; dropping them would move availability ~+0.2 (front) / +0.3 (rear) pts - ask the process owner"},
-    {"id": "A15", "category": "data", "statement": "err_01 - list length > 50 means the list is unreadable; drop the sample", "status": "CONFIRMED", "impact": "low",
-     "note": "Agreed with process owner; MAX_COUNT_GAP=50 in lib/contactor_io.py; affects ~12 rear / 9 front rows"},
-    {"id": "A16", "category": "scope", "statement": "Front 2026-09-09 (CRITICAL by failure rate) is kept with a caveat, not excluded", "status": "CONFIRMED", "impact": "low",
-     "note": "Decided by process owner; cleaned availability 90.38% is normal; excluding the day changes the front headline by +0.01 pt"},
-    {"id": "A13", "category": "physics", "statement": "Adjacent closed sites in aligned 2x2 blocks share a physical cause (module/board)", "status": "OPEN", "impact": "medium",
-     "note": "Kept as a hypothesis by decision of the process owner - do not present as fact"},
-]
+STATUSES = ("CONFIRMED", "APPLIED", "OPEN", "DISPUTED")
 
 
 def load() -> list[dict]:
-    if LOG.exists():
-        return json.loads(LOG.read_text())
-    return [dict(a) for a in SEED]
+    items = json.loads(LOG.read_text(encoding="utf-8"))
+    return sorted(items, key=lambda a: int(a["id"][1:]))
 
 
 def save(items: list[dict]) -> None:
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    LOG.write_text(json.dumps(items, indent=2, ensure_ascii=False))
+    items = sorted(items, key=lambda a: int(a["id"][1:]))
+    LOG.write_text(json.dumps(items, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def render(items: list[dict]) -> str:
-    rows = ["| ID | Category | Statement | Status | Impact | Note |", "|---|---|---|---|---|---|"]
+    rows = ["| ID | Category | Statement | Status | Impact | Source | Date | Note |", "|---|---|---|---|---|---|---|---|"]
     for a in items:
-        rows.append(f"| {a['id']} | {a['category']} | {a['statement']} | {a['status']} | {a['impact']} | {a.get('note', '')} |")
+        rows.append(f"| {a['id']} | {a['category']} | {a['statement']} | {a['status']} | {a['impact']} | "
+                    f"{a.get('source', '')} | {a.get('date', '')} | {a.get('note', '')} |")
     return "\n".join(rows)
+
+
+def cite(items: list[dict], ids: list[str]) -> str:
+    by = {a["id"]: a for a in items}
+    lines = []
+    for i in ids:
+        a = by[i]
+        lines.append(f"{i} [{a['status']}]: {a['statement']}")
+    return "Assumptions applied:\n" + "\n".join(f"- {l}" for l in lines)
+
+
+# loader constant -> (assumption id, value that must appear in that entry's text)
+def _rule_links():
+    import contactor_io as cio
+    return {
+        "NEAR_FULL_MIN": ("A8", cio.NEAR_FULL_MIN),
+        "MAX_COUNT_GAP": ("A15", cio.MAX_COUNT_GAP),
+        "DEFAULT_MAX_GAP_MIN": ("A18", int(cio.DEFAULT_MAX_GAP_MIN)),
+    }
+
+
+def check(items: list[dict]) -> list[str]:
+    problems = []
+    by = {a["id"]: a for a in items}
+    ids = [a["id"] for a in items]
+    if len(ids) != len(set(ids)):
+        problems.append("duplicate ids")
+    for a in items:
+        if a["status"] not in STATUSES:
+            problems.append(f"{a['id']}: unknown status {a['status']}")
+        if a["status"] == "CONFIRMED" and not (a.get("source") and a.get("date")):
+            problems.append(f"{a['id']}: CONFIRMED without source/date")
+    for const, (aid, value) in _rule_links().items():
+        text = f"{by.get(aid, {}).get('statement', '')} {by.get(aid, {}).get('note', '')}"
+        if aid not in by:
+            problems.append(f"{const}: no assumption {aid}")
+        elif str(value) not in text:
+            problems.append(f"{aid}: loader {const}={value} not mentioned in the entry (drift?)")
+    return problems
 
 
 def main():
     ap = argparse.ArgumentParser(description="Assumptions log")
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("list")
+    sub.add_parser("check")
+    ct = sub.add_parser("cite")
+    ct.add_argument("ids", nargs="+")
     add = sub.add_parser("add")
     for a in ("id", "category", "statement"):
         add.add_argument(f"--{a}", required=True)
     add.add_argument("--impact", default="medium")
-    add.add_argument("--status", default="OPEN")
+    add.add_argument("--status", default="OPEN", choices=STATUSES)
+    add.add_argument("--source", default="")
     add.add_argument("--note", default="")
     res = sub.add_parser("resolve")
     res.add_argument("--id", required=True)
+    res.add_argument("--source", required=True, help="who confirmed, e.g. 'process owner (chat)'")
     res.add_argument("--note", default="")
     args = ap.parse_args()
 
     items = load()
     if args.cmd == "add":
-        items.append({"id": args.id, "category": args.category, "statement": args.statement,
-                      "status": args.status, "impact": args.impact, "note": args.note})
+        if any(a["id"] == args.id for a in items):
+            sys.exit(f"{args.id} already exists")
+        items.append({"id": args.id, "category": args.category, "statement": args.statement, "status": args.status,
+                      "impact": args.impact, "source": args.source, "date": str(date.today()) if args.source else "", "note": args.note})
         save(items)
     elif args.cmd == "resolve":
         for a in items:
             if a["id"] == args.id:
-                a["status"] = "CONFIRMED"
+                a.update(status="CONFIRMED", source=args.source, date=str(date.today()))
                 a["note"] = args.note or a.get("note", "")
         save(items)
+    elif args.cmd == "cite":
+        print(cite(items, args.ids))
+        return
+    elif args.cmd == "check":
+        problems = check(items)
+        print("OK - log consistent with the loader" if not problems else "\n".join(f"PROBLEM: {p}" for p in problems))
+        sys.exit(1 if problems else 0)
     print(render(items))
-    open_hi = [a["id"] for a in items if a["status"] == "OPEN" and a["impact"] == "high"]
+    open_hi = [a["id"] for a in items if a["status"] in ("OPEN", "APPLIED") and a["impact"] == "high"]
     if open_hi:
-        print(f"\nOPEN high-impact assumptions: {', '.join(open_hi)}")
+        print(f"\nOPEN/unconfirmed high-impact assumptions: {', '.join(open_hi)}")
 
 
 if __name__ == "__main__":

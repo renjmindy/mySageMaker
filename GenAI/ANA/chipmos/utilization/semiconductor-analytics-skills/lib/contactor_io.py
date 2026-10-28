@@ -2,7 +2,9 @@
 Shared loader for Advantest handler contactor-site logs (front / rear).
 
 Every skill script in this repo imports from here so the cleaning rules are
-defined exactly once. Rules were confirmed with the process owner:
+defined exactly once. Each rule has an id in the assumptions log
+(02-documentation-knowledge/analysis-assumptions-log/assumptions.json), which records
+whether the process owner confirmed it or it is only applied:
 
   * err_01 is the number of CLOSED (non-functional / grey) sites
   * err_02 is a ';'-separated list of closed site IDs

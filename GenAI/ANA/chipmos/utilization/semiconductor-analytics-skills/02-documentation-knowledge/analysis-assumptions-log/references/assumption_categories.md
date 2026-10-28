@@ -8,4 +8,6 @@
 | physics | why 2x2 blocks close together, whether temperature matters |
 | process | how/when the handler is scheduled, maintenance windows |
 
+Status: **CONFIRMED** = the owner confirmed it (source and date recorded); **APPLIED** = used in the code but not explicitly confirmed; **OPEN** = undecided and not applied; **DISPUTED** = contested.
+
 Impact scale: **high** = changes the headline number by > 1 pt or the conclusion; **medium** = changes ranking or a side-level number; **low** = cosmetic.

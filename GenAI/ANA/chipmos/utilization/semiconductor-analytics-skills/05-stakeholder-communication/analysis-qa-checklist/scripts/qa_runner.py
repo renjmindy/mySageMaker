@@ -13,7 +13,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "02-documentation-knowledge/analysis-assumptions-log/scripts"))
 import contactor_io as cio  # noqa: E402
+import assumptions_tracker as at  # noqa: E402
 
 
 def run(data_dir, start, near_full_min):
@@ -45,6 +47,8 @@ def run(data_dir, start, near_full_min):
         add(f"{side}: days with < 75% coverage", "PASS" if low <= 1 else "WARN", f"{low} days (last day may be partial)")
         b = cio.weighted_availability(base[side]) * 100
         add(f"{side}: effect of 252-255 + gap rules (info)", "PASS", f"{b:.2f}% (256-only) -> {wtd:.2f}% (confirmed rules)")
+    problems = at.check(at.load())
+    add("assumptions log vs loader", "PASS" if not problems else "FAIL", "consistent" if not problems else "; ".join(problems))
     return results
 
 

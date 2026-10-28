@@ -9,17 +9,17 @@ description: Track every assumption behind the handler-utilization analysis - co
 - Before a review, to show stakeholders exactly what the numbers rely on
 
 # Process
-1. **Seed the log** — start from `assets/assumptions_log_template.md`, already pre-filled with the confirmed and open items of this analysis.
-2. **Capture each assumption** — id, statement, category (`references/assumption_categories.md`), source (who confirmed), status (CONFIRMED / OPEN / DISPUTED), impact if wrong.
-3. **Track with the script** — `scripts/assumptions_tracker.py add|list|resolve` keeps a JSON log (`out/assumptions.json`) and renders Markdown.
+1. **Start from the tracked log** — `assumptions.json` (next to this file) is the single source of truth and is committed to git; `assets/assumptions_log_template.md` is the report layout.
+2. **Capture each assumption** — id, statement, category (`references/assumption_categories.md`), source and date (who confirmed, when), status (CONFIRMED / APPLIED / OPEN / DISPUTED), impact if wrong. Every rule or constant in `lib/contactor_io.py` needs an id.
+3. **Track with the script** — `scripts/assumptions_tracker.py add|list|resolve|cite|check`; `check` fails when the log drifts from the loader constants (NEAR_FULL_MIN, MAX_COUNT_GAP, 15-min weight cap) or a CONFIRMED entry has no source/date.
 4. **Quantify impact** — for OPEN items run the sensitivity (e.g. availability with the default rule vs `--near-full-min 0`) and record the delta.
-5. **Link to outputs** — every figure in reports cites assumption ids.
-6. **Review before release** — OPEN items with high impact must be raised in the stakeholder deliverable.
+5. **Link to outputs** — every figure in reports cites assumption ids (`assumptions_tracker.py cite A8 A15 A18` prints the footnote).
+6. **Review before release** — run `check`; OPEN or APPLIED-but-unconfirmed items with high impact must be raised in the stakeholder deliverable.
 
 # Inputs the skill needs
 - Required: the decisions/answers given by the process owner
 - Optional: sensitivity results for open assumptions
 
 # Output
-- `out/assumptions.json` and a rendered Markdown table
+- `assumptions.json` (tracked) and a rendered Markdown table
 - `assets/assumptions_log_template.md` (filled) — log attached to the analysis report

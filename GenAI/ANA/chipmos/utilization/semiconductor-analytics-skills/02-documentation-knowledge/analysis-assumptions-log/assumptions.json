@@ -1,0 +1,182 @@
+[
+  {
+    "id": "A1",
+    "category": "data",
+    "statement": "err_01 is the number of closed sites; err_02 lists the closed site IDs",
+    "status": "CONFIRMED",
+    "impact": "high",
+    "note": "",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A2",
+    "category": "data",
+    "statement": "Blue = active/open, grey = closed",
+    "status": "CONFIRMED",
+    "impact": "high",
+    "note": "",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A3",
+    "category": "data",
+    "statement": "err_01 == 256 is a read failure; drop the sample (252-255: A8; count-list gap: A15)",
+    "status": "CONFIRMED",
+    "impact": "high",
+    "note": "",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A4",
+    "category": "data",
+    "statement": "err_02 == N/A with err_01 == 0 means zero closed sites; keep",
+    "status": "CONFIRMED",
+    "impact": "medium",
+    "note": "",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A5",
+    "category": "data",
+    "statement": "Trust list length over err_01 when they disagree",
+    "status": "CONFIRMED",
+    "impact": "medium",
+    "note": "Data shows err_01 is never below list length -> list is a lower bound on closures; see A15 for the cut-off",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A6",
+    "category": "scope",
+    "statement": "Only Sep/Oct 2026 data; 07/30 was a trial run",
+    "status": "CONFIRMED",
+    "impact": "low",
+    "note": "",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A7",
+    "category": "scope",
+    "statement": "Front = sites 1-256, rear = 257-512",
+    "status": "CONFIRMED",
+    "impact": "high",
+    "note": "",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A8",
+    "category": "data",
+    "statement": "err_01 of 252-255 is also a read failure (not caught by the == 256 rule)",
+    "status": "CONFIRMED",
+    "impact": "high",
+    "note": "Confirmed by process owner; applied by default (NEAR_FULL_MIN=252). Front 90.0% -> 91.3%; removes the 09/09 spike",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A9",
+    "category": "data",
+    "statement": "N/A with err_01 > 0 is a read failure; drop",
+    "status": "APPLIED",
+    "impact": "low",
+    "note": "Applied in the loader (~70 rows); the owner confirmed only the N/A + 0 case",
+    "source": "",
+    "date": ""
+  },
+  {
+    "id": "A10",
+    "category": "metric",
+    "statement": "Utilization means time-based OEE; at this stage only Availability from site closure is computable",
+    "status": "CONFIRMED",
+    "impact": "high",
+    "note": "OEE stays BLOCKED until run-state, output, good-unit and cycle-time data exist",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A11",
+    "category": "metric",
+    "statement": "Planned time = 24x7 unless a production calendar is provided",
+    "status": "OPEN",
+    "impact": "high",
+    "note": "Only matters once OEE is unblocked",
+    "source": "",
+    "date": ""
+  },
+  {
+    "id": "A12",
+    "category": "metric",
+    "statement": "Report front and rear separately; combined 512-site view is the mean of both",
+    "status": "APPLIED",
+    "impact": "medium",
+    "note": "Applied: README and reports show front and rear separately; combined view is the mean of the two",
+    "source": "",
+    "date": ""
+  },
+  {
+    "id": "A13",
+    "category": "physics",
+    "statement": "Adjacent closed sites in aligned 2x2 blocks share a physical cause (module/board)",
+    "status": "OPEN",
+    "impact": "medium",
+    "note": "Kept as a hypothesis by decision of the process owner - do not present as fact",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A14",
+    "category": "data",
+    "statement": "Rows with count 240-251 whose list is also near-full (count and list agree) may be read failures too",
+    "status": "OPEN",
+    "impact": "low",
+    "note": "11 front / 17 rear rows kept; dropping them would move availability ~+0.2 (front) / +0.3 (rear) pts - ask the process owner",
+    "source": "",
+    "date": ""
+  },
+  {
+    "id": "A15",
+    "category": "data",
+    "statement": "err_01 - list length > 50 means the list is unreadable; drop the sample",
+    "status": "CONFIRMED",
+    "impact": "low",
+    "note": "Agreed with process owner; MAX_COUNT_GAP=50 in lib/contactor_io.py; affects ~12 rear / 9 front rows",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A16",
+    "category": "scope",
+    "statement": "Front 2026-09-09 (CRITICAL by failure rate) is kept with a caveat, not excluded",
+    "status": "CONFIRMED",
+    "impact": "low",
+    "note": "Decided by process owner; cleaned availability 90.38% is normal; excluding the day changes the front headline by +0.01 pt",
+    "source": "process owner (chat)",
+    "date": "2026-10-28"
+  },
+  {
+    "id": "A17",
+    "category": "data",
+    "statement": "Site IDs outside the side's range and duplicate IDs in a row are OCR noise and are removed",
+    "status": "APPLIED",
+    "impact": "low",
+    "source": "",
+    "date": "",
+    "note": "Applied in lib/contactor_io.py (_parse_ids); affects ~0.3% of front and ~1.8% of rear kept rows; cause of the garbage IDs not established"
+  },
+  {
+    "id": "A18",
+    "category": "metric",
+    "statement": "Each reading represents the gap to the next reading, capped at 15 minutes; time lost to capture gaps is not imputed",
+    "status": "APPLIED",
+    "impact": "medium",
+    "source": "",
+    "date": "",
+    "note": "DEFAULT_MAX_GAP_MIN=15 in lib/contactor_io.py; matters on days with capture gaps (e.g. rear 09/09, 90-min gap). Analyst design choice - confirm with the owner"
+  }
+]
