@@ -11,10 +11,10 @@ description: Governed definitions (dbt-semantic-layer style YAML) for site avail
 # Process
 1. **Start from the business question** — "how much of the contactor capacity is usable?" (site availability) vs "how much of planned time did the handler produce?" (time-based OEE).
 2. **Define the metric** — copy `assets/metric_definition.yaml` and fill name, formula, grain, filters, owner. See `references/oee_for_test_handlers.md` for formula variants.
-3. **Fix the cleaning contract** — every metric must state which rows are valid (see `contactor-log-validation`).
-4. **Validate the YAML** — run `scripts/metric_yaml_validator.py <file>` to check required keys.
-5. **Reconcile** — recompute the headline number with `03-data-analysis-investigation/site-availability/scripts/site_availability.py` and compare to any dashboard value.
-6. **Publish and version** — store the YAML next to the analysis; bump `version` on any rule change.
+3. **Fix the cleaning contract** — the `contract:` block lists valid and dropped statuses and the loader constants (252, 50, 15 min) and cites assumption ids; it must equal `lib/contactor_io.py`.
+4. **Validate the YAML** — run `scripts/metric_yaml_validator.py --recompute`: checks required keys, placeholder owners (FAIL for `[REQUIRED]`, WARN for `[OPEN]`), changelog for version > 1, contract vs loader, known assumption ids, and recomputes availability independently of `site_availability.py`. The QA runner runs the same check.
+5. **Reconcile** — `--recompute` compares the formula with `site_availability.py`; also compare to any dashboard value. Report the range (`site_availability_low` to `site_availability`) and the combined view only next to the per-side figures.
+6. **Publish and version** — bump `version` and add a `changelog` entry on any rule change (the validator enforces this); name a real owner to clear the `[OPEN]` warnings.
 
 # Inputs the skill needs
 - Required: the business question and decision it supports

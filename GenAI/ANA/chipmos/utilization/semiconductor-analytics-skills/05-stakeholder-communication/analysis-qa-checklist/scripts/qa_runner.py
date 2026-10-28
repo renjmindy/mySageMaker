@@ -14,8 +14,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "02-documentation-knowledge/analysis-assumptions-log/scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "02-documentation-knowledge/semiconductor-metric-definitions/scripts"))
 import contactor_io as cio  # noqa: E402
 import assumptions_tracker as at  # noqa: E402
+import metric_yaml_validator as myv  # noqa: E402
 
 
 def run(data_dir, start, near_full_min):
@@ -49,6 +51,10 @@ def run(data_dir, start, near_full_min):
         add(f"{side}: effect of 252-255 + gap rules (info)", "PASS", f"{b:.2f}% (256-only) -> {wtd:.2f}% (confirmed rules)")
     problems = at.check(at.load())
     add("assumptions log vs loader", "PASS" if not problems else "FAIL", "consistent" if not problems else "; ".join(problems))
+    yaml_path = Path(__file__).resolve().parents[3] / "02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml"
+    errs, warns = myv.validate(yaml_path.read_text(encoding="utf-8"))
+    add("metric definitions vs loader", "FAIL" if errs else "WARN" if warns else "PASS",
+        "; ".join(errs) if errs else (f"{len(warns)} owner(s) not assigned" if warns else "consistent"))
     return results
 
 

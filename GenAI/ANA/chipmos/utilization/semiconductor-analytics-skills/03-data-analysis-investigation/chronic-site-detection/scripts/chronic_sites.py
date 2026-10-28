@@ -72,6 +72,8 @@ def main():
 
     counts = share.map(classify).value_counts()
     print("\nclass counts:", counts.to_dict())
+    n_chronic = int(counts.get("chronic", 0))
+    print(f"chronic_site_rate: {n_chronic}/256 = {n_chronic / 256 * 100:.1f}%")
 
     sel = list(share[share >= args.min_share].index)
     print(f"\n=== clusters among {len(sel)} sites with share >= {args.min_share:.0%} ===")

@@ -1,5 +1,21 @@
 # Metric definitions - handler contactor utilization (dbt-semantic-layer style)
-version: 1
+# Checked by scripts/metric_yaml_validator.py against lib/contactor_io.py and the assumptions log.
+version: 2
+
+changelog:
+  - {version: 2, date: 2026-10-28, change: "Cleaning contract updated: 252-255 counts (A8) and count-list gap > 50 (A15) dropped by default; 15-min weight cap (A18) stated; lower-bound and combined metrics added. site_availability bumped to v2."}
+  - {version: 1, date: 2026-10-28, change: "Initial definitions (256 and N/A>0 dropped only)."}
+
+# Cleaning contract shared by every contactor metric. Values must equal the loader constants.
+contract:
+  name: handler_contactor_v2
+  sides: {front: "1-256", rear: "257-512"}
+  valid_status: [OK, NA_ZERO]
+  dropped_status: [READ_FAIL_256, READ_FAIL_NEAR_FULL, READ_FAIL_GAP, NA_NONZERO]
+  near_full_min: 252        # err_01 252-255 = read failure (A8)
+  max_count_gap: 50         # err_01 - list length > 50 = unreadable list (A15)
+  max_gap_min: 15           # a reading represents at most 15 minutes (A18)
+  assumptions: [A3, A4, A5, A7, A8, A9, A15, A17, A18]
 
 semantic_model:
   name: handler_contactor_samples
@@ -16,38 +32,61 @@ semantic_model:
 
 metrics:
   - name: site_availability
-    label: Site availability
-    description: Time-weighted share of the 256 sites per side that are open (blue)
+    label: Site availability (upper bound)
+    description: Time-weighted share of the 256 sites per side that are open (blue), counting closures as the cleaned list length
     type: ratio
     formula: 1 - sum(n_closed * weight_min) / (256 * sum(weight_min))
-    valid_rows: "status in (OK, NA_ZERO); drop READ_FAIL_256 and NA_NONZERO (optionally READ_FAIL_NEAR_FULL)"
     grain: [day, side]
-    owner: [REQUIRED]
-    version: 1
+    assumptions: [A5, A18]
+    owner: "[OPEN]"
+    version: 2
+
+  - name: site_availability_low
+    label: Site availability (lower bound)
+    description: Same as site_availability but closures are max(err_01, list length) capped at 256, because err_01 is never below the list length
+    type: ratio
+    formula: 1 - sum(min(256, max(err_01, n_closed)) * weight_min) / (256 * sum(weight_min))
+    grain: [day, side]
+    assumptions: [A5, A18]
+    owner: "[OPEN]"
+    version: 2
+
+  - name: site_availability_combined
+    label: Site availability, both sides
+    description: Mean of the front and rear time-weighted availabilities (512-site view). Reported next to the per-side figures, never instead of them
+    type: ratio
+    formula: (site_availability[front] + site_availability[rear]) / 2
+    grain: [period]
+    assumptions: [A12]
+    owner: "[OPEN]"
+    version: 2
 
   - name: chronic_site_rate
     label: Chronic closed-site share
-    description: Share of sites closed in >= 50% of valid samples over the period
+    description: Share of the 256 sites per side closed in >= 50% of valid time (time-weighted)
     type: ratio
     formula: count(sites with closed_share >= 0.5) / 256
     grain: [period, side]
-    owner: [REQUIRED]
-    version: 1
+    assumptions: [A5]
+    owner: "[OPEN]"
+    version: 2
 
   - name: time_availability
     label: Time availability (OEE A)
-    description: Actual run time / (total time - planned downtime). BLOCKED - needs run-state timeline
+    description: Actual run time / (total time - planned downtime). BLOCKED - needs a run-state timeline
     type: ratio
     formula: run_minutes / (total_minutes - planned_downtime_minutes)
     status: blocked
-    owner: [REQUIRED]
+    assumptions: [A10, A11]
+    owner: "[OPEN]"
     version: 1
 
   - name: oee
     label: Overall equipment effectiveness
-    description: Availability x Performance x Quality. Only Availability-type inputs exist today
+    description: Availability x Performance x Quality. BLOCKED until run-state, output, good-unit and cycle-time data exist; no partial value is reported
     type: derived
     formula: time_availability * performance * quality
     status: blocked
-    owner: [REQUIRED]
+    assumptions: [A10, A11]
+    owner: "[OPEN]"
     version: 1
