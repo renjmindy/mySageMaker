@@ -73,8 +73,8 @@ PLAIN = [  # fine for a manager
     "The report is due at 4 pm.",
 ]
 ANALYSIS = tc.esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8")
-TECH = "Front 91.32% (lower bound 90.88%, plausible range 90.57-92.08%) of positions able to test; OEE is blocked."
-PLAIN_OK = "On average 91% of front test positions were able to test. It could be as low as 90.9%, and is plausibly between 90.6% and 92.1%. OEE cannot be reported yet."
+TECH = "Front 90.85% (lower bound 86.19%, plausible range 90.25-91.43%) of positions able to test; OEE is blocked."
+PLAIN_OK = "On average 91% of front test positions were able to test. It could be as low as 86.2%, and is plausibly between 90.3% and 91.4%. OEE cannot be reported yet."
 
 
 def verdicts(technical=TECH, plain=PLAIN_OK, persona="manager", analysis=ANALYSIS):
@@ -160,9 +160,9 @@ class TestTranslationCheck(unittest.TestCase):
         self.assertEqual(verdicts(t, p.replace("9 of every", "5 of every"), analysis=ANALYSIS)["numbers kept, none invented"][0], "FAIL")
 
     def test_lost_caveats_fail(self):
-        for drop, tech in (("It could be as low as 90.9%, and ", TECH), ("OEE cannot be reported yet.", TECH)):
+        for drop, tech in (("It could be as low as 86.2%, and ", TECH), ("OEE cannot be reported yet.", TECH)):
             self.assertEqual(verdicts(plain=PLAIN_OK.replace(drop, ""))["caveats kept"][0], "FAIL", drop)
-        hyp = "Neighbouring positions failing together suggests a shared part; this is a hypothesis, not confirmed, 91.32% of positions."
+        hyp = "Neighbouring positions failing together suggests a shared part; this is a hypothesis, not confirmed, 90.85% of positions."
         self.assertEqual(verdicts(hyp, "A shared part is the cause of the 91% figure.")["caveats kept"][0], "FAIL")
 
     def test_jargon_policy_per_persona(self):
@@ -179,7 +179,7 @@ class TestTranslationCheck(unittest.TestCase):
         self.assertEqual(verdicts(plain=PLAIN_OK + " " + " ".join(["word"] * 70) + ".")["readable"][0], "FAIL")
 
     def test_technical_numbers_must_trace_to_the_analysis(self):
-        self.assertEqual(verdicts(TECH.replace("91.32%", "81.32%"), PLAIN_OK.replace("91%", "81%"))["technical numbers trace to the analysis document"][0], "FAIL")
+        self.assertEqual(verdicts(TECH.replace("90.85%", "80.85%"), PLAIN_OK.replace("91%", "81%"))["technical numbers trace to the analysis document"][0], "FAIL")
 
     def test_money_figures_fail_while_impact_is_deferred(self):
         self.assertEqual(verdicts(plain=PLAIN_OK + " That is worth $5,000 a month.")["no money or throughput figures while impact is deferred"][0], "FAIL")

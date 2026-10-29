@@ -46,6 +46,16 @@ def garbage_tokens(side: str, data_dir, start: str, near_full_min: int = cio.NEA
     return counter, ignored
 
 
+def by_month(ok) -> dict:
+    """Per month: share of readable rows with an out-of-range ID, and share of all listed numbers that are out of range."""
+    out = {}
+    for m, g in ok.groupby(ok["timestamp"].dt.strftime("%Y-%m")):
+        listed = int(g["n_closed"].sum() + g["n_oob"].sum() + g["n_dup"].sum())
+        out[m] = {"rows_pct": round(float((g["n_oob"] > 0).mean() * 100), 1),
+                  "numbers_pct": round(float(g["n_oob"].sum() / listed * 100), 1) if listed else 0.0}
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="Validate site IDs in contactor logs")
     ap.add_argument("--data-dir", default=None)
@@ -61,6 +71,8 @@ def main():
         print(f"rows with out-of-range IDs : {(ok['n_oob'] > 0).sum()} ({(ok['n_oob'] > 0).mean() * 100:.1f}%)")
         print(f"total out-of-range IDs     : {int(ok['n_oob'].sum())}")
         print(f"rows with duplicate IDs    : {(ok['n_dup'] > 0).sum()} ({(ok['n_dup'] > 0).mean() * 100:.1f}%)")
+        for m, s in by_month(ok).items():
+            print(f"out-of-range IDs {m}: {s['rows_pct']}% of readable rows, {s['numbers_pct']}% of all listed numbers")
         tokens, ignored = garbage_tokens(side, args.data_dir, args.start)
         print(f"most common garbage tokens (kept rows only): {tokens.most_common(args.top)}")
         print(f"garbage tokens ignored because their row is a dropped read failure: {ignored}")

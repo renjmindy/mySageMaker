@@ -1,4 +1,4 @@
-# Visualization Spec - Handler test positions report, 2026-09-01 to 2026-10-02
+# Visualization Spec - Handler test positions report, 2026-09-01 to 2026-10-21
 
 - **Question answered**: How many test positions can test, where are the closed ones **now**, and which should be looked at first?
 - **Audience**: fab / equipment engineers and operations managers; read on a desktop or a phone.

@@ -14,18 +14,20 @@
 - Checks and rules were built without measuring what they catch: the QA gate, the alert rules, the jargon detector, a requirements check that could not fail (L9, L10, L11, L14).
 - Plan inputs were first set by code size and by an owner rule that nothing satisfied (L17, L18).
 - The scripts that produce the published numbers have no unit tests of their own (L22).
+- New data crashed the full QA gate because tests typed the earlier period's numbers, a gate rule could not tell October's noise from a swapped-sides file, and nothing compared the count with the list (L23, L24, L25).
 
 ## Surprises
 - A correction was itself wrong (L7).
 - This skill's own example cited a check that does not exist (L20).
 - Counts of 252 to 255 carried no flag, so a read artefact looked like a real shutdown of positions until a mean of 75 closed raised the question (L1).
 - The period ranking pointed at the wrong positions on the rear side (L8).
+- A constant 40-site gap appeared on both captures within two minutes of each other on 2026-10-05 and moved the lower bound by about 4 points while the headline moved by under half a point (L24).
 
 ## Lessons by class
 Computed from the log; `scripts/learnings_check.py --table` prints it and the checker rejects a table that disagrees. A repeat means the same class of defect came back after a lesson was logged.
 | class | learnings | repeats | encoded | documented | open |
 |---|---|---|---|---|---|
-| blind-check | 6 | 0 | 5 | 0 | 1 |
+| blind-check | 9 | 1 | 7 | 1 | 1 |
 | data-pitfall | 3 | 0 | 3 | 0 | 0 |
 | doc-drift | 8 | 2 | 6 | 2 | 0 |
 | over-claim | 3 | 0 | 2 | 1 | 0 |
@@ -43,6 +45,7 @@ Role comes from the stakeholder map; ask is a question in the registry the inter
 | A4 | Add unit tests for site_availability.py, chronic_sites.py and daily_trend.py that break one rule at a time, then for the other script folders without tests | analyst | - | no deadline set | L22 | open |
 | A5 | Ask whether the handler can export the list of closed positions directly instead of it being read from the screen | data / capture owner | data source facts | no deadline set | L1, L2, L3 | open |
 | A6 | Hold this retrospective with the process owner and the equipment lead, and add what they found | process owner | stakeholder names | no deadline set | - | open |
+| A7 | Add a check that fails when a test file contains a headline value that appears in the analysis document | analyst | - | no deadline set | L25 | open |
 
 ## Limits
 - This was written by the analyst alone. No session has been held with the process owner, the equipment lead or any reader (A6), so what surprised or hurt them is not here.

@@ -12,8 +12,8 @@ Last verified against the data: 2026-10-28.
 | Cadence | about every 4 minutes (median gap 4.0 min, measured, Sep-Oct). Every gap over 15 minutes falls on 2026-09-09: front has 15 gaps of 17-22 min, rear has 11 gaps of 16-90 min (several at 90). Not an owner-documented value |
 | Location / naming | `dat/contactor_YYYYMMDD.csv` (front) and `dat/contactor_rear_YYYYMMDD.csv` (rear), one file per calendar day; also delivered as zips `Chipmos FDC Front.zip` and `Chipmos FDC Rare.zip` (sic) with the same 32 files each. `dat/` is private and git-ignored |
 | Format | CSV, UTF-8 with BOM, LF line endings, header `Timestamp,err_01,err_02` |
-| History | Front 2026-07-30 (trial) and 2026-09-01 to 2026-10-02 15:14; rear 2026-09-01 to 2026-10-02 15:12. No rear file for 07/30. Earlier history **[OPEN]** |
-| Volume (Sep-Oct) | front 11,632 rows (32 files); rear 11,589 rows (32 files) |
+| History | Front 2026-07-30 (trial) and 2026-09-01 to 2026-10-21 18:24; rear 2026-09-01 to 2026-10-21 18:22. No rear file for 07/30. Earlier history **[OPEN]** |
+| Volume (Sep-Oct) | front 17,498 rows (51 files); rear 17,454 rows (51 files) |
 | Known exclusions | 2026-07-30 is a trial run (lot TRIAL, 64 devices) - excluded from analysis (assumption A6) |
 | Time zone | **[OPEN]** - timestamps are naive, minute resolution |
 | Refresh path / SLA | **[OPEN]** - no schedule, retention or latency guarantee known |
@@ -38,19 +38,20 @@ Columns are named `err_01`/`err_02` but are **not** error codes: they hold the c
 ## Quality profile (Sep-Oct 2026, after cleaning)
 | | front | rear |
 |---|---|---|
-| Read-failure rate (256, 252-255, gap > 50, `N/A` with count > 0) | 3.06% | 3.37% |
-| Valid rows | 11,276 | 11,199 |
-| Rows kept with count > list length | 10.0% | 6.8% |
-| Time-weighted site availability (list-based / lower bound) | 91.32% / 90.88% | 96.07% / 95.64% |
-| Rows kept with out-of-range IDs | 0.3% | 1.8% |
+| Read-failure rate (256, 252-255, gap > 50, `N/A` with count > 0) | 2.80% | 2.97% |
+| Valid rows | 17,008 | 16,936 |
+| Rows kept with count > list length | 33.3% | 29.2% |
+| Readings from 2026-10-05 12:41 with the count a constant ~40 above everything listed (A21, open) | 70.4% | 66.1% |
+| Time-weighted site availability (list-based / lower bound) | 90.85% / 86.19% | 95.99% / 91.46% |
+| Rows kept with out-of-range IDs (September / October) | 0.2% / 4.7% | 1.8% / 20.9% |
 
-Cleaning is done only in `lib/contactor_io.py`. Rules, evidence and open findings: `01-data-quality-validation/contactor-log-validation/references/log_semantics.md`; per-day decisions: `.../assets/validation_report_sep_oct_2026.md`; assumption IDs A1-A18: `02-documentation-knowledge/analysis-assumptions-log/assumptions.json`.
+Cleaning is done only in `lib/contactor_io.py`. Rules, evidence and open findings: `01-data-quality-validation/contactor-log-validation/references/log_semantics.md`; per-day decisions: `.../assets/validation_report_sep_oct_2026.md`; assumption IDs A1-A21: `02-documentation-knowledge/analysis-assumptions-log/assumptions.json`.
 
 ## Known quirks
 - Counts of 252-256 are screen-read failures, not "all sites closed".
-- `err_01` is never below the cleaned list length, so the list is a lower bound on closures.
-- 2026-09-09 has repeated capture gaps on both sides (front up to 22 min, rear up to 90 min, 54% rear coverage); 2026-10-02 is a partial day.
-- 28 kept rows with counts 240-251 and a near-full list are unresolved (A14).
+- `err_01` is never below the cleaned list length, so the list is a lower bound on closures. **Since 2026-10-05 12:41 the count is a constant ~40 above the list on about two thirds of readings (A21, open): the list is trusted (A5) and the count-based lower bound is shown beside the list-based figure.**
+- 2026-09-09 has repeated capture gaps on both sides (front up to 22 min, rear up to 90 min, 54% rear coverage); 2026-10-02 is a partial day on both sides (readings stop at about 15:12 and resume after midnight); 2026-10-15 has 5.6-6.3% unusable readings.
+- 38 kept rows (12 front, 26 rear) with counts 240-251 and a near-full list are unresolved (A14).
 
 ## Not available in this source (needed for full OEE)
 Run / idle / jam / down state timeline, planned production time, tested and good unit counts, ideal cycle time. OEE is blocked until these exist (A10, A11).

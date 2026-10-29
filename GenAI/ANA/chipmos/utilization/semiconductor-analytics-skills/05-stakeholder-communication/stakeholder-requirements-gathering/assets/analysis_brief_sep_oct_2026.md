@@ -4,8 +4,8 @@
 
 - **Business question**: How much of the handler's contactor capacity can test, where is it lost, and is it changing - so that the right closed groups are inspected first.
 - **Decision / owner**: which closed groups to inspect or replace first, owned by the equipment / maintenance lead ([OPEN] name); data meaning and cleaning rules owned by the process owner ([OPEN] name). Roles and decision rights: `assets/stakeholder_map_sep_oct_2026.md`.
-- **Scope**: one handler (ID `unspecified` in the logs; M6242 appears only in the 07/30 screenshots), front positions 1-256 and rear 257-512, 2026-09-01 to 2026-10-02; the 07/30 trial run is excluded (A6). Capacity here means the share of positions able to test; it is not OEE.
-- **Definitions agreed**: `02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml` (version 5) and the assumptions log: 11 confirmed, 6 applied but unconfirmed (A9, A12, A17, A18, A19, A20), 3 open (A11, A13, A14).
+- **Scope**: one handler (ID `unspecified` in the logs; M6242 appears only in the 07/30 screenshots), front positions 1-256 and rear 257-512, 2026-09-01 to 2026-10-21; the 07/30 trial run is excluded (A6). Capacity here means the share of positions able to test; it is not OEE.
+- **Definitions agreed**: `02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml` (version 6) and the assumptions log: 12 confirmed, 5 applied but unconfirmed (A9, A12, A18, A19, A20), 4 open (A11, A13, A14, A21).
 
 ## Data feeds
 | Feed | Status | Note |
@@ -43,5 +43,5 @@ Each is testable and mapped to a requirement in `assets/requirements_sep_oct_202
 - Screen-read quality: failed and garbled readings (about 3% dropped; some unflagged bands remain, A14).
 - No ground truth: no screenshots or maintenance records to check closed groups and events against.
 - OEE blocked: the stated goal (time-based utilization) cannot be met without the missing feeds.
-- Short history: 32 days give low power; a shift under about 2 points cannot be detected.
-- Applied-but-unconfirmed rules (A9, A12, A17, A18, A19, A20) could change statuses and a few tenths of a point.
+- Short history: 51 days give low power; a shift under about 2 points cannot be detected.
+- Applied-but-unconfirmed rules (A9, A12, A18, A19, A20) could change statuses and a few tenths of a point.

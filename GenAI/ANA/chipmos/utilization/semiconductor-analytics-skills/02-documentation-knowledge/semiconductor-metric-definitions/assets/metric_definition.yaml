@@ -1,8 +1,9 @@
 # Metric definitions - handler contactor utilization (dbt-semantic-layer style)
 # Checked by scripts/metric_yaml_validator.py against lib/contactor_io.py and the assumptions log.
-version: 5
+version: 6
 
 changelog:
+  - {version: 6, date: 2026-10-29, change: "Data extended to 2026-10-21. A17 confirmed by the process owner. The lower bound is shown beside the list-based figure because since 2026-10-05 the count exceeds the list by a constant ~40 (open question A21); the process owner decided to keep trusting the list length (A5). No formula or code change."}
   - {version: 5, date: 2026-10-29, change: "Corrected the weighting description: a dropped reading's own time is not counted; only capture gaps (missing rows) are carried forward, for at most 15 min (A18). No formula or code change."}
   - {version: 4, date: 2026-10-28, change: "Clarified weighting: a valid reading is carried forward to the next reading (across dropped readings and gaps) up to 15 min (A18); no formula change."}
   - {version: 3, date: 2026-10-28, change: "Added currently_closed_site_rate (recency, A19)."}
@@ -46,7 +47,7 @@ metrics:
 
   - name: site_availability_low
     label: Site availability (lower bound)
-    description: Same as site_availability but closures are max(err_01, list length) capped at 256, because err_01 is never below the list length
+    description: Same as site_availability but closures are max(err_01, list length) capped at 256, because err_01 is never below the list length. Since 2026-10-05 the count is about 40 above the list on most readings (open question A21), so this figure is far below the list-based one; both are always shown
     type: ratio
     formula: 1 - sum(min(256, max(err_01, n_closed)) * weight_min) / (256 * sum(weight_min))
     grain: [day, side]

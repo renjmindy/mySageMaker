@@ -22,7 +22,7 @@ ANALYSIS = mc.esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8")
 YAML = mc.CONTRACT.read_text(encoding="utf-8")
 GUIDE = mc.GUIDE.read_text(encoding="utf-8")
 CANON = mc.CANONICAL.read_text(encoding="utf-8")
-EFFECTS = {"A8": 1.31, "A15": 0.01, "A18": 0.66}
+EFFECTS = mc.rule_effects()  # measured from the data, so the test follows the data instead of typing today's effects
 
 
 def run(slide=SLIDE, writeup=WRITEUP, blank=BLANK, analysis=ANALYSIS, yaml=YAML, effects=EFFECTS, guide=GUIDE, canon=CANON):
@@ -50,7 +50,7 @@ class TestMethodologyCheck(unittest.TestCase):
         self.assertEqual(run(writeup=rep(WRITEUP, "| 252 |", "| 250 |"))["rules carry the loader's constants"][0], "FAIL")
 
     def test_stated_effect_must_match_the_measurement(self):
-        self.assertEqual(run(writeup=rep(WRITEUP, "raises it by 1.3 pts", "raises it by 2.9 pts"))["stated effects equal the measured effects"][0], "FAIL")
+        self.assertEqual(run(writeup=rep(WRITEUP, "raises it by 0.77 pts", "raises it by 2.9 pts"))["stated effects equal the measured effects"][0], "FAIL")
 
     def test_the_slide_must_name_the_rules_that_move_the_number_most(self):
         self.assertEqual(run(slide=rep(SLIDE, "(rules A8, A18)", "(rules A3)"))["the slide names the two rules that move the number most"][0], "FAIL")
@@ -75,14 +75,14 @@ class TestMethodologyCheck(unittest.TestCase):
         self.assertEqual(df.loc["10:24", "weight_min"], mc.cio.DEFAULT_MAX_GAP_MIN)  # a 20-minute capture gap counts for 15
 
     def test_untraceable_numbers_fail(self):
-        self.assertEqual(run(slide=rep(SLIDE, "front 90.6-92.1%", "front 85.5-92.1%"))["numbers traceable to the analysis document"][0], "FAIL")
+        self.assertEqual(run(slide=rep(SLIDE, "front 90.3-91.4%", "front 70.1-91.4%"))["numbers traceable to the analysis document"][0], "FAIL")
 
     def test_slide_numbers_must_appear_in_the_write_up(self):
         self.assertEqual(run(slide=SLIDE + "\n- Extra: 0.61 points.")["slide numbers also appear in the write-up"][0], "FAIL")
 
     def test_slide_must_be_short_and_plain(self):
         self.assertEqual(run(slide=SLIDE + "\n" + "word " * 40)["slide is short"][0], "FAIL")
-        self.assertEqual(run(slide=rep(SLIDE, "at least this much", "a lower bound"))["slide in plain language"][0], "FAIL")
+        self.assertEqual(run(slide=rep(SLIDE, "This is not OEE", "A lower bound, not OEE"))["slide in plain language"][0], "FAIL")
 
     def test_limits_must_be_stated(self):
         self.assertEqual(run(writeup=rep(WRITEUP, "this is a hypothesis", "this is an idea"))["limits stated (lower bound, range, hypothesis, not OEE)"][0], "FAIL")

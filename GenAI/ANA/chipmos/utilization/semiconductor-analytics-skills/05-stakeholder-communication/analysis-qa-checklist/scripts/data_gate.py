@@ -46,7 +46,8 @@ EXPECTED_PER_DAY = 360          # ~4 min cadence
 DAY_FAIL_REVIEW_PCT = 5.0       # validation_rules.md: HIGH
 OVERALL_FAIL_PCT = 15.0         # validation_rules.md: CRITICAL
 COVERAGE_REVIEW_PCT = 75.0
-OOR_WARN, OOR_FAIL = 10.0, 25.0 # % of readable rows in a day with out-of-range IDs
+OOR_WARN, OOR_FAIL = 10.0, 25.0 # WARN: % of a day's readable rows with an out-of-range ID; FAIL: % of a day's listed numbers out of range (a swapped-sides file is ~100%)
+GAP_BIG, GAP_DAY_PCT = 10, 20.0 # a reading's count more than GAP_BIG above its listed numbers; flag a day when this holds for >= GAP_DAY_PCT % of its valid readings
 BAND_WARN, BAND_FAIL = 0.5, 2.0 # % of valid rows with err_01 in [240, near-full)
 HEADLINE_NOISE_PTS = 1.5
 
@@ -118,10 +119,29 @@ def data_checks(data_dir=None, start: str = cio.DEFAULT_START, near_full_min: in
                 else f"not in the validation report: {', '.join(unreviewed)}")
 
         ok_rows = d[d["status"] == "OK"]
-        oor = (ok_rows.assign(o=ok_rows["n_oob"] > 0).groupby("day")["o"].mean() * 100) if len(ok_rows) else pd.Series(dtype=float)
-        worst = float(oor.max()) if len(oor) else 0.0
-        add(f"{side}: site IDs belong to this side", "PASS" if worst < OOR_WARN else "WARN" if worst < OOR_FAIL else "FAIL",
-            f"worst day {worst:.1f}% of readings with out-of-range IDs" + (f" ({oor.idxmax()})" if worst >= OOR_WARN else ""))
+        if len(ok_rows):
+            by_day = ok_rows.groupby("day")
+            oor = by_day["n_oob"].apply(lambda s: float((s > 0).mean() * 100))
+            listed = by_day["n_closed"].sum() + by_day["n_oob"].sum() + by_day["n_dup"].sum()
+            tok = (by_day["n_oob"].sum() / listed.where(listed > 0) * 100).fillna(0.0)
+        else:
+            oor = tok = pd.Series(dtype=float)
+        worst_rows = float(oor.max()) if len(oor) else 0.0
+        worst_tok = float(tok.max()) if len(tok) else 0.0
+        # many readings with a stray number is noise (WARN, A17 removes them); a day where a large share of the listed
+        # numbers is out of range looks like the wrong side's file (FAIL)
+        add(f"{side}: site IDs belong to this side", "FAIL" if worst_tok >= OOR_FAIL else "WARN" if max(worst_rows, worst_tok) >= OOR_WARN else "PASS",
+            f"worst day {worst_rows:.1f}% of readings carry an out-of-range ID" + (f" ({oor.idxmax()})" if worst_rows >= OOR_WARN else "") +
+            f"; worst day {worst_tok:.1f}% of listed numbers are out of range" + (f" ({tok.idxmax()})" if worst_tok >= OOR_WARN else ""))
+
+        # the count (err_01) against everything listed: a constant gap is not noise (open question A21); the headline trusts the list (A5)
+        vg = d[d["valid"]].assign(gap=lambda x: x["err_01"] - x["n_closed"] - x["n_oob"] - x["n_dup"])
+        gap_days = (vg.groupby("day")["gap"].apply(lambda s: float((s > GAP_BIG).mean() * 100)) if len(vg) else pd.Series(dtype=float))
+        late = gap_days[gap_days >= GAP_DAY_PCT]
+        add(f"{side}: count and list agree", "PASS" if late.empty else "WARN",
+            "no day where the count exceeds the listed numbers by more than " + f"{GAP_BIG} on >= {GAP_DAY_PCT:.0f}% of readings" if late.empty
+            else f"{len(late)} day(s) from {late.index[0]} where >= {GAP_DAY_PCT:.0f}% of readings have a count more than {GAP_BIG} above the listed numbers "
+                 f"(worst {late.max():.0f}% on {late.idxmax()}); the headline trusts the list, the lower bound counts the gap (open question A21)")
 
         band = float(((v["err_01"] >= 240) & (v["err_01"] < (near_full_min or 256))).mean() * 100) if len(v) else 0.0
         add(f"{side}: unflagged near-full band (A14 type)", "PASS" if band < BAND_WARN else "WARN" if band < BAND_FAIL else "FAIL",
@@ -140,6 +160,10 @@ def data_checks(data_dir=None, start: str = cio.DEFAULT_START, near_full_min: in
             delta = high - b["availability_high"]
             add(f"{side}: headline vs the last release", "PASS" if abs(delta) <= HEADLINE_NOISE_PTS else "WARN",
                 f"{high:.2f}% vs {b['availability_high']:.2f}% ({delta:+.2f} pts; > {HEADLINE_NOISE_PTS} needs an explanation)")
+            # the count-based lower bound can move a lot while the list-based headline barely does (open question A21)
+            low_delta = low - b["availability_low"]
+            add(f"{side}: lower bound vs the last release", "PASS" if abs(low_delta) <= HEADLINE_NOISE_PTS else "WARN",
+                f"{low:.2f}% vs {b['availability_low']:.2f}% ({low_delta:+.2f} pts; > {HEADLINE_NOISE_PTS} needs an explanation)")
         else:
             add(f"{side}: data has not gone backwards since the last release", "WARN", "no release baseline (run data_gate.py --update-baseline)")
 

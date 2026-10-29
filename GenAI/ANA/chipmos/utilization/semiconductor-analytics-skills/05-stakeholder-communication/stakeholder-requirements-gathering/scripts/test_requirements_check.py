@@ -57,7 +57,10 @@ class TestRequirementsCheck(unittest.TestCase):
     def test_brief_fields_scope_and_counts(self):
         self.assertEqual(run(brief=rep(BRIEF, "- **Business question**:", "- Question:"))["brief has every field and section"][0], "FAIL")
         self.assertEqual(run(brief=BRIEF.replace("07/30", "an earlier day"))["scope names sides, period and the trial-run exclusion"][0], "FAIL")
-        self.assertEqual(run(brief=rep(BRIEF, "11 confirmed", "12 confirmed"))["assumption counts in the brief match the log"][0], "FAIL")
+        end = rc.re.search(r"Period: \d{4}-\d\d-\d\d to (\d{4}-\d\d-\d\d)", rc.ANALYSIS.read_text(encoding="utf-8")).group(1)
+        self.assertEqual(run(brief=BRIEF.replace(end, "2026-01-01"))["scope names sides, period and the trial-run exclusion"][0], "FAIL")
+        n = sum(1 for x in LOG if x["status"] == "CONFIRMED")  # derived from the log: no count is typed here
+        self.assertEqual(run(brief=rep(BRIEF, f"{n} confirmed", f"{n + 1} confirmed"))["assumption counts in the brief match the log"][0], "FAIL")
 
     def test_a_confirmed_brief_needs_a_name_and_date(self):
         self.assertEqual(run(brief=rep(BRIEF, "**Status**: DRAFT - not confirmed.", "**Status**: CONFIRMED."))["brief confirmation"][0], "FAIL")
@@ -65,7 +68,7 @@ class TestRequirementsCheck(unittest.TestCase):
         self.assertEqual(run(brief=ok)["brief confirmation"][0], "PASS")
 
     def test_stakeholder_map_rules(self):
-        blank = "\n".join((l.rsplit("|", 2)[0] + "| |") if l.startswith("| process owner |") and "(A1-A20)" in l else l for l in MAP.splitlines())
+        blank = "\n".join((l.rsplit("|", 2)[0] + "| |") if l.startswith("| process owner |") and "(A1-A21)" in l else l for l in MAP.splitlines())
         self.assertEqual(run(mp=blank)["stakeholder map has roles with decision rights"][0], "FAIL")
         self.assertEqual(run(mp=rep(MAP, '"Process owner" in the assumptions log (`source: process owner (chat)`) means', '"Process owner" is'))["process owner is a defined role, not just a label"][0], "FAIL")
         self.assertEqual(run(mp=rep(MAP, "| analysis document and metric definitions | analyst | process owner |", "| analysis document and metric definitions | analyst | nobody |"))["every accountable role exists"][0], "FAIL")

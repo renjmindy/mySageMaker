@@ -39,6 +39,12 @@ def rep(text, old, new):
     return text.replace(old, new, 1)
 
 
+# anchors read from the stored spec, so a regenerated spec needs no edit here
+import re as _re  # noqa: E402
+GL = _re.search(r"\| GROUP_LONG \|.*?\| (\d+\.\d+) \| (\d+\.\d+) \| ticket", SPEC).groups()
+REJECTED_FRONT = _re.search(r"would alert (\d+\.\d+) per week on the front", SPEC).group(1)
+
+
 class TestDashboardSpecCheck(unittest.TestCase):
     def test_real_spec_has_no_failures(self):
         self.assertEqual([n for n, (s, _) in run().items() if s == "FAIL"], [])
@@ -81,14 +87,14 @@ class TestDashboardSpecCheck(unittest.TestCase):
         self.assertEqual(run(s)["headline and closed-now panels match the analysis"][0], "FAIL")
 
     def test_alert_rate_must_equal_the_backtest(self):
-        self.assertEqual(run(rep(SPEC, "| 1.75 | 0.88 |", "| 0.10 | 0.88 |"))["alerts backtested, tolerable and actionable"][0], "FAIL")
+        self.assertEqual(run(rep(SPEC, f"| {GL[0]} | {GL[1]} |", f"| 0.10 | {GL[1]} |"))["alerts backtested, tolerable and actionable"][0], "FAIL")
 
     def test_page_severity_needs_a_low_rate(self):
-        s = rep(SPEC, "| 1.75 | 0.88 | ticket |", "| 1.75 | 0.88 | page |")
+        s = rep(SPEC, f"| {GL[0]} | {GL[1]} | ticket |", f"| {GL[0]} | {GL[1]} | page |")
         self.assertEqual(run(s)["alerts backtested, tolerable and actionable"][0], "FAIL")
 
     def test_rejected_rule_numbers_are_checked(self):
-        self.assertEqual(run(rep(SPEC, "17.06 per week", "5.00 per week"))["rejected-rule numbers equal the backtest"][0], "FAIL")
+        self.assertEqual(run(rep(SPEC, f"{REJECTED_FRONT} per week", "5.00 per week"))["rejected-rule numbers equal the backtest"][0], "FAIL")
 
     def test_stale_term_fails(self):
         self.assertEqual(run(SPEC + "\nSee site_state_events.")["no stale terms"][0], "FAIL")

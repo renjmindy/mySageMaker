@@ -99,7 +99,8 @@ class TestHelpers(unittest.TestCase):
 
 class TestContextCheck(unittest.TestCase):
     def test_real_package_has_no_failures_with_a_real_recomputation(self):
-        r = {n: (s, d) for n, s, d in cc.check(PKG)}
+        # the pipeline-freshness item depends on how the last real run ended; it has its own synthetic tests
+        r = {n: (s, d) for n, s, d in cc.check(PKG, check_pipeline=False)}
         self.assertEqual([n for n, (s, _) in r.items() if s == "FAIL"], [])
 
     def test_the_package_is_orienting_and_in_budget(self):
@@ -141,9 +142,10 @@ class TestContextCheck(unittest.TestCase):
 
     def test_headline_must_equal_a_recomputation(self):
         name = "the headline in the package equals a recomputation from the data"
-        self.assertEqual(run(mut(PKG, "| front | 91.32%", "| front | 90.10%"))[name][0], "FAIL")
-        self.assertEqual(run(mut(PKG, "| rear | 96.07% | 95.64%", "| rear | 96.07% | 94.00%"))[name][0], "FAIL")
-        self.assertEqual(run(mut(PKG, "20 of 256", "2 of 256"))[name][0], "FAIL")
+        fr, rr = FRESH["sides"]["front"], FRESH["sides"]["rear"]
+        self.assertEqual(run(mut(PKG, f"| front | {fr['availability']:.2f}%", "| front | 1.00%"))[name][0], "FAIL")
+        self.assertEqual(run(mut(PKG, f"| rear | {rr['availability']:.2f}% | {rr['lower_bound']:.2f}%", f"| rear | {rr['availability']:.2f}% | 1.00%"))[name][0], "FAIL")
+        self.assertEqual(run(mut(PKG, f"{fr['closed_now']} of 256", f"{fr['closed_now'] + 7} of 256"))[name][0], "FAIL")
         self.assertEqual(run(mut(PKG, "| rear |", "| aft |"))[name][0], "FAIL")
 
     def test_a_stale_pipeline_fails_unless_the_caller_skips_it(self):

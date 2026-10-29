@@ -32,6 +32,7 @@ import deferral  # noqa: E402
 import open_questions as oq  # noqa: E402
 
 BRIEF = BASE / "assets" / "analysis_brief_sep_oct_2026.md"
+ANALYSIS = ROOT / "02-documentation-knowledge/analysis-documentation/assets/handler_utilization_analysis_sep_oct_2026.md"
 REQS = BASE / "assets" / "requirements_sep_oct_2026.md"
 MAP = BASE / "assets" / "stakeholder_map_sep_oct_2026.md"
 GUIDE = oq.GUIDE
@@ -75,8 +76,11 @@ def check(brief: str, reqs: str, stakeholders: str, guide: str, skill: str, regi
     missing = [f for f in BRIEF_FIELDS if f"**{f}**" not in brief] + [s for s in BRIEF_SECTIONS if not section(brief, s)]
     add("brief has every field and section", "PASS" if not missing else "FAIL", ", ".join(missing))
     scope = re.search(r"\*\*Scope\*\*:(.*)", brief)
-    ok = bool(scope) and all(x in scope.group(1) for x in ("2026-09-01", "2026-10-02", "07/30")) and "front" in scope.group(1) and "rear" in scope.group(1)
-    add("scope names sides, period and the trial-run exclusion", "PASS" if ok else "FAIL")
+    # the period comes from the analysis document (the brief must not name a different one); it is no longer typed here
+    period = re.search(r"\*\*Period\*\*|Period: (\d{4}-\d\d-\d\d) to (\d{4}-\d\d-\d\d)", ANALYSIS.read_text(encoding="utf-8")) if ANALYSIS.exists() else None
+    dates = period.groups() if period and period.group(1) else ("2026-09-01", "2026-10-02")
+    ok = bool(scope) and all(x in scope.group(1) for x in (*dates, "07/30")) and "front" in scope.group(1) and "rear" in scope.group(1)
+    add("scope names sides, period and the trial-run exclusion", "PASS" if ok else "FAIL", "" if ok else f"the brief's scope must name {dates[0]} to {dates[1]} (the analysis document's period)")
     by = {}
     for a in assumptions:
         by[a["status"]] = by.get(a["status"], 0) + 1

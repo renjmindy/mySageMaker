@@ -116,6 +116,48 @@ class TestDataGate(unittest.TestCase):
         p = copy(); shutil.copy(p / "contactor_rear_20260902.csv", p / "contactor_20260902.csv")
         self.assertEqual(status(gate(p), "front: site IDs belong to this side"), "FAIL")
 
+    def test_stray_numbers_in_many_readings_are_a_warning_not_a_swapped_file(self):
+        """October-type noise: 2 of 5 readings carry one stray number among 7 listed (about 6% of the listed numbers)."""
+        p = copy(); ids = ";".join(map(str, FRONT_IDS))
+        rows = [f"{r.split(',')[0]},7,{ids};999" if i % 5 in (1, 2) and not r.split(",")[1] == "256" else r
+                for i, r in enumerate(day_rows(date(2026, 9, 4), FRONT_IDS))]
+        write(p / "contactor_20260904.csv", rows)
+        res = gate(p)
+        self.assertEqual(status(res, "front: site IDs belong to this side"), "WARN")
+        self.assertIn("of readings carry an out-of-range ID", res["front: site IDs belong to this side"][1])
+
+    def test_a_day_where_a_third_of_the_listed_numbers_are_out_of_range_fails(self):
+        p = copy(); ids = ";".join(map(str, FRONT_IDS))
+        rows = [r if r.split(",")[1] == "256" else f"{r.split(',')[0]},9,{ids};991;992;993" for r in day_rows(date(2026, 9, 4), FRONT_IDS)]
+        write(p / "contactor_20260904.csv", rows)
+        self.assertEqual(status(gate(p), "front: site IDs belong to this side"), "FAIL")
+
+    def test_a_constant_gap_between_the_count_and_the_list_is_flagged(self):
+        """The October pattern: the count is 40 above the listed IDs on every reading of a day (kept: below the gap-rule limit of 50)."""
+        p = copy(); ids = ";".join(map(str, FRONT_IDS))
+        rows = [r if r.split(",")[1] == "256" else f"{r.split(',')[0]},{len(FRONT_IDS) + 40},{ids}" for r in day_rows(date(2026, 9, 4), FRONT_IDS)]
+        write(p / "contactor_20260904.csv", rows)
+        res = gate(p)
+        self.assertEqual(status(res, "front: count and list agree"), "WARN")
+        self.assertIn("A21", res["front: count and list agree"][1])
+        self.assertEqual(status(res, "rear: count and list agree"), "PASS", "the other side is unaffected")
+
+    def test_the_lower_bound_can_move_while_the_headline_does_not(self):
+        """A count 40 above the list on one day of six moves the lower bound by about 2.6 pts and the list-based headline not at all."""
+        p = copy(); ids = ";".join(map(str, FRONT_IDS))
+        rows = [r if r.split(",")[1] == "256" else f"{r.split(',')[0]},{len(FRONT_IDS) + 40},{ids}" for r in day_rows(date(2026, 9, 4), FRONT_IDS)]
+        write(p / "contactor_20260904.csv", rows)
+        res = gate(p)
+        self.assertEqual(status(res, "front: headline vs the last release"), "PASS")
+        self.assertEqual(status(res, "front: lower bound vs the last release"), "WARN")
+        self.assertEqual(status(gate(CLEAN), "front: lower bound vs the last release"), "PASS")
+
+    def test_a_small_gap_is_not_flagged(self):
+        p = copy(); ids = ";".join(map(str, FRONT_IDS))
+        rows = [r if r.split(",")[1] == "256" else f"{r.split(',')[0]},{len(FRONT_IDS) + 5},{ids}" for r in day_rows(date(2026, 9, 4), FRONT_IDS)]
+        write(p / "contactor_20260904.csv", rows)
+        self.assertEqual(status(gate(p), "front: count and list agree"), "PASS")
+
     def test_unflagged_near_full_readings_are_caught(self):
         p = copy(); ids = ";".join(str(i) for i in range(1, 246))
         rows = day_rows(date(2026, 9, 5), FRONT_IDS)

@@ -1,22 +1,22 @@
-# Methodology - handler test-position capacity, 2026-09-01 to 2026-10-02
+# Methodology - handler test-position capacity, 2026-09-01 to 2026-10-21
 
 ## Purpose
 Say how the share of test positions able to test was computed, which rules change the number, and how sure we are. Source of truth for the rules: `02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml` (contract) and the assumptions log; results: `02-documentation-knowledge/analysis-documentation/assets/handler_utilization_analysis_sep_oct_2026.md`.
 
 ## Data
-The handler's contactor screen read about every 4 minutes. Front positions are 1-256 and rear positions 257-512 (A7). Each reading gives a count of closed positions and a list of their numbers. The 2026-07-30 trial run is excluded. The raw files are private and not in the repository.
+The handler's contactor screen read about every 4 minutes. Front positions are 1-256 and rear positions 257-512 (A7). Each reading gives a count of closed positions and a list of their numbers. The 2026-07-30 trial run is excluded. The raw files are private and not in the repository. Since 2026-10-05 about two thirds of readings report a count that is 40 above the list (open question A21, below).
 
 ## Rules that decide which readings count
 | Rule | What it does | Number | Effect on the front figure |
 |---|---|---|---|
 | A7 | Front positions are 1-256 and rear positions 257-512; numbers outside a side's range do not belong to it | 256 per side | - |
 | A3 | A count of exactly 256 is a failed screen read and is left out | 256 | - |
-| A8 | Counts of 252 to 255 are also failed reads and are left out | 252 | raises it by 1.3 pts |
-| A15 | A count more than 50 above the list means the list could not be read; the reading is left out | 50 | about 0.01 pt |
+| A8 | Counts of 252 to 255 are also failed reads and are left out | 252 | raises it by 0.77 pts |
+| A15 | A count more than 50 above the list means the list could not be read; the reading is left out | 50 | about 0.12 pt |
 | A4 | "N/A" with a count of 0 means nothing was closed; the reading is kept | - | - |
 | A9 | "N/A" with a count above 0 means the list is unreadable; the reading is left out (applied, not confirmed) | - | - |
-| A5 | When count and list disagree, the list is used; the count is never below the list, so the list gives a lower bound on closed positions | - | lower bound 90.88% against 91.32% |
-| A17 | Position numbers outside the side's range, and repeats inside one reading, are removed (applied, not confirmed) | - | small |
+| A5 | When count and list disagree, the list is used; the count is never below the list, so the list gives a lower bound on closed positions | - | lower bound 86.19% against 90.85% |
+| A17 | Position numbers outside the side's range, and repeats inside one reading, are removed (confirmed by the process owner, 2026-10-29) | - | small |
 | A18 | Each valid reading counts for the time until the next reading, at most 15 minutes. A dropped reading's own time is not counted. Across a capture gap (missing rows) the last valid reading counts for at most 15 minutes | 15 | time weighting is worth about 0.65 pt |
 
 ## Formula
@@ -41,9 +41,10 @@ Counted minutes: 4 + 4 + 4 + 4 + 15 + 4 + 4 = 39. Closed-position minutes: 22x4 
 Result: **90.9%** = 1 - 908 / (256 x 39).
 
 ## How sure we are
-- The reported count is never below the list, so closed positions are at least what the list shows; the result is shown as a range from a lower bound to this figure (front 90.88-91.32%, rear 95.64-96.07%).
-- A plausible range for the period average comes from resampling whole days: front 90.57-92.08%, rear 95.30-96.83%. Differences under about 1.5 pts between periods cannot be told apart from day-to-day variation.
-- About 3% of readings are dropped (front 3.06%, rear 3.37%).
+- The reported count is never below the list, so closed positions are at least what the list shows; the result is shown as a range from a lower bound to this figure (front 86.19-90.85%, rear 91.46-95.99%).
+- A plausible range for the period average comes from resampling whole days: front 90.25-91.43%, rear 95.45-96.53%. Differences under about 1.5 pts between periods cannot be told apart from day-to-day variation.
+- About 3% of readings are dropped (front 2.80%, rear 2.97%).
+- Open question A21: since 2026-10-05 the count is a constant 40 above the list on about two thirds of readings. We use the list, as the process owner decided, and show the lower bound beside it; we do not know whether about 40 positions are closed on purpose or the list is cut off.
 - Neighbouring positions failing together suggests a shared part, but this is a hypothesis and is not confirmed.
 - This is capacity, not OEE. OEE cannot be reported until run and idle time, output, good-unit and cycle-time data exist.
 

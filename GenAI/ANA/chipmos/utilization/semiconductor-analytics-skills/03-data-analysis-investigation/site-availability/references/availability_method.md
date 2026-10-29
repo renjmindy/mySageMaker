@@ -14,29 +14,31 @@ Samples are ~4 min apart but gaps reach 20 min; an unweighted mean over-represen
 ## Sensitivity table to always include
 | Variant | Front | Rear |
 |---|---|---|
-| 256-only rule (superseded) | 90.02% | 96.04% |
-| **Confirmed rules** (256, 252-255, count-list gap > 50 and N/A>0 dropped) | **91.32%** (low 90.88%) | **96.07%** (low 95.64%) |
+| 256-only rule (superseded) | 89.95% | 95.80% |
+| **Confirmed rules** (256, 252-255, count-list gap > 50 and N/A>0 dropped), list-based | **90.85%** | **95.99%** |
+| Same rules, count-based lower bound (counts the gap of open question A21) | 86.19% | 91.46% |
 
-## Sensitivity (Sep-Oct 2026, time-weighted)
+## Sensitivity (2026-09-01 to 2026-10-21, time-weighted)
 | Rule set | Front | Rear |
 |---|---|---|
-| 256 only (superseded) | 90.02% | 96.04% |
-| + counts 252-255 dropped | 91.33% | 96.08% |
-| + count-list gap > 50 dropped (current) | 91.32% | 96.07% |
+| 256 only (superseded) | 89.95% | 95.80% |
+| + counts 252-255 dropped | 90.73% | 95.92% |
+| + count-list gap > 50 dropped (current) | 90.85% | 95.99% |
 
-The 252-255 rule is the one that matters (+1.3 pts on the front); the gap rule changes the headline by about 0.01 pt.
+The 252-255 rule moves the headline most (+0.77 pt on the front, +0.12 pt on the rear). The gap rule moves it by +0.12 pt (front) and +0.07 pt (rear), more than in September because the constant 40-site gap from 2026-10-05 pushes some October readings over the limit of 50 (validation report, section 1).
 
 | Weighting | Front | Rear |
 |---|---|---|
-| unweighted mean | 91.97% | 96.63% |
-| time-weighted, cap 5 min | 91.73% | 96.41% |
-| time-weighted, cap 10 min | 91.34% | 96.09% |
-| time-weighted, cap 15 / 30 min / unlimited (current: 15) | 91.32% | 96.07% |
+| unweighted mean | 91.50% | 96.52% |
+| time-weighted, cap 5 min | 91.22% | 96.33% |
+| time-weighted, cap 10 min | 90.87% | 96.01% |
+| time-weighted, cap 15 / 30 min (current: 15) | 90.85% | 95.99% |
+| time-weighted, no cap | 90.86% | 95.99% |
 
-Excluding 2026-09-09 and 2026-10-02 changes the headline by at most 0.02 pt.
+Excluding 2026-09-09 and 2026-10-02 changes the headline by at most 0.02 pt; also excluding 2026-10-15 changes it by -0.04 pt (front) and +0.07 pt (rear).
 
 ## Precision
-`site_availability.py` prints a 95% interval from a bootstrap that resamples whole days (weighted by valid minutes): front 90.57-92.08%, rear 95.30-96.83% (about +/-0.75 pt; daily standard deviation about 2.2 pts). The upper/lower range (about 0.44 pt) is smaller than this sampling uncertainty, so differences below about 1.5 pts between periods are not distinguishable from day-to-day variation.
+`site_availability.py` prints a 95% interval from a bootstrap that resamples whole days (weighted by valid minutes): front 90.25-91.43%, rear 95.45-96.53% (about +/-0.6 pt; daily standard deviation about 2.1 pts front and 2.0 pts rear). The upper/lower range is now **4.66 pts on the front and 4.53 pts on the rear**, far wider than the interval: the unanswered question about the 40-site gap (A21) is a larger source of uncertainty than sampling. Differences under about 1.5 pts between periods are not distinguishable from daily variation; before 2026-10-05 the range was under 0.5 pt (see the split in the analysis document).
 
 ## Validation of the implementation
-An independent recomputation straight from the raw CSVs (no loader, no pandas) matches to 4 decimals (front 91.3179%, rear 96.0734%); it is `06-workflow-optimization/peer-review-template/scripts/independent_recompute.py`, and the peer-review checker compares it with the loader-based headline. `metric_yaml_validator.py --recompute` is a different, weaker check: it recomputes from the loader's output, so it tests the formula against this script, not the loader itself.
+An independent recomputation straight from the raw CSVs (no loader, no pandas) matches to 4 decimals (front 90.8504%, rear 95.9907%; lower bounds 86.1872% and 91.4626%); it is `06-workflow-optimization/peer-review-template/scripts/independent_recompute.py`, and the peer-review checker compares it with the loader-based headline. `metric_yaml_validator.py --recompute` is a different, weaker check: it recomputes from the loader's output, so it tests the formula against this script, not the loader itself.

@@ -34,30 +34,30 @@ class TestInsightBriefCheck(unittest.TestCase):
         self.assertEqual([n for n, (s, _) in run(summary=SUMMARY).items() if s == "FAIL"], [])
 
     def test_money_or_throughput_figures_fail_while_impact_is_deferred(self):
-        self.assertEqual(run(rep(BRIEF, "Inspect the three front groups first.", "Inspect the three front groups first; worth $5,000 a month."))["no money or throughput figures while impact-quantification is deferred"][0], "FAIL")
+        self.assertEqual(run(rep(BRIEF, "Inspect the two eight-site front groups first, then the column-13 group.", "Inspect the two eight-site front groups first; worth $5,000 a month."))["no money or throughput figures while impact-quantification is deferred"][0], "FAIL")
 
     def test_placeholder_fails(self):
-        self.assertEqual(run(rep(BRIEF, "Inspect the three front groups first.", "[REQUIRED]"))["no unfilled placeholders"][0], "FAIL")
+        self.assertEqual(run(rep(BRIEF, "Inspect the two eight-site front groups first, then the column-13 group.", "[REQUIRED]"))["no unfilled placeholders"][0], "FAIL")
 
     def test_more_than_five_insights_fails(self):
         extra = "| 6 | x | y | **Low** - one day of data only here | A18 (APPLIED) | z |\n"
         self.assertEqual(run(rep(BRIEF, "\n## Scoring", "\n" + extra + "\n## Scoring"))["at most five insights"][0], "FAIL")
 
     def test_untraceable_number_fails(self):
-        self.assertEqual(run(rep(BRIEF, "7.05 pts together", "9.25 pts together"))["numbers traceable"][0], "FAIL")
+        self.assertEqual(run(rep(BRIEF, "6.31 pts together", "9.25 pts together"))["numbers traceable"][0], "FAIL")
 
     def test_derived_arithmetic_is_verified(self):
-        self.assertEqual(run(rep(BRIEF, "7.05 = 3.03+2.91+1.11", "7.05 = 3.03+2.91+1.5"))["numbers traceable"][0], "FAIL")
+        self.assertEqual(run(rep(BRIEF, "6.31 = 2.64+2.52+1.15", "6.31 = 2.64+2.52+1.5"))["numbers traceable"][0], "FAIL")
 
     def test_confidence_needs_a_basis(self):
-        self.assertEqual(run(rep(BRIEF, "**High** - the ranking repeats across both halves of the period (top-20 overlap 17/20), the groups are still closed now, and the result is insensitive to the window length (3, 7 or 14 days).", "**High**"))["confidence stated with its test"][0], "FAIL")
+        self.assertEqual(run(rep(BRIEF, "**High** - the ranking repeats across both halves of the period (top-20 overlap 17/20), and both eight-site groups are still closed now and insensitive to the window length (3, 7 or 14 days); only the size of the smaller group depends on the window.", "**High**"))["confidence stated with its test"][0], "FAIL")
 
     def test_high_confidence_on_open_assumption_fails(self):
         log = [dict(a, status="OPEN") if a["id"] == "A8" else a for a in LOG]
         self.assertEqual(run(log=log)["assumption ids and High-confidence rules"][0], "FAIL")
 
     def test_high_confidence_on_applied_assumption_needs_insensitivity(self):
-        b = rep(BRIEF, "and the result is insensitive to the window length (3, 7 or 14 days)", "and the result looks right")
+        b = rep(BRIEF, "and both eight-site groups are still closed now and insensitive to the window length (3, 7 or 14 days); only the size of the smaller group depends on the window", "and both eight-site groups are still closed now and the result looks right")
         self.assertEqual(run(b)["assumption ids and High-confidence rules"][0], "FAIL")
 
     def test_unknown_assumption_and_wrong_status_fail(self):
@@ -65,7 +65,7 @@ class TestInsightBriefCheck(unittest.TestCase):
         self.assertEqual(run(rep(BRIEF, "A19 (APPLIED)", "A19 (CONFIRMED)"))["assumption statuses match the log"][0], "FAIL")
 
     def test_causal_wording_needs_a_hypothesis(self):
-        b = rep(BRIEF, "Inspect the new rear group next.", "Replace the board, which is the root cause.")
+        b = rep(BRIEF, "Inspect the rear block and the new column-13 group next.", "Replace the board, which is the root cause.")
         self.assertEqual(run(b)["no causal overreach"][0], "FAIL")
 
     def test_score_arithmetic_label_agreement_and_order(self):
@@ -83,7 +83,7 @@ class TestInsightBriefCheck(unittest.TestCase):
         self.assertEqual(run(rep(BRIEF, "- OEE: run and idle time", "- Missing: run and idle time"))["known unknowns mention OEE"][0], "FAIL")
 
     def test_summary_numbers_must_appear_in_the_brief(self):
-        s = rep(SUMMARY, "about 30%", "about 45%")
+        s = rep(SUMMARY, "About 3% of readings", "About 45% of readings")
         self.assertEqual(run(summary=s)["executive summary numbers appear in the brief"][0], "WARN")
 
 

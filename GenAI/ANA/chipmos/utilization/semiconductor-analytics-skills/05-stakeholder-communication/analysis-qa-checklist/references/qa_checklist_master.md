@@ -6,7 +6,7 @@
 |---|---|
 | Period and exclusions stated (Sep/Oct only; 07/30 trial excluded) | Auto: analysis start equals the documented scope (A6). Person: the text says it |
 | Front and rear labelled; ranges 1-256 / 257-512 | Auto: site IDs belong to the side; loader guards. Person: labels in the deliverables |
-| Cleaning rules cited (A1-A20) and OPEN assumptions disclosed | Auto: assumptions log vs loader; brief and spec check ids and statuses. Person: disclosure reads honestly |
+| Cleaning rules cited (A1-A21) and OPEN assumptions disclosed | Auto: assumptions log vs loader; brief and spec check ids and statuses. Person: disclosure reads honestly |
 | "Availability" never presented as OEE; OEE completeness stated | Auto: summary, brief and spec checkers require the OEE statement; OEE panel blocked |
 | Range shown where list under-reports closures | Auto: summary checker requires a range; report tiles checked |
 | Same number in report, dashboard and summary | Auto: headline reconciled across all deliverables |

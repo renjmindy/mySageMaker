@@ -24,7 +24,17 @@ R["own_texts"] = [f.read_text(encoding="utf-8") for f in rc.OWN_FILES]
 FRESH = rc.cb.fresh_state()
 INDEP = ir.recompute()
 CLAIMS = rp.claims(FRESH)
+# These tests check the CHECK LOGIC, so they work on a record synced to today's data; whether the stored record is
+# current is reported by the QA gate (a stale record is a FAIL there, not a crash here). No test types a data value.
+R["review"] = rp.write(R["review"], rp.generate(FRESH, INDEP), CLAIMS)
+C1 = CLAIMS[0]
+V1 = C1["value"]
+LABEL1 = f"{C1['id']} | {C1['claim']}: {V1}"
 OK = lambda ref, root=None: "ok"
+
+
+def shift(v, d):
+    return f"{float(v) + d:.2f}"
 
 
 def rep(text, old, new):
@@ -111,9 +121,9 @@ class TestReviewPrep(unittest.TestCase):
         self.assertFalse([n for n in names if n.startswith(("peer_review_", "review_response_"))])
 
     def test_write_refreshes_the_block_and_author_values_but_keeps_reviewer_cells(self):
-        text = rep(C["review"], "| C1 | front site availability (%): 91.32 | 91.32 | +0.00 | yes |", "| C1 | stale | 90.00 | -1.32 | no |")
+        text = rep(C["review"], f"| {LABEL1} | {V1} | +0.00 | yes |", "| C1 | stale | 0.00 | -1.00 | no |")
         new = rp.write(text, rp.generate(FRESH, INDEP), CLAIMS)
-        self.assertIn("| C1 | front site availability (%): 91.32 | 90.00 | -1.32 | no |", new)
+        self.assertIn(f"| {LABEL1} | 0.00 | -1.00 | no |", new)
         self.assertEqual(rp.block_of(new), rp.generate(FRESH, INDEP))
 
     def test_the_block_rows_are_not_rewritten_by_the_table_sync(self):
@@ -169,7 +179,7 @@ class TestKit(unittest.TestCase):
 
     def test_preparation_must_be_current_and_the_recompute_must_agree(self):
         name = "the author's preparation is current"
-        self.assertEqual(run(review=rep(R["review"], "| front | 91.3179 |", "| front | 91.0000 |"))[name][0], "FAIL")
+        self.assertEqual(run(review=rep(R["review"], f"| front | {INDEP['front']['high']:.4f} |", "| front | 1.0000 |"))[name][0], "FAIL")
         moved = {**FRESH, "sides": {**FRESH["sides"], "front": {**FRESH["sides"]["front"], "closed_now": 99}}}
         self.assertEqual(run(fresh=moved)[name][0], "FAIL")
         off = {**INDEP, "front": {**INDEP["front"], "high": INDEP["front"]["high"] - 0.5}}
@@ -190,21 +200,23 @@ class TestCompletedReview(unittest.TestCase):
 
     def test_reproduction_must_be_complete_and_arithmetic_correct(self):
         name = "the reviewer's reproduction matches the claims and its arithmetic"
-        row = "| C1 | front site availability (%): 91.32 | 91.32 | +0.00 | yes |"
+        row = f"| {LABEL1} | {V1} | +0.00 | yes |"
         r = C["review"]
-        self.assertEqual(runc(review=rep(r, row, "| C1 | front site availability (%): 91.32 |  |  |  |"))[name][0], "FAIL")
-        self.assertEqual(runc(review=rep(r, row, "| C1 | front site availability (%): 91.00 | 91.32 | +0.00 | yes |"))[name][0], "FAIL")
-        self.assertEqual(runc(review=rep(r, row, "| C1 | front site availability (%): 91.32 | 91.40 | +0.00 | yes |"))[name][0], "FAIL")
-        self.assertEqual(runc(review=rep(r, row, "| C1 | front site availability (%): 91.32 | 91.50 | +0.18 | yes |"))[name][0], "FAIL")
-        self.assertEqual(runc(review=rep(r, row, "| C1 | front site availability (%): 91.32 | 91.32 | +0.00 | no |"))[name][0], "FAIL")
-        self.assertEqual(runc(review=rep(r, "| C5 | front 95% range (%): 90.57-92.08 | 90.57-92.08 | +0.00 / +0.00 | yes |", "| C55 | front 95% range (%): 90.57-92.08 | 90.57-92.08 | +0.00 / +0.00 | yes |"))[name][0], "FAIL")
+        self.assertEqual(runc(review=rep(r, row, f"| {LABEL1} |  |  |  |"))[name][0], "FAIL")
+        self.assertEqual(runc(review=rep(r, row, f"| {C1['id']} | {C1['claim']}: {shift(V1, -0.5)} | {V1} | +0.00 | yes |"))[name][0], "FAIL")
+        self.assertEqual(runc(review=rep(r, row, f"| {LABEL1} | {shift(V1, 0.08)} | +0.00 | yes |"))[name][0], "FAIL")
+        self.assertEqual(runc(review=rep(r, row, f"| {LABEL1} | {shift(V1, 0.18)} | +0.18 | yes |"))[name][0], "FAIL")
+        self.assertEqual(runc(review=rep(r, row, f"| {LABEL1} | {V1} | +0.00 | no |"))[name][0], "FAIL")
+        c5 = CLAIMS[4]
+        row5 = f"| {c5['id']} | {c5['claim']}: {c5['value']} | {c5['value']} | +0.00 / +0.00 | yes |"
+        self.assertEqual(runc(review=rep(r, row5, row5.replace("| C5 |", "| C55 |")))[name][0], "FAIL")
 
     def test_a_number_outside_the_tolerance_needs_a_blocking_finding_that_cites_it(self):
         name = "the reviewer's reproduction matches the claims and its arithmetic"
-        row = "| C1 | front site availability (%): 91.32 | 91.32 | +0.00 | yes |"
-        off = rep(C["review"], row, "| C1 | front site availability (%): 91.32 | 91.50 | +0.18 | no |")
+        row = f"| {LABEL1} | {V1} | +0.00 | yes |"
+        off = rep(C["review"], row, f"| {LABEL1} | {shift(V1, 0.18)} | +0.18 | no |")
         self.assertEqual(runc(review=off)[name][0], "FAIL")
-        review = rep(off, "|---|---|---|---|---|---|\n\nNo findings: the review has not been done.", "|---|---|---|---|---|---|\n| F1 | C1 does not reproduce | blocking | C1: 91.50 vs 91.32 | find the cause | open |\n")
+        review = rep(off, "|---|---|---|---|---|---|\n\nNo findings: the review has not been done.", f"|---|---|---|---|---|---|\n| F1 | C1 does not reproduce | blocking | C1: {shift(V1, 0.18)} vs {V1} | find the cause | open |\n")
         review = rep(review, "Verdict: approve", "Verdict: reject")
         r = runc(review=review)
         self.assertEqual(r[name][0], "PASS")

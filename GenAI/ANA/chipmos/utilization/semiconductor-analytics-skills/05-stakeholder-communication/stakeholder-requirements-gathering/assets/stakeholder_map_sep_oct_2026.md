@@ -5,7 +5,7 @@ Names are not yet known: every name is `[OPEN]` until the process owner fills th
 ## Roles and decision rights
 | Role | Name | Decides | Needs from the analysis | Decision rights |
 |---|---|---|---|---|
-| process owner | [OPEN] | what the data means and how it is cleaned; confirms assumptions | definitions, rules, effects and open questions | confirms data semantics and cleaning rules (A1-A20); accepts the analysis brief and requirements; signs off definitions |
+| process owner | [OPEN] | what the data means and how it is cleaned; confirms assumptions | definitions, rules, effects and open questions | confirms data semantics and cleaning rules (A1-A21); accepts the analysis brief and requirements; signs off definitions |
 | equipment / maintenance lead | [OPEN] | when to inspect or replace contactors and HIFIX boards | closed-now groups, event times, alert volume | accepts actions and alert rules; owns the dashboard's alerts |
 | production planner | [OPEN] | scheduling around downtime; planned production time | capacity trend, planned versus actual | owns the planned-time calendar (A11) |
 | data / capture owner | [OPEN] | capture pipeline, validity flags, retention | data-quality findings, schema | owns the CSV semantics and any capture change |

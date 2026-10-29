@@ -66,8 +66,9 @@ class TestLearningsCheck(unittest.TestCase):
         self.assertEqual(r["actions have a deadline"][0], "WARN")
 
     def test_a_real_date_clears_the_warning_for_that_action(self):
+        n = len(lc.pc.table(lc.pc.section(RETRO, "Actions")))  # derived: no count is typed here
         r = run(retro=rep(RETRO, "| no deadline set | L19 |", "| 2026-12-01 | L19 |"))
-        self.assertIn("5 action", r["actions have a deadline"][1])
+        self.assertIn(f"{n - 1} action", r["actions have a deadline"][1])
 
     def test_placeholder_money_and_stale_terms(self):
         self.assertEqual(run(retro=RETRO + "\n[" + "REQUIRED]")["no unfilled placeholders"][0], "FAIL")

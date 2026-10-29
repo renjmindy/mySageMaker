@@ -17,7 +17,7 @@ Groups: answer (top row), diagnosis (middle), detail (bottom), data-health (sepa
 |---|---|---|---|---|---|---|
 | P1 | answer | stat | site_availability | capacity_summary.availability | none | front share able to test, with P3 range under it |
 | P2 | answer | stat | site_availability | capacity_summary.availability | none | rear share able to test |
-| P3 | answer | stat | site_availability_low | capacity_summary.ci_low, capacity_summary.ci_high, capacity_summary.availability_low | none | plausible range and lower bound, shown beside P1/P2 |
+| P3 | answer | stat | site_availability_low | capacity_summary.ci_low, capacity_summary.ci_high, capacity_summary.availability_low | none | plausible range and count-based lower bound, shown beside P1/P2 so both figures are visible (A21) |
 | P4 | answer | stat | currently_closed_site_rate | capacity_summary.closed_now | none | positions closed >= 50% of the last 7 days |
 | P5 | diagnosis | timeseries | site_availability | equipment_daily_metrics.site_availability | CAP_LOW alert | daily, both sides; range band from P3 |
 | P6 | diagnosis | table (16x16 grid) | currently_closed_site_rate | site_recency.share_recent, site_recency.status | colour by share | the handler's grid; see Grafana notes |
@@ -87,14 +87,14 @@ SELECT day, side, coverage_pct FROM equipment_daily_metrics WHERE $__timeFilter(
 ```
 
 ## Alerts
-Rates are **backtested** on the 32 days of history (`scripts/alert_backtest.py`; in-sample, about 4.6 weeks - orders of magnitude, not guarantees). Severity "page" is only for rules under about one alert a week per side.
+Rates are **backtested** on the 51 days of history (`scripts/alert_backtest.py`; in-sample, about 7.3 weeks - orders of magnitude, not guarantees). Severity "page" is only for rules under about one alert a week per side.
 
 | id | rule | front per week | rear per week | severity | owner | action | channel |
 |---|---|---|---|---|---|---|---|
-| CAP_LOW | daily capacity below (median - 2 SD) of the previous 28 days; Grafana alert on P5 | 0.00 | 0.00 | ticket | [OPEN] | check P6/P7 and the data-health row before acting | [OPEN] |
-| GROUP_LONG | an aligned group (4+ positions) has been closed 72 hours; query `alert: GROUP_LONG` | 1.75 | 0.88 | ticket | [OPEN] | inspect the group (cause is a hypothesis) | [OPEN] |
-| DQ_FAIL_DAY | 10% or more of a day's readings dropped; query `alert: DQ_FAIL_DAY` | 0.44 | 0.22 | ticket | [OPEN] | ask the capture owner; treat capacity numbers for that day with caution | [OPEN] |
-| DQ_STALE | no reading for more than 30 minutes (now minus P11); Grafana alert on P11 | 0.00 | 0.22 | page | [OPEN] | check the capture pipeline | [OPEN] |
+| CAP_LOW | daily capacity below (median - 2 SD) of the previous 28 days; Grafana alert on P5 | 0.38 | 0.38 | ticket | [OPEN] | check P6/P7 and the data-health row before acting | [OPEN] |
+| GROUP_LONG | an aligned group (4+ positions) has been closed 72 hours; query `alert: GROUP_LONG` | 1.65 | 0.96 | ticket | [OPEN] | inspect the group (cause is a hypothesis) | [OPEN] |
+| DQ_FAIL_DAY | 10% or more of a day's readings dropped; query `alert: DQ_FAIL_DAY` | 0.27 | 0.14 | ticket | [OPEN] | ask the capture owner; treat capacity numbers for that day with caution | [OPEN] |
+| DQ_STALE | no reading for more than 30 minutes (now minus P11); Grafana alert on P11 | 0.14 | 0.27 | page | [OPEN] | check the capture pipeline | [OPEN] |
 
 ```sql
 -- alert: GROUP_LONG | columns: side, event_id, duration_min | rows: 0
@@ -106,7 +106,7 @@ WHERE n_sites >= 4 AND block_aligned >= 0.9 AND duration_min >= 4320 AND ongoing
 SELECT side, day, fail_pct FROM equipment_daily_metrics WHERE fail_pct >= 10;
 ```
 
-Rejected rules (kept for the reasoning): *capacity below the observed average* (front 91%, rear 96%) would alert on 12 of 32 front days (2.62 per week) and 15 of 32 rear days (3.28 per week), about 40% of days; *any aligned group closing for 30 minutes or more* would alert 17.06 per week on the front and 12.69 on the rear. CAP_LOW never fired in the backtest because it needs a drop of roughly 4-6 points; it is a safety net, and GROUP_LONG plus the data-health alerts carry the actionable load.
+Rejected rules (kept for the reasoning): *capacity below the observed average* (front 91%, rear 96%) would alert on 23 of 51 front days (3.16 per week) and 23 of 51 rear days (3.16 per week), about 45% of days; *any aligned group closing for 30 minutes or more* would alert 13.04 per week on the front and 9.47 on the rear. CAP_LOW fired on 2 front days and 2 rear days in the backtest (0.38 per week each); it needs a drop of roughly 4-6 points, so it is a safety net, and GROUP_LONG plus the data-health alerts carry the actionable load. No alert watches the count-versus-list gap of open question A21; the dashboard shows the count-based lower bound beside the headline instead (P3).
 
 ## Grafana notes
 - Grafana has no built-in 16x16 cell grid. P6 is built from the query above as a table or a plugin visual, one cell per position coloured by `share_recent`; the plugin choice is [OPEN]. The generated HTML report (`visualization-builder`) is the reference design and can be embedded in the meantime.
@@ -121,5 +121,6 @@ Rejected rules (kept for the reasoning): *capacity below the observed average* (
 ## Open items
 - Owners for the dashboard, data and each alert; alert channels (Slack, LINE or email).
 - A19 (7-day recency window and status thresholds) is applied but unconfirmed; the status words on P6/P7 depend on it.
+- A21 (open): since 2026-10-05 the count exceeds the listed sites by about 40; P1/P2 show the list-based figure and P3 the count-based lower bound until it is answered.
 - OEE panels stay blocked (A10, A11).
 - Run the queries on a real PostgreSQL/Timescale instance loaded by the pipeline: only the SQLite dry-run exists.

@@ -23,4 +23,4 @@ A day that is flagged *and* has a high failure rate is a data-quality candidate 
 
 Conclusion: no reliable level shift; no steady time-of-day effect - the apparent hour pattern comes from a small number of large-closure bursts (lowest hours about 2-3, 6-8, 21). Whether those bursts are capture artefacts or real events needs run-state data or screenshots.
 
-Caveats: days are treated as exchangeable in the shift test (no autocorrelation model); 32 days give low power, so a shift under about 2 pts would not be detected.
+Caveats: days are treated as exchangeable in the shift test (no autocorrelation model); 51 days give low power, so a shift under about 2 pts would not be detected.

@@ -25,11 +25,6 @@
       "question": "Are readings with counts of 240 to 251 whose list also agrees real events or failed screen reads?",
       "blocks": "about 28 kept readings and the failed-read band"
     },
-    "A17": {
-      "ask": "data / capture owner",
-      "question": "Are out-of-range and duplicate position numbers screen-read artefacts to be removed?",
-      "blocks": "cleaning rule applied to about 0.3% (front) and 1.8% (rear) of readings"
-    },
     "A18": {
       "ask": "process owner",
       "question": "Is capping each reading's time at 15 minutes the right way to weight readings across capture gaps?",
@@ -44,6 +39,11 @@
       "ask": "process owner",
       "question": "Are the time-series thresholds (robust z 2.5, 5% bad-reads day, p < 0.05 shift, 60-position burst) acceptable?",
       "blocks": "trend and time-of-day statements"
+    },
+    "A21": {
+      "ask": "process owner",
+      "question": "Since 2026-10-05 about 12:41 the count of closed sites is about 40 higher than the sites listed, on both sides. Are about 40 sites closed on purpose (for example a different setup), or is the list cut off by the capture?",
+      "blocks": "how to read capacity from 2026-10-05: the list-based headline or the count-based lower bound (both are shown until answered)"
     }
   },
   "sources": [

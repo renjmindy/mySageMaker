@@ -1,8 +1,14 @@
 [
   {
     "check": "rear: site IDs belong to this side",
-    "reason": "rear 2026-09-16: one stray token (131, in 26 readings; 1431 once) inside otherwise consistent lists, removed by the range filter (A17); headline effect negligible; cause unknown - ask the capture owner",
-    "owner": "analyst",
+    "reason": "stray numbers rise from 2026-10-05 (front 4.7% and rear 20.9% of readable rows in October, 0.2% and 3.0% of all listed numbers); the process owner decided on 2026-10-29 to ignore inaccurate site IDs on both sides (A17 confirmed); cause not established - ask the capture owner",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "front: site IDs belong to this side",
+    "reason": "stray numbers rise from 2026-10-05 (front 4.7% and rear 20.9% of readable rows in October, 0.2% and 3.0% of all listed numbers); the process owner decided on 2026-10-29 to ignore inaccurate site IDs on both sides (A17 confirmed); cause not established - ask the capture owner",
+    "owner": "process owner",
     "expires": "2026-12-31"
   },
   {
@@ -44,6 +50,30 @@
   {
     "check": "peer review kit and record vs the repository and the data",
     "reason": "no independent reviewer has been named by the process owner, so the release is NOT REVIEWED and requirement R10 stays partial",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "front: count and list agree",
+    "reason": "from 2026-10-05 about 12:41 the count is a constant 40 above the listed numbers on about two thirds of readings (open question A21); the process owner decided on 2026-10-29 to keep trusting the list length (A5) and to show both figures until it is answered",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "rear: count and list agree",
+    "reason": "from 2026-10-05 about 12:41 the count is a constant 40 above the listed numbers on about two thirds of readings (open question A21); the process owner decided on 2026-10-29 to keep trusting the list length (A5) and to show both figures until it is answered",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "front: lower bound vs the last release",
+    "reason": "the count-based lower bound moved by about 4.7 pts (front) and 4.2 pts (rear) against the first release (data to 2026-10-02) because since 2026-10-05 the count is a constant ~40 above the list (open question A21); the process owner decided on 2026-10-29 to keep trusting the list length and to show both figures",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "rear: lower bound vs the last release",
+    "reason": "the count-based lower bound moved by about 4.7 pts (front) and 4.2 pts (rear) against the first release (data to 2026-10-02) because since 2026-10-05 the count is a constant ~40 above the list (open question A21); the process owner decided on 2026-10-29 to keep trusting the list length and to show both figures",
     "owner": "process owner",
     "expires": "2026-12-31"
   }

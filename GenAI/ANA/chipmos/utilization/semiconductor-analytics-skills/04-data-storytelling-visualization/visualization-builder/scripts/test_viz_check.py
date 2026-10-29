@@ -32,7 +32,10 @@ class TestVizCheck(unittest.TestCase):
         self.assertEqual([n for n, s in status().items() if s == "FAIL"], [])
 
     def test_tampered_heatmap_cell_fails(self):
-        self.assertEqual(status(rep(PAGE, "closed 98% of the last 7 days", "closed 40% of the last 7 days"))["numbers match the analysis scripts"], "FAIL")
+        import re
+        old = re.search(r"closed (\d+)% of the last 7 days", PAGE).group(0)
+        new = "closed 40% of the last 7 days" if "40%" not in old else "closed 41% of the last 7 days"
+        self.assertEqual(status(rep(PAGE, old, new))["numbers match the analysis scripts"], "FAIL")
 
     def test_tampered_period_cell_fails(self):
         import re

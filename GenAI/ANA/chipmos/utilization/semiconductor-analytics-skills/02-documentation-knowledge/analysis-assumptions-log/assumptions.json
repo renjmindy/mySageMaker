@@ -45,7 +45,7 @@
     "statement": "Trust list length over err_01 when they disagree",
     "status": "CONFIRMED",
     "impact": "medium",
-    "note": "Data shows err_01 is never below list length -> list is a lower bound on closures; see A15 for the cut-off",
+    "note": "Data shows err_01 is never below list length -> list is a lower bound on closures; see A15 for the cut-off. Reaffirmed by the process owner on 2026-10-29 for the October data: keep trusting the list length although the count exceeds it by a constant gap from 2026-10-05 (open question A21)",
     "source": "process owner (chat)",
     "date": "2026-10-28"
   },
@@ -163,11 +163,11 @@
     "id": "A17",
     "category": "data",
     "statement": "Site IDs outside the side's range and duplicate IDs in a row are OCR noise and are removed",
-    "status": "APPLIED",
+    "status": "CONFIRMED",
     "impact": "low",
-    "source": "",
-    "date": "",
-    "note": "Applied in lib/contactor_io.py (_parse_ids); affects ~0.3% of front and ~1.8% of rear kept rows; cause of the garbage IDs not established"
+    "source": "process owner (chat)",
+    "date": "2026-10-29",
+    "note": "Applied in lib/contactor_io.py (_parse_ids). Confirmed for both sides and for the October data on 2026-10-29: ignore inaccurate site IDs. The share of readable rows with a stray number rises sharply from 2026-10-05 (site_id_validator.py, by month); the cause of the stray numbers is not established"
   },
   {
     "id": "A18",
@@ -198,5 +198,15 @@
     "source": "",
     "date": "",
     "note": "Analyst design choices in daily_trend.py (a 3.5 threshold cannot fire on 32 days with ~2 pt daily noise); not confirmed with the process owner"
+  },
+  {
+    "id": "A21",
+    "category": "data",
+    "statement": "From 2026-10-05 about 12:41 the reported count (err_01) exceeds the listed IDs by a constant gap of about 40 on roughly two thirds of valid readings, on both sides; the headline trusts the list length (A5) and the count-based lower bound includes the gap",
+    "status": "OPEN",
+    "impact": "high",
+    "source": "",
+    "date": "",
+    "note": "Open question for the process owner and the capture owner: are about 40 sites closed on purpose (for example a different setup), so they are counted but not listed, or is the list cut off by the capture? The data cannot tell. Both figures are shown until it is answered (count_list_reconciler.py prints the gap profile; site_availability.py prints the upper and lower bound)"
   }
 ]

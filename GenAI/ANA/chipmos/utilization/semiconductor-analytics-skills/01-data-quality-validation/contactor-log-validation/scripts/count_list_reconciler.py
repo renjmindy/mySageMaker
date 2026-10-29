@@ -34,6 +34,33 @@ def reconcile(df, tolerance: int = 0):
     }
 
 
+GAP_LOW, GAP_HIGH = 36, 44  # the constant gap seen from 2026-10-05 is 40, with a few readings at 39, 41 and 42
+
+
+def gap_profile(df, window: int = 60, share: float = 0.9) -> dict:
+    """Count minus ALL listed numbers (cleaned IDs plus out-of-range and duplicate tokens), per month, and where a constant gap starts.
+
+    The start is the first reading from which at least `share` of the next `window` valid readings have a gap of
+    GAP_LOW-GAP_HIGH. It describes the data; what the gap is (sites closed on purpose, or a cut-off list) is not
+    established (open question A21).
+    """
+    v = df[df["valid"]].copy()
+    v["gap"] = v["err_01"] - v["n_closed"] - v["n_oob"] - v["n_dup"]
+    v["on"] = v["gap"].between(GAP_LOW, GAP_HIGH)
+    months = {m: {"readings": len(g), "mean_count": round(float(g["err_01"].mean()), 2), "mean_list": round(float(g["n_closed"].mean()), 2)}
+              for m, g in v.groupby(v["timestamp"].dt.strftime("%Y-%m"))}
+    out = {"months": months, "start": None}
+    roll = v["on"].rolling(window).mean().shift(-(window - 1))
+    hit = roll[(roll >= share) & v["on"]]  # the starting reading itself must show the gap
+    if len(hit):
+        t0 = v.loc[hit.index[0], "timestamp"]
+        after, before = v[v["timestamp"] >= t0], v[v["timestamp"] < t0]
+        out.update(start=t0.strftime("%Y-%m-%d %H:%M"), share_after=round(float(after["on"].mean() * 100), 1),
+                   share_before=round(float(before["on"].mean() * 100), 2) if len(before) else 0.0,
+                   common=[(int(k), int(c)) for k, c in after["gap"].value_counts().head(5).items()])
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="Reconcile count vs list length")
     ap.add_argument("--data-dir", default=None)
@@ -50,8 +77,17 @@ def main():
         for k, v in res.items():
             print(f"{k:24s} {v}")
         if res["count_lt_list_pct"] == 0 and res["count_gt_list_pct"] > 0:
-            print("NOTE: count is never below list length -> the list under-reports closures (IDs lost in the screen read);")
-            print("      list length is a LOWER BOUND. Consider reporting a range using err_01 as the upper bound.")
+            print("NOTE: count is never below list length -> the list never lists more sites than the count says;")
+            print("      the list length is trusted for the headline (A5) and the count gives the lower bound on availability.")
+        gp = gap_profile(cio.load_side(side, args.data_dir, args.start, near_full_min=args.near_full_min, max_count_gap=args.max_count_gap))
+        print("gap profile (count minus all listed numbers):")
+        for m, g in gp["months"].items():
+            print(f"  {m}: {g['readings']} valid readings, mean count {g['mean_count']} vs mean list {g['mean_list']}")
+        if gp["start"]:
+            print(f"  constant gap of {GAP_LOW}-{GAP_HIGH} starts {gp['start']}; after it {gp['share_after']}% of valid readings show it (before: {gp['share_before']}%)")
+            print(f"  most common gap values after the start: " + ", ".join(f"{k} ({c})" for k, c in gp["common"]))
+        else:
+            print(f"  no constant gap of {GAP_LOW}-{GAP_HIGH} found")
         if res["near_full_rows_kept (err_01 252-255, should be 0)"]:
             print("NOTE: err_01 of 252-255 is a read failure - rerun without --near-full-min 0")
 
