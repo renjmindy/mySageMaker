@@ -4,9 +4,9 @@ Time-weighted site availability per side and day, with lower/upper range.
   availability_high : closed = cleaned list length   (optimistic; list under-reports)
   availability_low  : closed = max(err_01, list len) (pessimistic; err_01 never < list)
 
-The weighting carries a valid reading's state forward until the next reading (including across a
-dropped reading or a capture gap) but never more than 15 minutes (A18); dropped readings have no
-weight of their own.
+Weighting (A18): each valid reading counts for the time until the next reading in the file, capped at
+15 minutes. A dropped reading's own time is not counted; across a capture gap (missing rows) the last
+valid reading is carried forward for at most 15 minutes.
 
 The overall table also reports a 95% interval for the period headline, from a bootstrap that
 resamples whole days (weighted by each day's valid minutes). Differences smaller than the interval

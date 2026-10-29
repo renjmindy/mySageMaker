@@ -1,5 +1,8 @@
-# How we measured availability
-- Data: handler contactor screen, every ~4 min, front (1-256) + rear (257-512), [REQUIRED: period]
-- Cleaning: [REQUIRED - 4 bullets]
-- Formula: share of positions open, weighted by reading duration
-- Limits: [REQUIRED]
+# How we measured [REQUIRED: what]
+
+- **Data**: [REQUIRED - source, cadence, sides, period]
+- **Measure**: [REQUIRED - one plain sentence; include the 15-minute cap on a reading's time]
+- **Rules that move the number**: [REQUIRED - the top rules by measured effect (see `methodology_check.py`), each with its number and assumption id]
+- **How sure we are**: [REQUIRED - plausible range, lower bound, and what is not covered (OEE)]
+
+Full rules and a worked example: the methodology write-up.

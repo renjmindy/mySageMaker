@@ -172,12 +172,12 @@
   {
     "id": "A18",
     "category": "metric",
-    "statement": "Each valid reading represents the gap to the next reading, capped at 15 minutes: its state is carried forward across a dropped reading or a capture gap, up to that cap; dropped readings have no weight of their own",
+    "statement": "Each valid reading counts for the time until the next reading in the file, capped at 15 minutes: a dropped reading's own time is not counted; across a capture gap (missing rows) the last valid reading is carried forward for at most 15 minutes and gap time beyond that is not counted",
     "status": "APPLIED",
     "impact": "medium",
     "source": "",
     "date": "",
-    "note": "DEFAULT_MAX_GAP_MIN=15 in lib/contactor_io.py. Effect: weighted vs unweighted differs by ~0.6 pt; caps of 15, 30 and unlimited give identical results, a cap of 5 shifts front by +0.4 pt. Analyst design choice - confirm with the owner"
+    "note": "DEFAULT_MAX_GAP_MIN=15 in lib/contactor_io.py. Corrected 2026-10-29: an earlier wording said the state carries across a dropped reading - it does not (verified on a synthetic example). Effect: weighted vs unweighted differs by ~0.65 pt on the front; caps of 15, 30 and unlimited give identical results, a cap of 5 shifts front by +0.4 pt. Analyst design choice - confirm with the owner"
   },
   {
     "id": "A19",

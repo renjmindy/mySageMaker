@@ -4,7 +4,7 @@
 availability(side, period) = 1 - sum_i(closed_i * minutes_i) / (256 * sum_i(minutes_i))
 ```
 - `i` ranges over valid samples (`OK`, `NA_ZERO`)
-- `minutes_i` = gap to the next sample, capped at 15 min. **A valid reading's state is carried forward across the next reading even when that one was dropped, and across capture gaps, up to the 15-minute cap** (a limited carry-forward, not zero imputation); dropped readings have no weight of their own (A18)
+- `minutes_i` = gap to the next sample, capped at 15 min. **a dropped reading's own time is not counted** (the reading before it covers only up to the dropped reading's timestamp); **across a capture gap (missing rows) the last valid reading is carried forward for at most 15 minutes**, and gap time beyond that is not counted (A18)
 - Front and rear are reported separately; the combined 512-site number is the mean of the two
 - Range: high = list-length closures, low = `max(err_01, list length)` closures
 
