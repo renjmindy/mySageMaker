@@ -33,7 +33,7 @@ for sub in ("lib", "02-documentation-knowledge/analysis-assumptions-log/scripts"
             "05-stakeholder-communication/analysis-qa-checklist/scripts", "03-data-analysis-investigation/oee-calculator/scripts",
             "03-data-analysis-investigation/closure-event-root-cause/scripts", "04-data-storytelling-visualization/executive-summary-generator/scripts",
             "04-data-storytelling-visualization/insight-synthesis/scripts", "04-data-storytelling-visualization/visualization-builder/scripts",
-            "04-data-storytelling-visualization/dashboard-specification/scripts", "05-stakeholder-communication/methodology-explainer/scripts", "05-stakeholder-communication/technical-to-business-translator/scripts", "05-stakeholder-communication/stakeholder-requirements-gathering/scripts", "06-workflow-optimization/analysis-planning/scripts", "06-workflow-optimization/analysis-retrospective/scripts", "06-workflow-optimization/context-packager/scripts"):
+            "04-data-storytelling-visualization/dashboard-specification/scripts", "05-stakeholder-communication/methodology-explainer/scripts", "05-stakeholder-communication/technical-to-business-translator/scripts", "05-stakeholder-communication/stakeholder-requirements-gathering/scripts", "06-workflow-optimization/analysis-planning/scripts", "06-workflow-optimization/analysis-retrospective/scripts", "06-workflow-optimization/context-packager/scripts", "06-workflow-optimization/peer-review-template/scripts"):
     sys.path.insert(0, str(ROOT / sub))
 sys.path.insert(0, str(ROOT / "05-stakeholder-communication/impact-quantification/scripts"))
 import assumptions_tracker as at  # noqa: E402
@@ -77,13 +77,14 @@ def repo_checks(with_doc_check: bool = False) -> list[tuple[str, str, str]]:
     import test_context_check as tcx
     import test_learnings_check as tlr
     import test_plan_check as tpl
+    import test_review_check as trv
     import test_requirements_check as trq
     import test_translator as ttr
     import test_oee_calculator as toee
     import test_viz_check as tvc
     for name, mod in (("data gate fault-injection tests", tdg), ("OEE calculator unit tests", toee), ("impact quantification unit tests", tci), ("closure event unit tests", tce),
                       ("exec summary checker unit tests", tesc), ("insight brief checker unit tests", tibc),
-                      ("report checker unit tests", tvc), ("methodology checker unit tests", tmc), ("translator tool tests", ttr), ("requirements checker tests", trq), ("analysis plan checker tests", tpl), ("learnings checker tests", tlr), ("context package tests", tcx), ("dashboard spec checker unit tests", tdsc)):
+                      ("report checker unit tests", tvc), ("methodology checker unit tests", tmc), ("translator tool tests", ttr), ("requirements checker tests", trq), ("analysis plan checker tests", tpl), ("learnings checker tests", tlr), ("context package tests", tcx), ("peer review kit tests", trv), ("dashboard spec checker unit tests", tdsc)):
         _tests(add, name, mod)
 
     import dashboard_spec_check as dsc
@@ -121,8 +122,16 @@ def repo_checks(with_doc_check: bool = False) -> list[tuple[str, str, str]]:
 
     import context_bundler as cxb
     import context_check as cxc
-    cres = cxc.check(cxb.build_package(), check_pipeline=False)
+    pkg = cxb.build_package()
+    cres = cxc.check(pkg, check_pipeline=False)
     _summary(add, "context package vs the log, the plan and the data", cres)
+
+    import independent_recompute as irc
+    import review_check as rvc
+    rres = rvc.check(rvc.REVIEW.read_text(encoding="utf-8"), rvc.RESPONSE.read_text(encoding="utf-8"), rvc.CHECKLIST.read_text(encoding="utf-8"),
+                     plc.MAP.read_text(encoding="utf-8"), lcc.LOG.read_text(encoding="utf-8"), rvc.RUNNER.read_text(encoding="utf-8"),
+                     rvc.SIGNOFF.read_text(encoding="utf-8"), [f.read_text(encoding="utf-8") for f in rvc.OWN_FILES], pkg["meta"]["state"], irc.recompute())
+    _summary(add, "peer review kit and record vs the repository and the data", rres)
 
     import translation_check as trc
     tres = trc.check_text(trc.TRANSLATIONS.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8")) + \

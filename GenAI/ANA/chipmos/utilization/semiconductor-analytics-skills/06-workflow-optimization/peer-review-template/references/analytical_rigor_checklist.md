@@ -1,8 +1,25 @@
 # Analytical Rigor Checklist
-- [ ] Headline reproduced independently
-- [ ] Cleaning rules match the log; OPEN assumptions disclosed
-- [ ] Effect of the 252-255 rule (A8) vs the 256-only rule shown
-- [ ] Range reported where list under-reports
-- [ ] Front/rear not mixed; 07/30 trial excluded
-- [ ] Anomalous days checked against screenshots before being called events
-- [ ] Conclusions do not exceed evidence (OEE incomplete)
+
+Every item says what already enforces it (a check or test that exists and that the QA gate runs) and what a person adds on top. `scripts/review_check.py` opens each named file and looks for the named check, requires every defect class that occurred in this project (the learnings log) and every hard rule to be covered, and requires a test run by the QA gate for each class.
+
+Columns: **covers** = the defect class or hard rule; **enforced by** = `path` "name of the check or test" (or `-` if nothing enforces it yet); **reviewer looks at** = what a person checks; **when not possible** = what to record if the item cannot be done.
+
+| id | covers | item | enforced by | reviewer looks at | when not possible |
+|---|---|---|---|---|---|
+| RC1 | data-pitfall | The cleaning rules in the code equal the log, and the effect of the 252-255 rule (A8) against the 256-only rule is shown | `02-documentation-knowledge/analysis-assumptions-log/scripts/assumptions_tracker.py` "not mentioned in the entry (drift?)" | the A8 sensitivity in the analysis document: is its size what the process owner confirmed | - |
+| RC2 | data-pitfall | The release data is complete and clean: no missing or duplicate days, no unflagged band just below the failure value, site IDs belong to their side | `05-stakeholder-communication/analysis-qa-checklist/scripts/test_data_gate.py` "test_unflagged_near_full_readings_are_caught" | the gate output for the release data, and the recorded decision for every flagged day | - |
+| RC3 | doc-drift | Every number in the analysis document reproduces, and the headline is the same in every deliverable | `05-stakeholder-communication/analysis-qa-checklist/scripts/qa_runner.py` "headline reconciled across all deliverables" | two numbers, chosen by you, in each of two deliverables | - |
+| RC4 | doc-drift | A document that restates a rule (weighting, thresholds, positions) agrees with the code | `05-stakeholder-communication/methodology-explainer/scripts/test_methodology_check.py` "test_weighting_behaviour_matches_the_explanation" | one rule, followed from the loader to every document that states it | - |
+| RC5 | doc-drift | The plan, requirements, question guide and context package are current | `05-stakeholder-communication/analysis-qa-checklist/scripts/qa_runner.py` "requirements work vs the log and the deliverables" | that the sign-off names the commit you are reviewing | - |
+| RC6 | over-claim, oee-blocked | Availability is never presented as OEE; OEE is stated as blocked, with no partial figure | `04-data-storytelling-visualization/executive-summary-generator/scripts/test_exec_summary_check.py` "test_missing_oee_caveat_fails" | the headline sentences of each deliverable | - |
+| RC7 | over-claim, deferral | No money, margin, payback or units-per-hour figure appears while the cost estimate is deferred | `05-stakeholder-communication/technical-to-business-translator/scripts/test_translator.py` "test_money_figures_fail_while_impact_is_deferred" | the change, searched for currency symbols and rates | - |
+| RC8 | over-claim, hypothesis | No physical cause is stated for the aligned 2x2 blocks of closed positions (A13) | `04-data-storytelling-visualization/insight-synthesis/scripts/test_insight_brief_check.py` "test_causal_wording_needs_a_hypothesis" | every sentence about closed blocks, for a cause stated as fact | - |
+| RC9 | over-claim, unconfirmed | Rules marked APPLIED or OPEN are named as such wherever a result depends on them | `06-workflow-optimization/context-packager/scripts/test_context_check.py` "test_every_assumption_must_be_present_with_its_status_and_marked" | the rear and recency statements against A17, A18 and A19 | - |
+| RC10 | over-claim | The headline appears with its lower bound and range, never as one exact figure | `04-data-storytelling-visualization/executive-summary-generator/scripts/test_exec_summary_check.py` "test_missing_range_fails" | the tile, the summary sentence and the dashboard stat | - |
+| RC11 | blind-check | The checks and alerts that guard this release have been shown to fail | `05-stakeholder-communication/analysis-qa-checklist/scripts/test_data_gate.py` "test_missing_day_is_caught" | pick two checks, break what they guard in a copy, and confirm they fail | - |
+| RC12 | blind-check | The scripts that produce the headline have tests of their own | - | whether site_availability.py, chronic_sites.py and daily_trend.py have a test file beside them | record as unchecked: known gap (learning L22), no unit tests for those scripts |
+| RC13 | process | Every waiver in effect is unexpired, has a named owner and a reason that still holds | `05-stakeholder-communication/analysis-qa-checklist/scripts/test_data_gate.py` "test_waivers_waive_unexpired_warnings_only" | each waiver's reason against this release | - |
+| RC14 | process | The plan's risks and estimates, and the retrospective's open actions, reflect this release | `06-workflow-optimization/analysis-planning/scripts/plan_check.py` "risks are complete, owned and evidenced" | the retrospective's open actions against the plan's risks | - |
+| RC15 | private-data | No raw logs, screenshots or exports are part of the change | `.gitignore` "*.csv" | the list of files in the change: csv, zip, png, jpg, and anything under dat/ or doc/ | - |
+| RC16 | data-pitfall | The closed groups and the ranked list match the handler | - | a screenshot of the closed positions, or the maintenance log, against the closed-now list | record as unchecked and say why: no screenshot of the Sep/Oct state and no maintenance log exist yet |
+| RC17 | reproduction | The headline is reproduced from the raw files without the loader | `06-workflow-optimization/peer-review-template/scripts/independent_recompute.py` "def recompute" | run it and compare with the pipeline's numbers | - |

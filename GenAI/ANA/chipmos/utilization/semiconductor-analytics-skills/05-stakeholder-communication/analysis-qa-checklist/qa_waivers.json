@@ -40,5 +40,11 @@
     "reason": "retrospective actions have no deadline yet, and no session with the process owner has been held (see its Limits)",
     "owner": "process owner",
     "expires": "2026-12-31"
+  },
+  {
+    "check": "peer review kit and record vs the repository and the data",
+    "reason": "no independent reviewer has been named by the process owner, so the release is NOT REVIEWED and requirement R10 stays partial",
+    "owner": "process owner",
+    "expires": "2026-12-31"
   }
 ]
