@@ -84,6 +84,15 @@ def run(data_dir, start, near_full_min):
     ib_warn = [n for n, s_, _ in ib if s_ == "WARN"]
     add("insight brief vs analysis document and log", "FAIL" if ib_fail else "WARN" if ib_warn else "PASS",
         f"failing: {', '.join(ib_fail)}" if ib_fail else (f"warnings: {', '.join(ib_warn)}" if ib_warn else "all checks pass"))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/visualization-builder/scripts"))
+    import viz_check as vc  # noqa: E402
+    import test_viz_check as tvc  # noqa: E402
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tvc))
+    add("report checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    vres = vc.run_static(tvc.DATA, tvc.PAGE)
+    v_fail = [n for n, s_, _ in vres if s_ == "FAIL"]
+    add("report vs analysis scripts (static)", "FAIL" if v_fail else "PASS", f"failing: {', '.join(v_fail)}" if v_fail else f"{len(vres)} checks pass (browser checks: viz_check.py)")
     chk = esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"))
     fails = [n for n, s_, _ in chk if s_ == "FAIL"]
     warns = [n for n, s_, _ in chk if s_ == "WARN"]

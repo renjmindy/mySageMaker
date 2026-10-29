@@ -22,7 +22,7 @@ Each `SKILL.md` needs frontmatter (`name`, `description`) and the sections `When
 See `lib/contactor_io.py` docstring and `02-documentation-knowledge/analysis-assumptions-log` (A1-A20, tracked in `02-documentation-knowledge/analysis-assumptions-log/assumptions.json`; run `assumptions_tracker.py check` after changing a loader constant). Confirmed: A8 (counts 252-255 = read failure, default). Open: A11 (planned time), A13 (2x2 blocks - keep as a hypothesis, do not state a physical cause as fact), A14. Applied but not explicitly confirmed: A9, A12, A17, A18, A19, A20.
 
 ## Tests
-`python 03-data-analysis-investigation/oee-calculator/scripts/test_oee_calculator.py`, `python 03-data-analysis-investigation/closure-event-root-cause/scripts/test_closure_events.py`, `python 04-data-storytelling-visualization/executive-summary-generator/scripts/test_exec_summary_check.py` and `python 04-data-storytelling-visualization/insight-synthesis/scripts/test_insight_brief_check.py` - unit tests (also run by `qa_runner.py`).
+`python 03-data-analysis-investigation/oee-calculator/scripts/test_oee_calculator.py`, `python 03-data-analysis-investigation/closure-event-root-cause/scripts/test_closure_events.py`, `python 04-data-storytelling-visualization/executive-summary-generator/scripts/test_exec_summary_check.py`, `python 04-data-storytelling-visualization/insight-synthesis/scripts/test_insight_brief_check.py` and `python 04-data-storytelling-visualization/visualization-builder/scripts/test_viz_check.py` - unit tests (also run by `qa_runner.py`).
 
 ## Status gates
 - OEE stays blocked until run-state, output, good-unit and cycle-time data exist - never report an OEE number or a "partial OEE".
