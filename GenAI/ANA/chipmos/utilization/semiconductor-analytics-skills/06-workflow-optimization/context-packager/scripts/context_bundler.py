@@ -92,11 +92,13 @@ def pipeline_info(state: dict, root: Path = ROOT) -> dict:
     s = json.loads(runs[-1].read_text(encoding="utf-8"))
     problems = []
     try:
-        started = dt.datetime.strptime(s["run"], "%Y%m%d_%H%M%S").timestamp()
+        started = dt.datetime.strptime(s["run"][:15], "%Y%m%d_%H%M%S").timestamp()  # a suffix (_2) marks a second run in the same second
         if started < state["data_mtime"]:
             problems.append(f"pipeline run {s['run']} is older than the newest data file")
     except (KeyError, ValueError):
         problems.append("pipeline summary has no readable run time")
+    if s.get("status") not in (None, "ok"):
+        problems.append(f"pipeline run status is {s['status']}")
     for side, v in (s.get("availability_pct") or {}).items():
         if side in state["sides"] and abs(v - state["sides"][side]["availability"]) > 0.006:
             problems.append(f"pipeline {side} {v} differs from the recomputed {state['sides'][side]['availability']}")

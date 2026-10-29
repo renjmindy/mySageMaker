@@ -132,12 +132,14 @@ def main():
     ap.add_argument("--output", default=str(cio.REPO_ROOT / "out" / "dashboard.sqlite"))
     ap.add_argument("--handler", default="unspecified", help="the CSVs carry no handler id (catalog entry: open)")
     ap.add_argument("--recent-days", type=int, default=7)
+    ap.add_argument("--data-dir", default=None)
+    ap.add_argument("--start", default=cio.DEFAULT_START)
     args = ap.parse_args()
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists():
         out.unlink()
-    con = build(out, args.handler, args.recent_days)
+    con = build(out, args.handler, args.recent_days, args.data_dir, args.start)
     for t in parse_schema(SCHEMA_SQL.read_text(encoding="utf-8")):
         print(f"{t:26s} {con.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0]:>7d} rows")
     print(f"wrote {out}")

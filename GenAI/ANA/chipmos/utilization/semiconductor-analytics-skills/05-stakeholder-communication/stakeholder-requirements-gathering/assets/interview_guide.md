@@ -26,6 +26,7 @@ How to use it: ask by role (the Ask column), one role at a time, and record each
 | dashboard and alert owners | equipment / maintenance lead | 13 | dashboard_spec_sep_oct_2026.md | Who owns the dashboard, the data and each alert; which channel; what retention and latency; which visual draws the grid? | building the dashboard and paging anyone |
 | data source facts | data / capture owner | 9 | contactor_logs_catalog_entry.md | Who owns the data and the capture; what is the handler ID of the Sep/Oct logs; how are they captured; what time zone, refresh schedule and retention apply? | provenance and the refresh path |
 | metric owners | process owner | 7 | metric_definition.yaml | Who owns each metric definition? | metric governance and the QA waiver for owners |
+| pipeline schedule, owner and limits | data / capture owner | 4 | pipeline_runbook_sep_oct_2026.md | When should the pipeline run, who owns it and is told when it fails, which channel, and how old may the newest reading be before a run fails? | scheduling the job, delivering alerts and the staleness limit |
 | requirement owners | process owner | 1 | requirements_sep_oct_2026.md | Who owns each requirement and accepts it? | acceptance |
 | sign-off | reviewer | 6 | qa_signoff_sep_oct_2026.md | Who reviews independently, and who checks the front groups against a screenshot or a maintenance log? | release sign-off |
 | stakeholder names | process owner | 8 | stakeholder_map_sep_oct_2026.md | Who fills each role, including the process owner and the independent reviewer? | every confirmation and sign-off |
@@ -39,7 +40,7 @@ How to use it: ask by role (the Ask column), one role at a time, and record each
 | rear zero-closed days | equipment / maintenance lead | Do the rear zero-closed days (09/17, 09/19, 09/23, 10/02) reflect real repairs or board swaps, or idle days? | reading the rear history |
 | business parameters for the deferred cost estimate | finance / business owner | What are units per hour per site, margin per unit, repair cost, hours per day, days, repair downtime and the probability a repair holds, and is the handler capacity-constrained? | lifting the impact-quantification deferral |
 
-Totals: 9 assumptions to confirm, 59 open items in 10 files, 4 other facts.
+Totals: 9 assumptions to confirm, 63 open items in 11 files, 4 other facts.
 <!-- generated:end -->
 
 ## General questions (ask every time)
