@@ -26,6 +26,19 @@ GLOSSARY = {
     "oee": "overall equipment effectiveness (availability x speed x yield)",
     "sensitivity": "how much the answer changes if a rule changes",
     "lower bound": "at least this much",
+    "near-full": "readings that look like a failed screen read",
+    "chronic": "out of service most of the time",
+    "transient": "short-lived",
+    "intermittent": "partly out of service",
+    "recency": "what is happening now",
+    "bootstrap": "repeated resampling to estimate uncertainty",
+    "permutation": "a shuffling test",
+    "interval": "plausible range",
+    "level shift": "lasting change",
+    "burst": "short spell of unusual readings",
+    "carry-forward": "assuming the last reading still held",
+    "site": "test position",
+    "unweighted": "plain average",
 }
 
 
@@ -33,7 +46,7 @@ def detect(text: str) -> list[tuple[str, int, str]]:
     low = text.lower()
     out = []
     for term, plain in GLOSSARY.items():
-        n = len(re.findall(rf"\b{re.escape(term)}\b", low))
+        n = len(re.findall(rf"\b{re.escape(term)}(?:s|es)?\b", low))  # plural forms count too
         if n:
             out.append((term, n, plain))
     return sorted(out, key=lambda x: -x[1])

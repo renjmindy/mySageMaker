@@ -67,6 +67,17 @@ def run(data_dir, start, near_full_min):
     with contextlib.redirect_stderr(io.StringIO()):
         outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tce))
     add("closure event unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/executive-summary-generator/scripts"))
+    import exec_summary_check as esc  # noqa: E402
+    import test_exec_summary_check as tesc  # noqa: E402
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tesc))
+    add("exec summary checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    chk = esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"))
+    fails = [n for n, s_, _ in chk if s_ == "FAIL"]
+    warns = [n for n, s_, _ in chk if s_ == "WARN"]
+    add("executive summary vs analysis document", "FAIL" if fails else "WARN" if warns else "PASS",
+        f"failing: {', '.join(fails)}" if fails else (f"warnings: {', '.join(warns)}" if warns else "all checks pass"))
     return results
 
 
