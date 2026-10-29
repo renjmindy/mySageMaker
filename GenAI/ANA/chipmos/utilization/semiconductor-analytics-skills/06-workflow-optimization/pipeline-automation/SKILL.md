@@ -13,7 +13,7 @@ description: Automate the utilization workflow end to end - ingest, validate, co
 2. **Clean and align** — `lib/contactor_io.py` applies the rules; time weights replace shift slicing for now.
 3. **Compute** — availability, chronic sites, events (scripts in `03-data-analysis-investigation`).
 4. **Gate** — `analysis-qa-checklist/scripts/qa_runner.py`; a FAIL stops publication.
-5. **Store** — write to TimescaleDB using `assets/timescaledb_schema.sql` (raw `contactor_samples`, `site_state_events`, `equipment_daily_metrics`).
+5. **Store** — write to TimescaleDB using `assets/timescaledb_schema.sql` (`contactor_samples`, `closure_episodes`, `closure_events`, `site_recency`, `equipment_daily_metrics`, `capacity_summary`; this file is the single schema source the dashboard spec points at, and `dashboard-specification/scripts/build_dashboard_db.py` derives a SQLite copy from it).
 6. **Schedule** — run `scripts/daily_pipeline.py` from cron or Airflow (`assets/airflow_dag_example.py`); hourly aggregation and daily close.
 7. **Alert** — thresholds from `dashboard-specification`; notify via Slack / LINE / email; alert on data staleness too.
 

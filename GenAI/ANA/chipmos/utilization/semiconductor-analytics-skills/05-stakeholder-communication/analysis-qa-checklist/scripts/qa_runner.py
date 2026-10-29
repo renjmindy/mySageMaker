@@ -93,6 +93,17 @@ def run(data_dir, start, near_full_min):
     vres = vc.run_static(tvc.DATA, tvc.PAGE)
     v_fail = [n for n, s_, _ in vres if s_ == "FAIL"]
     add("report vs analysis scripts (static)", "FAIL" if v_fail else "PASS", f"failing: {', '.join(v_fail)}" if v_fail else f"{len(vres)} checks pass (browser checks: viz_check.py)")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/dashboard-specification/scripts"))
+    import dashboard_spec_check as dsc  # noqa: E402
+    import test_dashboard_spec_check as tdsc  # noqa: E402
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tdsc))
+    add("dashboard spec checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    dres = dsc.check(dsc.DEFAULT_SPEC.read_text(encoding="utf-8"), tdsc.SCHEMA, tdsc.YAML, tdsc.CON, tdsc.BACKTEST, tdsc.HEADLINE)
+    d_fail = [n for n, s_, _ in dres if s_ == "FAIL"]
+    d_warn = [n for n, s_, _ in dres if s_ == "WARN"]
+    add("dashboard spec vs schema, data and backtest", "FAIL" if d_fail else "WARN" if d_warn else "PASS",
+        f"failing: {', '.join(d_fail)}" if d_fail else (f"warnings: {', '.join(d_warn)}" if d_warn else "all checks pass"))
     chk = esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"))
     fails = [n for n, s_, _ in chk if s_ == "FAIL"]
     warns = [n for n, s_, _ in chk if s_ == "WARN"]

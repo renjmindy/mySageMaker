@@ -1,23 +1,38 @@
 # Dashboard Spec - [REQUIRED: name]
 
+**Status**: [REQUIRED]. **Dashboard owner**: [REQUIRED or OPEN]. **Data owner**: [REQUIRED or OPEN].
+
+## Decisions it serves
+1. [REQUIRED]
+
 ## Data model
-```sql
--- raw, one row per capture and side
-contactor_samples(ts timestamptz, handler text, side text, err_01 int, closed_sites int[], status text, weight_min real)
--- derived
-site_state_events(ts timestamptz, handler text, side text, site int, event text, event_id bigint)
-equipment_daily_metrics(day date, handler text, side text, site_availability real, availability_low real, valid_samples int)
-```
+Not repeated here: the single source of truth is `06-workflow-optimization/pipeline-automation/assets/timescaledb_schema.sql`. Tables: [REQUIRED - every table in the file, each in backticks].
 
 ## Panels
-| Panel | Type | Query / source | Thresholds |
-|---|---|---|---|
-| [REQUIRED] | | | |
+| id | group | type | metric | source | thresholds | notes |
+|---|---|---|---|---|---|---|
+| P1 | [REQUIRED: answer / diagnosis / detail / data-health / blocked] | | [metric name or -] | [table.column, ...] | [alert id or none] | |
+
+## Queries
+```sql
+-- panel: P1 | columns: [REQUIRED] | rows: [minimum rows]
+SELECT ...;
+```
 
 ## Alerts
-| Alert | Condition | Channel | Owner |
-|---|---|---|---|
-| [REQUIRED] | | | |
+Rates from `scripts/alert_backtest.py` (in-sample; say so).
+
+| id | rule | front per week | rear per week | severity | owner | action | channel |
+|---|---|---|---|---|---|---|---|
+| [REQUIRED] | | | | [page / ticket] | [REQUIRED or OPEN] | | |
+
+Rejected rules: [REQUIRED - rule and its backtest rate].
+
+## Grafana notes
+[REQUIRED - limits such as the 16x16 grid]
 
 ## Refresh and retention
 [REQUIRED]
+
+## Open items
+[OPTIONAL]
