@@ -33,7 +33,7 @@ def steps(nf):
         ("events_rear", py + [str(a / "closure-event-root-cause/scripts/closure_events.py"), "--side", "rear", "--min-sites", "4"] + extra),
         ("dashboard_db", py + [str(ROOT / "04-data-storytelling-visualization/dashboard-specification/scripts/build_dashboard_db.py")]),
         ("heatmap", py + [str(ROOT / "04-data-storytelling-visualization/visualization-builder/scripts/site_heatmap.py")] + extra),
-        ("qa", py + [str(ROOT / "05-stakeholder-communication/analysis-qa-checklist/scripts/qa_runner.py")] + extra),
+        ("qa", py + [str(ROOT / "05-stakeholder-communication/analysis-qa-checklist/scripts/qa_runner.py"), "--with-doc-check"] + extra),
     ]
 
 

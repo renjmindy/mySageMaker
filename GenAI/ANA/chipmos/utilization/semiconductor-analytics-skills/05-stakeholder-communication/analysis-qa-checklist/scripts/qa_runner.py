@@ -1,115 +1,140 @@
 """
-Automated QA checks for the contactor utilization analysis.
+Automated QA for the contactor utilization analysis.
 
-Exit code 1 if any check FAILs.
+Two parts, so a data problem is never hidden among repo-health checks:
+  * data gate    (data_gate.py): faults in the CSVs - missing/duplicate days, bad format, time zone, swapped
+                  sides, unreviewed bad days, data going backwards, headline jumps, ...
+  * repo health  unit tests and checks of the other skills, the assumptions log and metric definitions
+                  against the loader, headline reconciled across every deliverable, optionally the
+                  analysis document's reproduction check
+
+WARNs listed in qa_waivers.json (reason, owner, expiry) show as WAIVED; an expired waiver brings the WARN
+back. Exit code 1 only on FAIL.
 
 Usage:
-    python qa_runner.py
-    python qa_runner.py
+    python qa_runner.py                    # data gate + repo health
+    python qa_runner.py --data-only        # just the data gate
+    python qa_runner.py --repo-only
+    python qa_runner.py --with-doc-check   # also re-run the analysis document's commands (slower)
+    python qa_runner.py --update-baseline  # record the current data as the release baseline
 """
 
 import argparse
+import contextlib
+import io
+import json
+import subprocess
 import sys
+import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "02-documentation-knowledge/analysis-assumptions-log/scripts"))
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "02-documentation-knowledge/semiconductor-metric-definitions/scripts"))
-import contactor_io as cio  # noqa: E402
+ROOT = Path(__file__).resolve().parents[3]
+for sub in ("lib", "02-documentation-knowledge/analysis-assumptions-log/scripts", "02-documentation-knowledge/semiconductor-metric-definitions/scripts",
+            "05-stakeholder-communication/analysis-qa-checklist/scripts", "03-data-analysis-investigation/oee-calculator/scripts",
+            "03-data-analysis-investigation/closure-event-root-cause/scripts", "04-data-storytelling-visualization/executive-summary-generator/scripts",
+            "04-data-storytelling-visualization/insight-synthesis/scripts", "04-data-storytelling-visualization/visualization-builder/scripts",
+            "04-data-storytelling-visualization/dashboard-specification/scripts"):
+    sys.path.insert(0, str(ROOT / sub))
+sys.path.insert(0, str(ROOT / "05-stakeholder-communication/impact-quantification/scripts"))
 import assumptions_tracker as at  # noqa: E402
+import contactor_io as cio  # noqa: E402
+import data_gate as dg  # noqa: E402
+import deferral  # noqa: E402
 import metric_yaml_validator as myv  # noqa: E402
 
 
-def run(data_dir, start, near_full_min):
-    results = []
-    add = lambda name, status, detail: results.append((name, status, detail))
-    base = {s: cio.load_side(s, data_dir, start, near_full_min=0, max_count_gap=0) for s in cio.SIDES}  # old 256-only rule, for reference
-    used = {s: cio.load_side(s, data_dir, start, near_full_min=near_full_min) for s in cio.SIDES}
+def _tests(add, name, module):
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(module))
+    add(name, "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
 
-    for side, df in used.items():
-        v = df[df["valid"]]
-        add(f"{side}: scope starts {start}", "PASS" if df["timestamp"].min() >= __import__("pandas").Timestamp(start) else "FAIL",
-            f"first sample {df['timestamp'].min()}")
-        fail = 1 - len(v) / len(df)
-        add(f"{side}: read-failure rate", "PASS" if fail < 0.03 else "WARN" if fail < 0.10 else "FAIL", f"{fail * 100:.2f}%")
-        add(f"{side}: closed within 0-256", "PASS" if v["n_closed"].between(0, 256).all() else "FAIL", f"max {v['n_closed'].max()}")
-        ids_ok = all(cio.SIDES[side]["lo"] <= s <= cio.SIDES[side]["hi"] for ids in v["sites"] for s in ids)
-        add(f"{side}: IDs inside side range", "PASS" if ids_ok else "FAIL", "")
-        gap_kept = int((v["err_01"] - v["n_closed"] > cio.MAX_COUNT_GAP).sum())
-        add(f"{side}: rows with count-list gap > {cio.MAX_COUNT_GAP} kept", "PASS" if gap_kept == 0 else "FAIL", f"{gap_kept} rows (A15)")
-        near = int(v["err_01"].between(cio.NEAR_FULL_MIN, 255).sum())
-        add(f"{side}: err_01 252-255 rows kept as valid", "PASS" if near == 0 else "FAIL", f"{near} rows (A8 confirmed read failure)")
-        lo_hi_gap = (v["err_01"].clip(upper=256).sub(v["n_closed"]).clip(lower=0) * v["weight_min"]).sum() / v["weight_min"].sum() / 256 * 100
-        add(f"{side}: count-vs-list gap (availability pts)", "PASS" if lo_hi_gap < 1 else "WARN", f"{lo_hi_gap:.2f} pts between high and low bound")
-        unw = (1 - v["n_closed"].mean() / 256) * 100
-        wtd = cio.weighted_availability(df) * 100
-        add(f"{side}: weighted vs unweighted", "PASS" if abs(unw - wtd) < 2 else "WARN", f"{wtd:.2f}% vs {unw:.2f}%")
-        days = df.groupby(df["timestamp"].dt.date).size()
-        low = int((days < 0.75 * 360).sum())
-        add(f"{side}: days with < 75% coverage", "PASS" if low <= 1 else "WARN", f"{low} days (last day may be partial)")
-        b = cio.weighted_availability(base[side]) * 100
-        add(f"{side}: effect of 252-255 + gap rules (info)", "PASS", f"{b:.2f}% (256-only) -> {wtd:.2f}% (confirmed rules)")
+
+def _summary(add, name, results, ok="all checks pass"):
+    fails = [n for n, s, _ in results if s == "FAIL"]
+    warns = [n for n, s, _ in results if s == "WARN"]
+    add(name, "FAIL" if fails else "WARN" if warns else "PASS",
+        f"failing: {', '.join(fails)}" if fails else (f"warnings: {', '.join(warns)}" if warns else ok))
+
+
+def repo_checks(with_doc_check: bool = False) -> list[tuple[str, str, str]]:
+    res: list[tuple[str, str, str]] = []
+    add = lambda name, status, detail="": res.append((name, status, detail))
+
     problems = at.check(at.load())
     add("assumptions log vs loader", "PASS" if not problems else "FAIL", "consistent" if not problems else "; ".join(problems))
-    yaml_path = Path(__file__).resolve().parents[3] / "02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml"
+    yaml_path = ROOT / "02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml"
     errs, warns = myv.validate(yaml_path.read_text(encoding="utf-8"))
     add("metric definitions vs loader", "FAIL" if errs else "WARN" if warns else "PASS",
         "; ".join(errs) if errs else (f"{len(warns)} owner(s) not assigned" if warns else "consistent"))
-    import contextlib, io, unittest
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "03-data-analysis-investigation/oee-calculator/scripts"))
-    import test_oee_calculator as toee  # noqa: E402
-    suite = unittest.defaultTestLoader.loadTestsFromModule(toee)
-    with contextlib.redirect_stderr(io.StringIO()):
-        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(suite)
-    add("OEE calculator unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "03-data-analysis-investigation/closure-event-root-cause/scripts"))
-    import test_closure_events as tce  # noqa: E402
-    with contextlib.redirect_stderr(io.StringIO()):
-        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tce))
-    add("closure event unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/executive-summary-generator/scripts"))
-    import exec_summary_check as esc  # noqa: E402
-    import test_exec_summary_check as tesc  # noqa: E402
-    with contextlib.redirect_stderr(io.StringIO()):
-        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tesc))
-    add("exec summary checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/insight-synthesis/scripts"))
-    import insight_brief_check as ibc  # noqa: E402
-    import test_insight_brief_check as tibc  # noqa: E402
-    with contextlib.redirect_stderr(io.StringIO()):
-        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tibc))
-    add("insight brief checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+
+    import test_closure_events as tce
+    import test_cost_impact as tci
+    import test_dashboard_spec_check as tdsc
+    import test_data_gate as tdg
+    import test_exec_summary_check as tesc
+    import test_insight_brief_check as tibc
+    import test_oee_calculator as toee
+    import test_viz_check as tvc
+    for name, mod in (("data gate fault-injection tests", tdg), ("OEE calculator unit tests", toee), ("impact quantification unit tests", tci), ("closure event unit tests", tce),
+                      ("exec summary checker unit tests", tesc), ("insight brief checker unit tests", tibc),
+                      ("report checker unit tests", tvc), ("dashboard spec checker unit tests", tdsc)):
+        _tests(add, name, mod)
+
+    import dashboard_spec_check as dsc
+    import exec_summary_check as esc
+    import insight_brief_check as ibc
+    import viz_check as vc
     ib = ibc.check(ibc.DEFAULT_BRIEF.read_text(encoding="utf-8"), ibc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"), at.load(), ibc.DEFAULT_SUMMARY.read_text(encoding="utf-8"))
-    ib_fail = [n for n, s_, _ in ib if s_ == "FAIL"]
-    ib_warn = [n for n, s_, _ in ib if s_ == "WARN"]
-    add("insight brief vs analysis document and log", "FAIL" if ib_fail else "WARN" if ib_warn else "PASS",
-        f"failing: {', '.join(ib_fail)}" if ib_fail else (f"warnings: {', '.join(ib_warn)}" if ib_warn else "all checks pass"))
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/visualization-builder/scripts"))
-    import viz_check as vc  # noqa: E402
-    import test_viz_check as tvc  # noqa: E402
-    with contextlib.redirect_stderr(io.StringIO()):
-        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tvc))
-    add("report checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    _summary(add, "insight brief vs analysis document and log", ib)
     vres = vc.run_static(tvc.DATA, tvc.PAGE)
-    v_fail = [n for n, s_, _ in vres if s_ == "FAIL"]
-    add("report vs analysis scripts (static)", "FAIL" if v_fail else "PASS", f"failing: {', '.join(v_fail)}" if v_fail else f"{len(vres)} checks pass (browser checks: viz_check.py)")
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/dashboard-specification/scripts"))
-    import dashboard_spec_check as dsc  # noqa: E402
-    import test_dashboard_spec_check as tdsc  # noqa: E402
-    with contextlib.redirect_stderr(io.StringIO()):
-        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tdsc))
-    add("dashboard spec checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    add("report vs analysis scripts (static)", "FAIL" if any(s == "FAIL" for _, s, _ in vres) else "PASS",
+        f"{len(vres)} checks pass (browser checks: viz_check.py)" if not any(s == "FAIL" for _, s, _ in vres) else "failing: " + ", ".join(n for n, s, _ in vres if s == "FAIL"))
     dres = dsc.check(dsc.DEFAULT_SPEC.read_text(encoding="utf-8"), tdsc.SCHEMA, tdsc.YAML, tdsc.CON, tdsc.BACKTEST, tdsc.HEADLINE)
-    d_fail = [n for n, s_, _ in dres if s_ == "FAIL"]
-    d_warn = [n for n, s_, _ in dres if s_ == "WARN"]
-    add("dashboard spec vs schema, data and backtest", "FAIL" if d_fail else "WARN" if d_warn else "PASS",
-        f"failing: {', '.join(d_fail)}" if d_fail else (f"warnings: {', '.join(d_warn)}" if d_warn else "all checks pass"))
-    chk = esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"))
-    fails = [n for n, s_, _ in chk if s_ == "FAIL"]
-    warns = [n for n, s_, _ in chk if s_ == "WARN"]
-    add("executive summary vs analysis document", "FAIL" if fails else "WARN" if warns else "PASS",
-        f"failing: {', '.join(fails)}" if fails else (f"warnings: {', '.join(warns)}" if warns else "all checks pass"))
-    return results
+    _summary(add, "dashboard spec vs schema, data and backtest", dres)
+    _summary(add, "executive summary vs analysis document", esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8")))
+
+    # headline reconciled across every deliverable (the data is the truth)
+    truth = {s: cio.weighted_availability(cio.load_side(s)) * 100 for s in cio.SIDES}
+    texts = {"analysis document": esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"), "insight brief": ibc.DEFAULT_BRIEF.read_text(encoding="utf-8"),
+             "executive summary": esc.DEFAULT_SUMMARY.read_text(encoding="utf-8")}
+    bad = dg.reconcile(truth, texts)
+    for side in cio.SIDES:
+        dash = tdsc.CON.execute("SELECT availability FROM capacity_summary WHERE side = ?", (side,)).fetchone()[0]
+        if abs(dash - truth[side]) > 0.01:
+            bad.append(f"dashboard {side}: {dash:.2f}% vs {truth[side]:.2f}%")
+        if f"<b>{truth[side]:.1f}%</b>" not in tvc.PAGE:
+            bad.append(f"HTML report {side}: tile does not show {truth[side]:.1f}%")
+    add("headline reconciled across all deliverables", "PASS" if not bad else "FAIL",
+        "analysis document, insight brief, executive summary, dashboard, HTML report" if not bad else "; ".join(bad))
+
+    leaks = {}
+    extra = {"dashboard spec": dsc.DEFAULT_SPEC.read_text(encoding="utf-8"), "HTML report": tvc.PAGE,
+             "QA sign-off": (ROOT / "05-stakeholder-communication/analysis-qa-checklist/assets/qa_signoff_sep_oct_2026.md").read_text(encoding="utf-8")}
+    for name, text in {**texts, **extra}.items():
+        found = deferral.check(text)
+        if found:
+            leaks[name] = found[:2]
+    add("no money or throughput figures in any deliverable (impact deferred)", "PASS" if not leaks else "FAIL",
+        "analysis document, brief, summary, spec, HTML report, sign-off" if not leaks else "; ".join(f"{k}: {v}" for k, v in leaks.items()))
+
+    if with_doc_check:
+        script = ROOT / "02-documentation-knowledge/analysis-documentation/scripts/doc_numbers_check.py"
+        p = subprocess.run([sys.executable, "-I", str(script)], capture_output=True, text=True, timeout=600)
+        last = p.stdout.strip().splitlines()[-1] if p.stdout.strip() else p.stderr[-120:]
+        add("analysis document reproduces (doc_numbers_check)", "PASS" if p.returncode == 0 else "FAIL", last)
+    return res
+
+
+def run(data_dir=None, start: str = cio.DEFAULT_START, near_full_min: int = cio.NEAR_FULL_MIN, mode: str = "all",
+        waivers: bool = True, with_doc_check: bool = False, today: str | None = None) -> list[tuple[str, str, str]]:
+    results: list[tuple[str, str, str]] = []
+    if mode in ("all", "data"):
+        baseline = json.loads(dg.BASELINE_PATH.read_text()) if dg.BASELINE_PATH.exists() else None
+        report = dg.VALIDATION_REPORT.read_text(encoding="utf-8") if dg.VALIDATION_REPORT.exists() else None
+        results += dg.data_checks(data_dir, start, near_full_min, baseline, report)
+    if mode in ("all", "repo"):
+        results += repo_checks(with_doc_check)
+    return dg.apply_waivers(results, dg.load_waivers(), today) if waivers else results
 
 
 def main():
@@ -117,14 +142,24 @@ def main():
     ap.add_argument("--data-dir", default=None)
     ap.add_argument("--start", default=cio.DEFAULT_START)
     ap.add_argument("--near-full-min", type=int, default=cio.NEAR_FULL_MIN, help="err_01 >= N (<256) is a read failure; 0 disables")
+    g = ap.add_mutually_exclusive_group()
+    g.add_argument("--data-only", action="store_true")
+    g.add_argument("--repo-only", action="store_true")
+    ap.add_argument("--no-waivers", action="store_true")
+    ap.add_argument("--with-doc-check", action="store_true")
+    ap.add_argument("--update-baseline", action="store_true")
     args = ap.parse_args()
-    res = run(args.data_dir, args.start, args.near_full_min)
+    if args.update_baseline:
+        dg.BASELINE_PATH.write_text(json.dumps(dg.make_baseline(args.data_dir, args.start), indent=2) + "\n", encoding="utf-8")
+        print(f"wrote {dg.BASELINE_PATH}")
+        return
+    mode = "data" if args.data_only else "repo" if args.repo_only else "all"
+    res = run(args.data_dir, args.start, args.near_full_min, mode, not args.no_waivers, args.with_doc_check)
     for name, status, detail in res:
-        print(f"[{status:4s}] {name:52s} {detail}")
-    fails = sum(1 for _, s, _ in res if s == "FAIL")
-    warns = sum(1 for _, s, _ in res if s == "WARN")
-    print(f"\n{len(res)} checks: {fails} FAIL, {warns} WARN")
-    sys.exit(1 if fails else 0)
+        print(f"[{status:6s}] {name:62s} {detail}")
+    c = {k: sum(1 for _, s, _ in res if s == k) for k in ("FAIL", "WARN", "WAIVED")}
+    print(f"\n{len(res)} checks: {c['FAIL']} FAIL, {c['WARN']} WARN (unwaived), {c['WAIVED']} WAIVED")
+    sys.exit(1 if c["FAIL"] else 0)
 
 
 if __name__ == "__main__":

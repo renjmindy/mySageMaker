@@ -30,6 +30,7 @@ import alert_backtest as ab  # noqa: E402
 import build_dashboard_db as bdb  # noqa: E402
 import chronic_sites as cs  # noqa: E402
 import contactor_io as cio  # noqa: E402
+import deferral  # noqa: E402
 
 DEFAULT_SPEC = HERE.parents[1] / "assets" / "dashboard_spec_sep_oct_2026.md"
 METRIC_YAML = ROOT / "02-documentation-knowledge/semiconductor-metric-definitions/assets/metric_definition.yaml"
@@ -94,6 +95,8 @@ def check(spec: str, schema_sql: str, metric_yaml: str, con, backtest: dict, hea
     schema = bdb.parse_schema(schema_sql)
 
     add("no unfilled placeholders", "FAIL" if "[REQUIRED" in spec else "PASS")
+    money = deferral.check(spec)
+    add("no money or throughput figures while impact-quantification is deferred", "PASS" if not money else "FAIL", ", ".join(money[:3]))
     opens = spec.count("[OPEN")
     add("owners and open items named", "WARN" if opens else "PASS", f"{opens} [OPEN] item(s)" if opens else "")
 

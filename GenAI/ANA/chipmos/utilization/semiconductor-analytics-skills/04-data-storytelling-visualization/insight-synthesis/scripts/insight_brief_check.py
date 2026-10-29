@@ -26,8 +26,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve()
 ROOT = HERE.parents[3]
+sys.path.insert(0, str(ROOT / "lib"))
 sys.path.insert(0, str(ROOT / "04-data-storytelling-visualization/executive-summary-generator/scripts"))
 sys.path.insert(0, str(ROOT / "02-documentation-knowledge/analysis-assumptions-log/scripts"))
+import deferral  # noqa: E402
 import exec_summary_check as esc  # noqa: E402
 
 DEFAULT_BRIEF = HERE.parents[1] / "assets" / "insight_brief_sep_oct_2026.md"
@@ -81,6 +83,8 @@ def check(brief: str, analysis: str, assumptions: list[dict], summary: str | Non
     log = {a["id"]: a for a in assumptions}
 
     add("no unfilled placeholders", "FAIL" if "[REQUIRED" in body else "PASS")
+    money = deferral.check(body)
+    add("no money or throughput figures while impact-quantification is deferred", "PASS" if not money else "FAIL", ", ".join(money[:3]))
     ins = table(section(body, "Insights"))
     need = {"#", "insight", "evidence", "confidence", "depends on", "action"}
     if not ins or not need <= set(ins[0]):

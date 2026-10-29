@@ -33,6 +33,9 @@ class TestInsightBriefCheck(unittest.TestCase):
     def test_real_brief_has_no_failures(self):
         self.assertEqual([n for n, (s, _) in run(summary=SUMMARY).items() if s == "FAIL"], [])
 
+    def test_money_or_throughput_figures_fail_while_impact_is_deferred(self):
+        self.assertEqual(run(rep(BRIEF, "Inspect the three front groups first.", "Inspect the three front groups first; worth $5,000 a month."))["no money or throughput figures while impact-quantification is deferred"][0], "FAIL")
+
     def test_placeholder_fails(self):
         self.assertEqual(run(rep(BRIEF, "Inspect the three front groups first.", "[REQUIRED]"))["no unfilled placeholders"][0], "FAIL")
 

@@ -77,6 +77,11 @@ class TestExecSummaryCheck(unittest.TestCase):
     def test_answer_first_needs_number_and_action(self):
         self.assertEqual(statuses(GOOD.replace("91% of front positions and 96% of rear positions could test; we recommend inspecting three front groups first.", "Things are fine."))["answer first"], "FAIL")
 
+    def test_money_or_throughput_figures_fail_while_impact_is_deferred(self):
+        self.assertEqual(statuses(GOOD + "\nThis saves $5,000 a month.")["no money or throughput figures while impact-quantification is deferred"], "FAIL")
+        self.assertEqual(statuses(GOOD + "\nWe gain 20 units per hour.")["no money or throughput figures while impact-quantification is deferred"], "FAIL")
+        self.assertEqual(statuses(GOOD)["no money or throughput figures while impact-quantification is deferred"], "PASS")
+
     def test_real_summary_passes_against_the_real_analysis(self):
         res = esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"))
         self.assertEqual([r for r in res if r[1] == "FAIL"], [])

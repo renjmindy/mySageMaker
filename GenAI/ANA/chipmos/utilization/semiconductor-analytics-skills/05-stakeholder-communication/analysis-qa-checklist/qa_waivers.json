@@ -1,0 +1,26 @@
+[
+  {
+    "check": "rear: site IDs belong to this side",
+    "reason": "rear 2026-09-16: one stray token (131, in 26 readings; 1431 once) inside otherwise consistent lists, removed by the range filter (A17); headline effect negligible; cause unknown - ask the capture owner",
+    "owner": "analyst",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "metric definitions vs loader",
+    "reason": "metric owners not yet named by the process owner",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "executive summary vs analysis document",
+    "reason": "ask-table owners and dates are [OPEN] until the process owner names them",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  },
+  {
+    "check": "dashboard spec vs schema, data and backtest",
+    "reason": "dashboard, data and alert owners and channels are [OPEN]",
+    "owner": "process owner",
+    "expires": "2026-12-31"
+  }
+]

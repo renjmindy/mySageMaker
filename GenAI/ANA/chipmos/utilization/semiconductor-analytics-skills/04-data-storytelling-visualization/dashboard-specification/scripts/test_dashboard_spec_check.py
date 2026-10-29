@@ -97,6 +97,9 @@ class TestDashboardSpecCheck(unittest.TestCase):
         bad = rep(SCHEMA, "'READ_FAIL_GAP',", "")
         self.assertEqual(run(schema=bad)["schema statuses equal the loader and recency statuses"][0], "FAIL")
 
+    def test_money_or_throughput_figures_fail_while_impact_is_deferred(self):
+        self.assertEqual(run(SPEC + "\nExpected saving: $5,000 per month.")["no money or throughput figures while impact-quantification is deferred"][0], "FAIL")
+
     def test_placeholder_fails(self):
         self.assertEqual(run(SPEC + "\n[REQUIRED]")["no unfilled placeholders"][0], "FAIL")
 

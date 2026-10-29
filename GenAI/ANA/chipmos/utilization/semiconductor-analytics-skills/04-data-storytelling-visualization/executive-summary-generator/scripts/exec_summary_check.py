@@ -28,6 +28,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve()
 ROOT = HERE.parents[3]
 sys.path.insert(0, str(ROOT / "05-stakeholder-communication/technical-to-business-translator/scripts"))
+sys.path.insert(0, str(ROOT / "lib"))
+import deferral  # noqa: E402
 import jargon_detector  # noqa: E402
 import readability_scorer  # noqa: E402
 
@@ -123,6 +125,8 @@ def check(summary: str, analysis: str, max_words: int = 300, max_bottom_words: i
     avg = readability_scorer.score(re.sub(r"\|.*\|", " ", body))["avg_words_per_sentence"]
     add("readability", "PASS" if avg <= max_avg_sentence else "WARN", f"average {avg} words per sentence (max {max_avg_sentence:.0f})")
 
+    money = deferral.check(body)
+    add("no money or throughput figures while impact-quantification is deferred", "PASS" if not money else "FAIL", ", ".join(money[:3]))
     hits = [(t, n) for t, n, _ in jargon_detector.detect(body) if t not in allow]
     add("plain language", "PASS" if not hits else "FAIL", "no glossary jargon" if not hits else f"jargon: {', '.join(f'{t} x{n}' for t, n in hits)}")
 

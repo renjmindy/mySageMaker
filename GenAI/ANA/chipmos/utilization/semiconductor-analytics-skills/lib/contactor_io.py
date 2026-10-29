@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import glob
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -37,6 +38,7 @@ SIDES = {
     "rear": {"lo": 257, "hi": 512, "pattern": "contactor_rear_2026*.csv"},
 }
 COLS = 16
+REQUIRED_COLUMNS = ("Timestamp", "err_01", "err_02")
 SITES_PER_SIDE = 256
 READ_FAIL_COUNT = 256
 NEAR_FULL_MIN = 252  # err_01 252-255 = read failure (confirmed by process owner)
@@ -46,6 +48,10 @@ DEFAULT_MAX_GAP_MIN = 15.0  # a sample never represents more than this many minu
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_DIR = REPO_ROOT.parent / "dat"
+
+
+class DataFormatError(ValueError):
+    """A CSV does not have the expected columns or values; raised instead of continuing silently."""
 
 
 def site_row_col(site: int) -> tuple[int, int]:
@@ -74,6 +80,9 @@ def load_side(
 
     Columns: timestamp, err_01, status, sites, n_closed, n_oob, n_dup,
              count_mismatch, weight_min, valid
+    attrs: duplicate_timestamps, file_date_mismatch (rows whose timestamp day differs from the file's
+           day), source_rows, files - facts the cleaning would otherwise hide
+    Raises DataFormatError for a missing column, an unparseable Timestamp or a non-numeric err_01.
     status: OK | NA_ZERO | READ_FAIL_256 | READ_FAIL_NEAR_FULL | READ_FAIL_GAP | NA_NONZERO
     """
     cfg = SIDES[side]
@@ -82,14 +91,32 @@ def load_side(
     if not files:
         raise FileNotFoundError(f"no {side} CSVs matching {cfg['pattern']} in {data_dir}")
 
-    frames = [pd.read_csv(f, encoding="utf-8-sig", dtype=str, keep_default_na=False) for f in files]
+    frames = []
+    for f in files:
+        raw = pd.read_csv(f, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+        missing = [c for c in REQUIRED_COLUMNS if c not in raw.columns]
+        if missing:
+            raise DataFormatError(f"{Path(f).name}: missing column(s) {missing}; found {list(raw.columns)}")
+        m = re.search(r"(\d{8})\.csv$", f)
+        raw["_file_date"] = m.group(1) if m else ""
+        frames.append(raw)
     df = pd.concat(frames, ignore_index=True)
-    df["timestamp"] = pd.to_datetime(df["Timestamp"], format="%Y/%m/%d %H:%M")
+    try:
+        df["timestamp"] = pd.to_datetime(df["Timestamp"], format="%Y/%m/%d %H:%M")
+    except ValueError as e:
+        raise DataFormatError(f"unparseable Timestamp value: {e}") from e
     df = df[df["timestamp"] >= pd.Timestamp(start)]
     if end:
         df = df[df["timestamp"] <= pd.Timestamp(end) + pd.Timedelta(days=1)]
+    # facts about the source that the cleaning would otherwise hide (see data_gate.py)
+    duplicates = int(df.duplicated("timestamp").sum())
+    day_mismatch = int((df["timestamp"].dt.strftime("%Y%m%d") != df["_file_date"]).sum())
+    source_rows = len(df)
     df = df.sort_values("timestamp").drop_duplicates("timestamp").reset_index(drop=True)
-    df["err_01"] = pd.to_numeric(df["err_01"], errors="coerce").fillna(-1).astype(int)
+    counts = pd.to_numeric(df["err_01"], errors="coerce")
+    if counts.isna().any():
+        raise DataFormatError(f"err_01 has {int(counts.isna().sum())} non-numeric value(s)")
+    df["err_01"] = counts.astype(int)
 
     status, sites, n_oob, n_dup = [], [], [], []
     for cnt, lst in zip(df["err_01"], df["err_02"].str.strip()):
@@ -119,8 +146,11 @@ def load_side(
     gap = df["timestamp"].diff().shift(-1).dt.total_seconds().div(60)
     typical = float(gap.median()) if gap.notna().any() else 4.0
     df["weight_min"] = gap.fillna(typical).clip(upper=max_gap_min)
-    return df[["timestamp", "err_01", "status", "sites", "n_closed", "n_oob", "n_dup",
-               "count_mismatch", "weight_min", "valid"]]
+    out = df[["timestamp", "err_01", "status", "sites", "n_closed", "n_oob", "n_dup",
+              "count_mismatch", "weight_min", "valid"]]
+    out.attrs.update(duplicate_timestamps=duplicates, file_date_mismatch=day_mismatch, source_rows=source_rows,
+                     files=[Path(f).name for f in files])
+    return out
 
 
 def load_all(data_dir=None, start: str = DEFAULT_START, end: str | None = None,

@@ -1,0 +1,15 @@
+{
+  "created": "2026-10-29",
+  "front": {
+    "data_end": "2026-10-02 15:14:00",
+    "rows": 11632,
+    "availability_high": 91.32,
+    "availability_low": 90.88
+  },
+  "rear": {
+    "data_end": "2026-10-02 15:12:00",
+    "rows": 11589,
+    "availability_high": 96.07,
+    "availability_low": 95.64
+  }
+}

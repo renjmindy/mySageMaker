@@ -1,0 +1,6 @@
+{
+  "deferred": true,
+  "reason": "no real business parameters (units per hour per site, margin per unit, repair cost, operating hours, whether the handler is capacity-constrained) have been supplied or approved",
+  "lift_when": "all parameters are supplied with a source, owner and date, and finance has approved the margin; then set deferred to false and add traceable business figures to the deliverables",
+  "set_by": "process owner decision, 2026-10-28"
+}
