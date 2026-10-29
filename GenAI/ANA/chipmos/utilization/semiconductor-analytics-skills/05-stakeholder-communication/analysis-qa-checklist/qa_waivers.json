@@ -34,5 +34,11 @@
     "reason": "no deadline has been set by the process owner (see the brief), so phases carry 'no deadline set' until one is",
     "owner": "process owner",
     "expires": "2026-12-31"
+  },
+  {
+    "check": "learnings log and retrospective vs the repository and the plan",
+    "reason": "retrospective actions have no deadline yet, and no session with the process owner has been held (see its Limits)",
+    "owner": "process owner",
+    "expires": "2026-12-31"
   }
 ]
