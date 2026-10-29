@@ -73,6 +73,17 @@ def run(data_dir, start, near_full_min):
     with contextlib.redirect_stderr(io.StringIO()):
         outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tesc))
     add("exec summary checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "04-data-storytelling-visualization/insight-synthesis/scripts"))
+    import insight_brief_check as ibc  # noqa: E402
+    import test_insight_brief_check as tibc  # noqa: E402
+    with contextlib.redirect_stderr(io.StringIO()):
+        outcome = unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.loadTestsFromModule(tibc))
+    add("insight brief checker unit tests", "PASS" if outcome.wasSuccessful() else "FAIL", f"{outcome.testsRun} tests, {len(outcome.failures) + len(outcome.errors)} failing")
+    ib = ibc.check(ibc.DEFAULT_BRIEF.read_text(encoding="utf-8"), ibc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"), at.load(), ibc.DEFAULT_SUMMARY.read_text(encoding="utf-8"))
+    ib_fail = [n for n, s_, _ in ib if s_ == "FAIL"]
+    ib_warn = [n for n, s_, _ in ib if s_ == "WARN"]
+    add("insight brief vs analysis document and log", "FAIL" if ib_fail else "WARN" if ib_warn else "PASS",
+        f"failing: {', '.join(ib_fail)}" if ib_fail else (f"warnings: {', '.join(ib_warn)}" if ib_warn else "all checks pass"))
     chk = esc.check(esc.DEFAULT_SUMMARY.read_text(encoding="utf-8"), esc.DEFAULT_ANALYSIS.read_text(encoding="utf-8"))
     fails = [n for n, s_, _ in chk if s_ == "FAIL"]
     warns = [n for n, s_, _ in chk if s_ == "WARN"]

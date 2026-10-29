@@ -10,6 +10,9 @@ compares the last N days (default 7, ending at the last valid reading) with the 
     INTERMITTENT closed 10-50% of the last N days
     RESOLVED     closed >= 10% over the period but < 10% in the last N days (fixed / gone)
 
+The output also reports split-half stability (top-20 overlap and sites chronic in both halves of the
+period): a period ranking that does not repeat across halves describes history, not a steady problem.
+
 Usage:
     python chronic_sites.py --side front
     python chronic_sites.py --side rear --top 15 --recent-days 7
@@ -118,6 +121,12 @@ def main():
     n_now = int((recent >= 0.5).sum())
     print(f"recency status (last {args.recent_days} days): { {k: v for k, v in sc.items() if k != '-'} }")
     print(f"currently_closed_site_rate: {n_now}/256 = {n_now / 256 * 100:.1f}%  (sites closed >= 50% of the last {args.recent_days} days)")
+    h = len(mat) // 2
+    first, second = closure_share(mat.iloc[:h]), closure_share(mat.iloc[h:])
+    overlap = len(set(first.sort_values(ascending=False).head(20).index) & set(second.sort_values(ascending=False).head(20).index))
+    c1, c2 = int((first >= 0.5).sum()), int((second >= 0.5).sum())
+    both = int(((first >= 0.5) & (second >= 0.5)).sum())
+    print(f"stability (first vs second half of the period): top-20 overlap {overlap}/20; chronic in first half {c1}, second half {c2}, both {both}")
     chron_resolved = [int(x) for x in share[(share >= 0.5)].index if status[x] == "RESOLVED"]
     if chron_resolved:
         print(f"period-chronic sites that are now RESOLVED: {chron_resolved}")

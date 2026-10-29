@@ -70,6 +70,28 @@ def derived(text: str) -> dict[float, str]:
     return out
 
 
+def untraceable(body: str, analysis: str, der: dict[float, str]) -> list[str]:
+    """Numbers in `body` (decimal, %, or followed by 'points') that match no number in `analysis`
+    after rounding and are not covered by a verified derived-number declaration."""
+    doc_nums = [(v, d) for _, v, d in numbers(strip_comments(analysis))]
+    bad = []
+    for tok, val, dec in numbers(body):
+        if any(_round(v, dec) == _round(val, dec) for v, _ in doc_nums):
+            continue
+        match = next((dv for dv in der if _round(dv, dec) == _round(val, dec)), None)
+        if match is not None:
+            terms = [float(x) for x in re.split(r"\+", der[match])]
+            tdec = max(len(str(t).split(".")[1]) if "." in str(t) else 0 for t in terms)
+            sourced = all(any(_round(v, tdec) == _round(t, tdec) for v, _ in doc_nums) for t in terms)
+            arithmetic = _round(sum(terms), dec) == _round(match, dec) == _round(val, dec)
+            if sourced and arithmetic:
+                continue
+            bad.append(f"{tok} (derived: {'terms not in the analysis doc' if not sourced else 'arithmetic does not match'})")
+        else:
+            bad.append(tok)
+    return bad
+
+
 def check(summary: str, analysis: str, max_words: int = 300, max_bottom_words: int = 40,
           max_avg_sentence: float = 20.0, allow: tuple[str, ...] = ("oee",)) -> list[tuple[str, str, str]]:
     res = []
@@ -104,23 +126,7 @@ def check(summary: str, analysis: str, max_words: int = 300, max_bottom_words: i
     hits = [(t, n) for t, n, _ in jargon_detector.detect(body) if t not in allow]
     add("plain language", "PASS" if not hits else "FAIL", "no glossary jargon" if not hits else f"jargon: {', '.join(f'{t} x{n}' for t, n in hits)}")
 
-    doc_nums = [(v, d) for _, v, d in numbers(strip_comments(analysis))]
-    der = derived(summary)
-    bad = []
-    for tok, val, dec in numbers(body):
-        if any(_round(v, dec) == _round(val, dec) for v, _ in doc_nums):
-            continue
-        match = next((dv for dv in der if _round(dv, dec) == _round(val, dec)), None)
-        if match is not None:
-            terms = [float(x) for x in re.split(r"\+", der[match])]
-            tdec = max(len(str(t).split(".")[1]) if "." in str(t) else 0 for t in terms)
-            sourced = all(any(_round(v, tdec) == _round(t, tdec) for v, _ in doc_nums) for t in terms)
-            arithmetic = _round(sum(terms), dec) == _round(match, dec) == _round(val, dec)
-            if sourced and arithmetic:
-                continue
-            bad.append(f"{tok} (derived: {'terms not in the analysis doc' if not sourced else 'arithmetic does not match'})")
-        else:
-            bad.append(tok)
+    bad = untraceable(body, analysis, derived(summary))
     add("numbers traceable", "PASS" if not bad else "FAIL",
         f"{len(numbers(body))} numbers checked against the analysis document" if not bad else f"not found in the analysis document: {', '.join(bad)}")
 
