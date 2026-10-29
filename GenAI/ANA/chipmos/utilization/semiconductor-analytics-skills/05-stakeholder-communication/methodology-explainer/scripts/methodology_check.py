@@ -175,7 +175,7 @@ def check(slide: str, writeup: str, blank: str, analysis: str, contract_yaml: st
     # --- slide plain language and length
     words = len(re.findall(r"[A-Za-z0-9%.'/-]+", s_body))
     add("slide is short", "PASS" if words <= SLIDE_MAX_WORDS else "FAIL", f"{words} words (max {SLIDE_MAX_WORDS})")
-    hits = [f"{t} x{n}" for t, n, _ in jargon_detector.detect(s_body) if t != "oee"]
+    hits = [f"{t} x{n}" for t, n, _ in jargon_detector.detect(s_body) if t not in ("oee", "assumption id")]  # the slide cites rule ids on purpose
     add("slide in plain language", "PASS" if not hits else "FAIL", ", ".join(hits))
 
     # --- limits and reproduction
