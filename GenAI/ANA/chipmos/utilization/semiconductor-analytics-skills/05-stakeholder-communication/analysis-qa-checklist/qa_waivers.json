@@ -28,5 +28,11 @@
     "reason": "the analysis brief is a draft and the stakeholder roles are unnamed until the process owner confirms the brief and names the people",
     "owner": "process owner",
     "expires": "2026-12-31"
+  },
+  {
+    "check": "analysis plan vs requirements, roles and questions",
+    "reason": "no deadline has been set by the process owner (see the brief), so phases carry 'no deadline set' until one is",
+    "owner": "process owner",
+    "expires": "2026-12-31"
   }
 ]
