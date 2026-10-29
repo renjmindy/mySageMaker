@@ -22,5 +22,11 @@
     "reason": "dashboard, data and alert owners and channels are [OPEN]",
     "owner": "process owner",
     "expires": "2026-12-31"
+  },
+  {
+    "check": "requirements work vs the log and the deliverables",
+    "reason": "the analysis brief is a draft and the stakeholder roles are unnamed until the process owner confirms the brief and names the people",
+    "owner": "process owner",
+    "expires": "2026-12-31"
   }
 ]

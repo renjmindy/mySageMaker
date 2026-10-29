@@ -1,0 +1,31 @@
+{
+  "assumptions": {
+    "A9":  {"ask": "process owner", "question": "Does an N/A list with a count above 0 mean the list is unreadable, so the reading is dropped (about 70 rows)?", "blocks": "which readings count (applied, not confirmed)"},
+    "A11": {"ask": "production planner", "question": "Is the planned production time 24x7, or is there a calendar with shifts and maintenance windows?", "blocks": "time-based OEE and any capacity-constraint assessment"},
+    "A12": {"ask": "process owner", "question": "Should front and rear be reported separately, with the 512-position view as the mean of the two?", "blocks": "how the headline is presented (applied, not confirmed)"},
+    "A13": {"ask": "process engineer", "question": "Are aligned 2x2 blocks one physical unit (board, module, DUT group), and which?", "blocks": "any statement of a physical cause and the maintenance plan"},
+    "A14": {"ask": "data / capture owner", "question": "Are readings with counts of 240 to 251 whose list also agrees real events or failed screen reads?", "blocks": "about 28 kept readings and the failed-read band"},
+    "A17": {"ask": "data / capture owner", "question": "Are out-of-range and duplicate position numbers screen-read artefacts to be removed?", "blocks": "cleaning rule applied to about 0.3% (front) and 1.8% (rear) of readings"},
+    "A18": {"ask": "process owner", "question": "Is capping each reading's time at 15 minutes the right way to weight readings across capture gaps?", "blocks": "the time-weighted headline (effect up to about 0.4 pt)"},
+    "A19": {"ask": "equipment / maintenance lead", "question": "Are a 7-day window and the 50% / 10% / 20% thresholds the right way to decide what is closed now?", "blocks": "the closed-now view, the ranked list and the dashboard status words"},
+    "A20": {"ask": "process owner", "question": "Are the time-series thresholds (robust z 2.5, 5% bad-reads day, p < 0.05 shift, 60-position burst) acceptable?", "blocks": "trend and time-of-day statements"}
+  },
+  "sources": [
+    {"path": "contactor_logs_catalog_entry", "theme": "data source facts", "ask": "data / capture owner", "question": "Who owns the data and the capture; what is the handler ID of the Sep/Oct logs; how are they captured; what time zone, refresh schedule and retention apply?", "blocks": "provenance and the refresh path"},
+    {"path": "metric_definition.yaml", "theme": "metric owners", "ask": "process owner", "question": "Who owns each metric definition?", "blocks": "metric governance and the QA waiver for owners"},
+    {"path": "dashboard_spec_sep_oct_2026", "theme": "dashboard and alert owners", "ask": "equipment / maintenance lead", "question": "Who owns the dashboard, the data and each alert; which channel; what retention and latency; which visual draws the grid?", "blocks": "building the dashboard and paging anyone"},
+    {"path": "executive_summary_sep_oct_2026", "theme": "actions in the executive summary", "ask": "equipment / maintenance lead", "question": "Who does each recommended action, and by when?", "blocks": "acting on the summary"},
+    {"path": "qa_signoff_sep_oct_2026", "theme": "sign-off", "ask": "reviewer", "question": "Who reviews independently, and who checks the front groups against a screenshot or a maintenance log?", "blocks": "release sign-off"},
+    {"path": "qa_waivers.json", "theme": "waiver owners", "ask": "process owner", "question": "Name the owners the waivers refer to.", "blocks": "waiver expiry"},
+    {"path": "handler_utilization_analysis_sep_oct_2026", "theme": "analysis document reviewer and owners", "ask": "process owner", "question": "Who reviews the analysis document, and who owns the metrics and data?", "blocks": "document sign-off"},
+    {"path": "analysis_brief_sep_oct_2026", "theme": "brief confirmation", "ask": "process owner", "question": "Who confirms the brief, and what is the deadline?", "blocks": "scope, success criteria and deadlines"},
+    {"path": "requirements_sep_oct_2026", "theme": "requirement owners", "ask": "process owner", "question": "Who owns each requirement and accepts it?", "blocks": "acceptance"},
+    {"path": "stakeholder_map_sep_oct_2026", "theme": "stakeholder names", "ask": "process owner", "question": "Who fills each role, including the process owner and the independent reviewer?", "blocks": "every confirmation and sign-off"}
+  ],
+  "static": [
+    {"theme": "run-state, output, good-unit and cycle-time feeds", "ask": "data / capture owner", "question": "Where can run / idle / jam / down history, unit counts, bin results and ideal cycle times be obtained (handler logs, MES)?", "blocks": "time-based OEE (blocked)"},
+    {"theme": "maintenance and contactor-change records, screenshots", "ask": "equipment / maintenance lead", "question": "Do maintenance or contactor-change records and screenshots of the closed positions exist, and can they be shared?", "blocks": "checking events against reality and the chronic-site review"},
+    {"theme": "rear zero-closed days", "ask": "equipment / maintenance lead", "question": "Do the rear zero-closed days (09/17, 09/19, 09/23, 10/02) reflect real repairs or board swaps, or idle days?", "blocks": "reading the rear history"},
+    {"theme": "business parameters for the deferred cost estimate", "ask": "finance / business owner", "question": "What are units per hour per site, margin per unit, repair cost, hours per day, days, repair downtime and the probability a repair holds, and is the handler capacity-constrained?", "blocks": "lifting the impact-quantification deferral"}
+  ]
+}
