@@ -1,0 +1,213 @@
+❯ I wanna set up a web-site and database to store the conversation sessions. this web-site will be hosted on top of one Linux OS machine. this web-site will be connected with one DGX Spark machine where one KM RAG is built.
+
+I'll help you plan this. Let me first look at what's in the current project to understand the existing RAG setup.
+
+  Listed 2 directories
+
+The project currently only has 3 PDF maintenance docs — no code/backend yet. So we're building this from scratch.
+
+Recommended stack (a reasonable default — redirect if you prefer otherwise):
+- Frontend: Next.js or a lighter Vite + React — streaming chat UI
+- Backend: FastAPI on the Linux host — handles sessions, auth, and proxies RAG queries to the DGX Spark over HTTP/gRPC
+- Database: PostgreSQL for sessions/messages/users; optionally pgvector if you ever want to cache embeddings on the web host
+- RAG service on DGX Spark: exposes an HTTP endpoint (e.g. POST /query) that the Linux backend calls
+
+Main tradeoff: putting Postgres on the Linux web host (simplest) vs. on the DGX (keeps data close to RAG). I'd put it on the Linux host — the DGX should stay focused on GPU inference.
+
+Before I plan or write anything, a few things I need to know:
+Invalid tool parameters
+
+● User answered Claude's questions:
+· What's the deployment context for the website? → Internal LAN only
+· How does the DGX Spark expose its RAG service? → Already has HTTP API
+· Which features should the site support? → Multi-user with login, Session history + resume, Streaming responses, Citations / source previews
+· Where are we on infrastructure right now? → Just the backend/API first
+
+Got it. LAN-only, DGX API already exists, multi-user with login + history + streaming + citations, backend first.
+
+Here's what I'd build. One thing I need from you before I write code: the DGX RAG endpoint details.
+
+Backend-first plan
+
+Stack
+- FastAPI (Python 3.11+) on the Linux host
+- PostgreSQL on the same Linux host
+- SQLAlchemy + Alembic for schema/migrations
+- httpx with streaming to proxy DGX responses as SSE to future frontend
+- Simple session-cookie auth with passlib (bcrypt) + itsdangerous — LAN-only, so no need for OAuth/SSO yet
+
+Schema (first pass)
+- users — id, email, password_hash, display_name, created_at
+- sessions — id, user_id (FK), title, created_at, updated_at
+- messages — id, session_id (FK), role (user/assistant), content, created_at
+- citations — id, message_id (FK), source_doc, page, snippet, score
+
+Endpoints
+- POST /auth/register, POST /auth/login, POST /auth/logout, GET /auth/me
+- GET /sessions, POST /sessions, GET /sessions/{id}, PATCH /sessions/{id} (rename), DELETE /sessions/{id}
+- GET /sessions/{id}/messages
+- POST /sessions/{id}/messages — takes user prompt, calls DGX RAG, streams assistant tokens back via SSE, persists both messages + citations when done
+
+Layout
+jtron-maintenance-rag/
+  backend/
+    app/
+      main.py, config.py, db.py, deps.py
+      auth/   sessions/   messages/   rag_client.py
+    alembic/
+    pyproject.toml   .env.example
+  docs/  (existing PDFs)
+
+Questions before I start writing:
+
+● User declined to answer questions
+· What does the DGX RAG HTTP API look like? (I'll share the spec now / Treat it as OpenAI-compatible / Stub it for now, wire later)
+· Is PostgreSQL already installed on the Linux host? (Already installed / Install via Docker Compose / Install natively on the host)
+· How should the Linux host reach the DGX Spark? (DGX hostname/IP on the same LAN / SSH tunnel / port forward / Via a reverse proxy)
+
+✻ Cogitated for 1m 1s · done 6:17 PM
+
+❯ I wanna set up a web-site and database to store the conversation sessions. this web-site will be hosted on top of one Linux OS machine. this web-site will be connected with one DGX Spark machine where one KM RAG is built.
+
+Understood — I'll stop asking and lay out a concrete plan you can redirect.
+
+Architecture
+
+[Browser on LAN]
+      │ HTTPS (self-signed or internal CA)
+      ▼
+┌─────────────────────────────────┐
+│  Linux host                     │
+│  ┌───────────────────────────┐  │
+│  │ Nginx (reverse proxy)     │  │
+│  └─────────────┬─────────────┘  │
+│                │                 │
+│  ┌─────────────▼─────────────┐  │
+│  │ FastAPI (uvicorn)         │  │
+│  │  - auth, sessions, msgs   │  │
+│  │  - SSE streaming proxy    │  │
+│  └──────┬──────────────┬─────┘  │
+│         │              │        │
+│  ┌──────▼──────┐  ┌────▼─────┐  │
+│  │ PostgreSQL  │  │ httpx    │  │
+│  │ (sessions,  │  │ client   │  │
+│  │  messages,  │  └────┬─────┘  │
+│  │  citations) │       │        │
+│  └─────────────┘       │        │
+└────────────────────────┼────────┘
+                         │ HTTP over LAN
+                         ▼
+             ┌────────────────────┐
+             │  DGX Spark         │
+             │  KM RAG service    │
+             └────────────────────┘
+
+Database schema
+
+users        (id, email UNIQUE, password_hash, display_name, created_at)
+sessions     (id, user_id FK, title, created_at, updated_at)
+messages     (id, session_id FK, role, content, token_count, created_at)
+citations    (id, message_id FK, source_doc, page, snippet, score)
+
+Indexes on sessions.user_id, messages.session_id, citations.message_id.
+
+HTTP API (FastAPI)
+
+┌────────┬─────────────────────────┬─────────────────────────────────────────────────────────┐
+│ Method │          Path           │                         Purpose                         │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ POST   │ /auth/register          │ create user                                             │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ POST   │ /auth/login             │ set session cookie                                      │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ POST   │ /auth/logout            │ clear cookie                                            │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ GET    │ /auth/me                │ current user                                            │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ GET    │ /sessions               │ list user's sessions                                    │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ POST   │ /sessions               │ new session                                             │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ GET    │ /sessions/{id}          │ session + messages                                      │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ PATCH  │ /sessions/{id}          │ rename                                                  │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ DELETE │ /sessions/{id}          │ remove                                                  │
+├────────┼─────────────────────────┼─────────────────────────────────────────────────────────┤
+│ POST   │ /sessions/{id}/messages │ send prompt, SSE-stream reply, persist both + citations │
+└────────┴─────────────────────────┴─────────────────────────────────────────────────────────┘
+
+Repository layout
+
+jtron-maintenance-rag/
+├── backend/
+│   ├── app/
+│   │   ├── main.py             # FastAPI entry, CORS, SSE
+│   │   ├── config.py           # env: DB_URL, DGX_RAG_URL, SECRET_KEY
+│   │   ├── db.py               # SQLAlchemy engine/session
+│   │   ├── models.py           # ORM models
+│   │   ├── schemas.py          # Pydantic request/response
+│   │   ├── auth/               # register, login, cookie dep
+│   │   ├── sessions/           # CRUD routes
+│   │   ├── messages/           # send + stream + persist
+│   │   └── rag_client.py       # httpx streaming client to DGX
+│   ├── alembic/                # migrations
+│   ├── tests/
+│   ├── pyproject.toml
+│   ├── .env.example
+│   └── docker-compose.yml      # postgres + backend
+├── docs/                       # existing PDFs
+└── README.md
+
+Open assumptions I'll make unless you tell me otherwise
+
+1. DGX API shape: I'll build a thin rag_client.py with a clean interface (query(prompt, history) -> AsyncIterator[Chunk]) and a stub implementation returning canned text + citations. You swap in the real DGX call by filling one function. This unblocks everything else.
+2. Postgres: via docker-compose.yml on the Linux host — simplest to reproduce.
+3. Auth: email + password, bcrypt, signed session cookie. Registration open to anyone on the LAN unless you want an invite flag.
+4. Python 3.11, FastAPI, SQLAlchemy 2.x, Alembic, httpx, passlib, python-jose or itsdangerous.
+
+Want me to start scaffolding backend/ now with those assumptions, or redirect any of them first?
+
+✻ Crunched for 23s · done 6:18 PM
+
+❯ HTTP over LAN --> websocket (long connection)
+
+Got it — DGX leg goes to a persistent WebSocket.
+
+Updated architecture
+
+[Browser on LAN]
+      │ HTTPS + SSE (one-way token stream)
+      ▼
+┌─────────────────────────────────┐
+│  Linux host                     │
+│  ┌──────────────┐               │
+│  │ FastAPI      │               │
+│  │  + WS client │──┐            │
+│  └──────┬───────┘  │            │
+│         │          │ long-lived │
+│  ┌──────▼─────┐    │ WebSocket  │
+│  │ PostgreSQL │    │            │
+│  └────────────┘    │            │
+└────────────────────┼────────────┘
+                     ▼
+             ┌────────────────────┐
+             │  DGX Spark         │
+             │  KM RAG WS server  │
+             └────────────────────┘
+
+What changes
+
+- rag_client.py: uses the websockets library, not httpx. Maintains one long-lived connection (reconnect with exponential backoff, heartbeat ping every 30s).
+- Concurrency: multiplex requests over the single WS with a per-request request_id field, so parallel user chats share the connection. A dict {request_id: asyncio.Queue} routes incoming frames back to the right caller.
+- Lifecycle: open the WS in FastAPI's lifespan startup, close on shutdown.
+- Message framing (assumed, swap when you share DGX's):
+  - Client → DGX: {"type":"query","request_id":"...","prompt":"...","history":[...]}
+  - DGX → Client: {"type":"token","request_id":"...","text":"..."}, {"type":"citation","request_id":"...","source":"...","page":...}, {"type":"done","request_id":"..."}
+- Browser leg stays SSE — simpler than WS for one-way token streaming, and no change to the public API.
+
+Everything else (schema, routes, repo layout, auth) is unchanged.
+
+Ready to scaffold backend/ with this?
+
+✻ Brewed for 15s · done 6:21 PM
