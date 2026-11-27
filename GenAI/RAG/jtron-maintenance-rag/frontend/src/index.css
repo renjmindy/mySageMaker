@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+/* subtle scrollbars in dark theme */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: #343c49; border-radius: 10px; }
+*::-webkit-scrollbar-thumb:hover { background: #4a5362; }
