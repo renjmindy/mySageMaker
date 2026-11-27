@@ -36,6 +36,7 @@ log = logging.getLogger(__name__)
 _RECONNECT_BASE_DELAY = 1.0
 _RECONNECT_MAX_DELAY = 30.0
 _HEARTBEAT_INTERVAL = 30.0
+_READY_WAIT_TIMEOUT = 10.0  # how long a query will wait for the WS to come up
 _SENTINEL_DONE: dict[str, Any] = {"type": "done"}
 
 
@@ -96,7 +97,14 @@ class RagClient:
     async def _iterate(
         self, prompt: str, history: list[dict[str, str]]
     ) -> AsyncIterator[Chunk]:
-        await self._ready.wait()
+        try:
+            await asyncio.wait_for(self._ready.wait(), timeout=_READY_WAIT_TIMEOUT)
+        except asyncio.TimeoutError:
+            yield RagError(
+                message=f"RAG service is not reachable at {self._url} "
+                f"(no WebSocket connection after {int(_READY_WAIT_TIMEOUT)}s)."
+            )
+            return
         request_id = str(uuid.uuid4())
         queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self._pending[request_id] = queue
